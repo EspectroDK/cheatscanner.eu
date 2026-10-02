@@ -52,6 +52,9 @@ done
 docker compose up -d --remove-orphans
 docker image prune -f >/dev/null
 
+# Map screenshots for the website: not in the repository (Valve's images), so download the missing ones.
+docker compose exec -T api cs2-analyzer map-images || echo "Note: some map screenshots could not be downloaded; the site draws those banners."
+
 # Nightly backup (idempotent).
 job="17 3 * * * $PWD/deploy/backup.sh >> $PWD/backups/backup.log 2>&1"
 (crontab -l 2>/dev/null | grep -v 'deploy/backup.sh' || true; echo "$job") | crontab -

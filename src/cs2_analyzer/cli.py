@@ -199,6 +199,15 @@ def cmd_maps_fetch(args) -> int:
     return 0
 
 
+def cmd_map_images(args) -> int:
+    """Download the map screenshots the website shows (deploy/server-deploy.sh runs this on the server)."""
+    from cs2_analyzer.map_images import fetch, images_dir
+
+    cfg = _load_cfg(args)
+    failed = fetch(images_dir(cfg.get("geometry.maps_dir")), force=args.force)
+    return 1 if failed else 0
+
+
 def cmd_maps_check(args) -> int:
     """Check .tri meshes before they are installed (tools/deploy/push-maps.ps1 runs this on the server)."""
     from cs2_analyzer.geometry.status import check_mesh, mesh_patch
@@ -424,6 +433,10 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("map")
     m.add_argument("--url")
     m.set_defaults(func=cmd_maps_fetch)
+
+    mi = sub.add_parser("map-images", help="download the map screenshots for the website (skips ones already there)")
+    mi.add_argument("--force", action="store_true", help="download all again")
+    mi.set_defaults(func=cmd_map_images)
 
     mc = sub.add_parser("maps-check", help="check .tri map meshes (files or folders; default: the maps folder)")
     mc.add_argument("paths", nargs="*")

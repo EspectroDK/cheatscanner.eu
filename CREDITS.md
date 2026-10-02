@@ -66,9 +66,10 @@ Galli et al., and the Kaggle CS:GO cheating dataset.
   build meshes from a local CS2 install (`tools/geometry/build_tris.py`).
 - **[Intel Embree](https://www.embree.org)** (via [embreex](https://github.com/trimesh/embreex)) does the
   raycasting.
-- **Map screenshots** in `web/public/maps/` are resized from
+- **Map screenshots** on the map banners come from
   [neustcs/cs2mapsthumbnails](https://github.com/neustcs/cs2mapsthumbnails). They are in-game images of
-  Valve's maps; see [SOURCE.md](web/public/maps/SOURCE.md).
+  Valve's maps, so they are not in this repository: the server downloads and resizes them
+  (`cs2-analyzer map-images`); see [SOURCE.md](web/public/maps/SOURCE.md).
 
 ## Libraries
 

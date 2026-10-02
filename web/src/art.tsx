@@ -1,6 +1,7 @@
 // Our own artwork: logo, side emblems and map banners. Drawn here as SVG so there are no licensing
-// questions around Valve's images. A real map image can still be dropped into web/public/maps/<map>.jpg
-// and is shown on top of the drawn banner when present (see web/public/maps/SOURCE.md).
+// questions around Valve's images. A real map image at maps/<map>.jpg (downloaded on the server by
+// `cs2-analyzer map-images`, or dropped into web/public/maps/) is shown on top of the drawn banner when
+// present (see web/public/maps/SOURCE.md).
 import { useState } from "react";
 
 export function Logo({ size = 28 }: { size?: number }) {
