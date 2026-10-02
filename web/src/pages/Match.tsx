@@ -97,7 +97,7 @@ function TeamTable({ team, data, me, won }: { team: number | null; data: MatchDe
                   </>
                 ) : (
                   <>
-                    <td className="muted small" title="Only shown for players you have played with or against">Hidden</td>
+                    <td className="muted small" title="Only shown for players you have played with or against, or whose match you uploaded">Hidden</td>
                     <td className="num-col muted">–</td>
                   </>
                 )}

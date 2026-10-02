@@ -16,8 +16,8 @@ user sees follows these rules (also described in the README, section Website):
   Events and timeline points from matches the viewer can't open carry the map and date, and no link to the match. Other players keep their
   names there; their Steam ID (the link to their page) is only sent when the
   viewer has played with or against them somewhere.
-- in a match the viewer can open (e.g. one whose demo they uploaded), players
-  they haven't played with are listed without their evidence class.
+- uploading a demo counts like playing in that match: the uploader sees every
+  player in it, with their evidence.
 
 Without auth (local use) everything is visible, as before. If the website has
 been built (``web/dist``), it is served at ``/``.
@@ -150,7 +150,10 @@ class Viewer:
         """Matches whose details about ``steam_id`` this viewer may see (None = all)."""
         if self.unrestricted:
             return None
-        return db.shared_matches(self.steam_id, steam_id) if steam_id != self.steam_id else set(self.played)
+        if steam_id == self.steam_id:
+            return set(self.played)
+        uploaded = {m for m, roster in db.match_rosters(self.uploaded).items() if steam_id in roster}
+        return db.shared_matches(self.steam_id, steam_id) | uploaded
 
 
 def create_app(config: Config | None = None, db_url: str | None = None, steam_http_post: HttpPost | None = None,
@@ -365,7 +368,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         for p in m["players"]:
             p["visible"] = v.can_see_player(int(p["steamId"]))
             if not p["visible"]:
-                p["assessment"] = None  # e.g. an uploaded match: strangers are listed, but not their evidence
+                p["assessment"] = None
         return m
 
     @app.get("/matches/{match_id}/evidence")
