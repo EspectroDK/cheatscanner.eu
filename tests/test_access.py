@@ -64,17 +64,19 @@ def test_matches_visible_if_played_or_uploaded(config, tmp_path):
     assert all(p["visible"] for p in m1["players"])
     assert c.get("/matches/m2").status_code == 404
 
-    # Supplying a demo shows that match, but not the history of strangers in it.
+    # Supplying a demo counts like playing in that match: every player in it becomes visible.
+    assert c.get(f"/players/{STRANGER}").status_code == 404
     user_id = c.get("/me").json()["id"]
     db.record_upload("m3", user_id)
     assert {m["matchId"] for m in c.get("/me/matches").json()} == {"m1", "m3"}
     m3 = c.get("/matches/m3").json()
-    assert m3["players"] and not any(p["visible"] for p in m3["players"])
-    assert all(p["assessment"] is None for p in m3["players"])          # strangers' evidence stays hidden
+    assert m3["players"] and all(p["visible"] for p in m3["players"])
+    assert all(p["assessment"] for p in m3["players"])
+    assert {e["steamId"] for e in c.get("/matches/m3/evidence").json()} == {str(STRANGER), str(STRANGER2)}
     card = next(m for m in c.get("/me/matches").json() if m["matchId"] == "m3")
-    assert all(p["classification"] is None for p in card["players"])
-    assert c.get(f"/players/{STRANGER}").status_code == 404
-    assert c.get("/matches/m2").status_code == 404
+    assert all(p["classification"] == "NORMAL" for p in card["players"])
+    assert c.get(f"/players/{STRANGER}").status_code == 200
+    assert c.get("/matches/m2").status_code == 404  # their other matches still can't be opened
 
 
 def _file(path):

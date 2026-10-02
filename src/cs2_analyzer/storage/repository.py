@@ -430,12 +430,14 @@ class Database:
         """What a signed-in user may see (see the module docstring of api/app.py).
 
         ``played``: matches the user played in. ``uploaded``: matches whose demo the user supplied.
-        ``co_players``: the user and everyone they played with or against in ``played`` matches.
+        ``co_players``: the user and everyone in ``played`` or ``uploaded`` matches (supplying a demo
+        counts like playing in it).
         """
         with self.session() as s:
             played = set(s.scalars(select(M.MatchPlayer.match_id).where(M.MatchPlayer.steam_id == steam_id)))
             uploaded = set(s.scalars(select(M.MatchUpload.match_id).where(M.MatchUpload.user_id == user_id)))
-            co = set(s.scalars(select(M.MatchPlayer.steam_id).where(M.MatchPlayer.match_id.in_(played)))) if played else set()
+            seen = played | uploaded
+            co = set(s.scalars(select(M.MatchPlayer.steam_id).where(M.MatchPlayer.match_id.in_(seen)))) if seen else set()
             return {"played": played, "uploaded": uploaded, "co_players": co | {steam_id}}
 
     def shared_matches(self, a: int, b: int) -> set[str]:
