@@ -336,6 +336,32 @@ max_idle_off_rate = 0.01         # idle movement must itself be clean (noisy inp
 min_round_idle_moves = 200       # rounds with fewer idle moves are left out of that median
 max_p_value = 1e-6
 
+[detectors.information_gap]
+# Following hidden enemies (walls, stable smoke cores) more closely than the best
+# legitimate estimate of their position allows: knowledge/estimates.py.
+enabled = true
+reliability = 0.6
+sight_floor_deg = 0.0
+team_floor_deg = 1.5               # radar and callouts are coarse
+sound_floor_deg = 6.0              # hearing gives a direction, not a point
+damage_floor_deg = 10.0
+extrapolate_s = 0.6                # last sighting may be extrapolated along the enemy's velocity
+min_run_ms = 500
+min_gap_deg = 6.0                  # only where legitimate information is at least this far off
+on_target_deg = 3.0
+on_target_gap_fraction = 0.5       # ... and well inside the gap
+smooth_ticks = 5
+burst_gap_ms = 1000                # a shot after this long without shooting starts a burst
+max_shot_error_deg = 20.0
+# Calibrated on 174 CS2CD Mirage/Nuke matches: 0 of 714 clean players, 46 of 420
+# labelled cheaters. Highest clean player: 283 deg at 3%.
+min_tracked_deg = 300.0            # tracked enemy movement over the match
+min_tracked_share = 0.03           # ... and its share of all such movement (clean median 1%)
+full_tracked_share = 0.08
+min_shots_on_target = 12           # first shots only add severity, never raise the event
+min_shot_share = 0.3
+first_shot_bonus = 0.1
+
 [detectors.smoke_kills]
 # Kills the game itself marks as through smoke (player_death.thrusmoke). Calibrated
 # on 795 CS2CD matches: clean p99 is 4; >=10 and >=35% of kills: 2 of 4,598 clean
