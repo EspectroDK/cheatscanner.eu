@@ -295,6 +295,8 @@ repository is <https://github.com/EspectroDK/cheatscanner.eu>. If you run a modi
 The calibration data, research and open-source projects this builds on are listed in
 [CREDITS.md](CREDITS.md).
 
+This project have been developed using AI tools - more specifically Claude, and mainly Opus 5.5. Commits are, however, reviewed by me. 
+
 ## Tests
 
 ```bash
