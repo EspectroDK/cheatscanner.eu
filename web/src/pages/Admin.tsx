@@ -125,10 +125,20 @@ export function Admin() {
       <div className="admin-two">
         <div className="card-table">
           <table>
-            <thead><tr><th>Players by class</th><th className="num-col">Players</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Players by class</th>
+                <th className="num-col" title="Class from the player's whole history. The play pattern only counts from 2 matches on.">Overall</th>
+                <th className="num-col" title="Each player counted once, at their highest class in any single match.">Highest in a match</th>
+              </tr>
+            </thead>
             <tbody>
               {(["NORMAL", "ELEVATED", "HIGH", "INSUFFICIENT_DATA"] as const).map((c) => (
-                <tr key={c}><td><ClassBadge value={c} /></td><td className="num-col">{n(o.players.byClass[c])}</td></tr>
+                <tr key={c}>
+                  <td><ClassBadge value={c} /></td>
+                  <td className="num-col">{n(o.players.byClass[c])}</td>
+                  <td className="num-col">{n(o.players.byHighestMatchClass[c])}</td>
+                </tr>
               ))}
             </tbody>
           </table>

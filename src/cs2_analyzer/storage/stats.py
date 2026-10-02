@@ -10,7 +10,7 @@ from __future__ import annotations
 import statistics
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 
 from cs2_analyzer.storage import models as M
 from cs2_analyzer.storage.repository import Database, _iso, _utc
@@ -87,12 +87,24 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
         # -------------------------------------------------------- players
         classes = dict(s.execute(select(M.PlayerAssessment.classification, func.count())
                                  .group_by(M.PlayerAssessment.classification)).all())
+        # The overall class needs >=2 matches before the play pattern counts, so a player can be HIGH in
+        # one match and still NORMAL overall. Also count each player once at their highest class in any
+        # single analyzed match.
+        rank = case((M.PlayerMatchAssessment.classification.in_(("HIGH", "VERY_HIGH")), 3),
+                    (M.PlayerMatchAssessment.classification == "ELEVATED", 2),
+                    (M.PlayerMatchAssessment.classification == "NORMAL", 1), else_=0)
+        worst = (select(func.max(rank).label("r")).join(M.Match, M.Match.match_id == M.PlayerMatchAssessment.match_id)
+                 .where(M.Match.processing_status == "COMPLETED")
+                 .group_by(M.PlayerMatchAssessment.steam_id).subquery())
+        by_rank = dict(s.execute(select(worst.c.r, func.count()).group_by(worst.c.r)).all())
         players = {
             "total": count(select(func.count()).select_from(M.Player)),
             "assessed": sum(classes.values()),
             "byClass": {"NORMAL": classes.get("NORMAL", 0), "ELEVATED": classes.get("ELEVATED", 0),
                         "HIGH": classes.get("HIGH", 0) + classes.get("VERY_HIGH", 0),
                         "INSUFFICIENT_DATA": classes.get("INSUFFICIENT_DATA", 0)},
+            "byHighestMatchClass": {"NORMAL": by_rank.get(1, 0), "ELEVATED": by_rank.get(2, 0),
+                                    "HIGH": by_rank.get(3, 0), "INSUFFICIENT_DATA": by_rank.get(0, 0)},
             "evidenceEvents": count(select(func.count()).select_from(M.EvidenceEvent)),
         }
 
