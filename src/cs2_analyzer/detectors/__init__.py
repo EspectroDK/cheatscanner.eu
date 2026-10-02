@@ -16,6 +16,7 @@ from cs2_analyzer.detectors.base import (
 )
 from cs2_analyzer.detectors.context_info import FlashDetector, StrategicInformationDetector
 from cs2_analyzer.detectors.hidden_tracking import HiddenTrackingDetector, SmokeTrackingDetector
+from cs2_analyzer.detectors.information_gap import InformationGapDetector
 from cs2_analyzer.detectors.input_lattice import InputLatticeDetector
 from cs2_analyzer.detectors.previsibility import PrevisibilityDetector
 from cs2_analyzer.detectors.remembered_position import RememberedPositionDetector
@@ -40,6 +41,7 @@ ALL_DETECTORS: dict[str, type[Detector]] = {
         TriggerTimingDetector,
         RecoilDetector,
         SmokeTrackingDetector,
+        InformationGapDetector,
         FlashDetector,
         StrategicInformationDetector,
         MechanicalImpossibilityDetector,

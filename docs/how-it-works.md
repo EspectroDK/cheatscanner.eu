@@ -86,6 +86,14 @@ Every source is modelled with generous ranges and long memory. Only moments wher
 applies are treated as "the player had no legitimate information". This model exists mainly to prevent
 false alarms.
 
+Knowing *that* an enemy is around is not the same as knowing *exactly where* he is. A footstep tells you
+roughly where someone was; a sighting three seconds ago tells you where he was three seconds ago. So each
+source also gives an **estimate of the enemy's position with a margin of error**: the last sighting
+(optionally carried forward along the enemy's movement for a moment), where a sound was made plus a margin
+because hearing gives a direction rather than a point, and coarser margins for radar, callouts and damage.
+For hidden enemies the analyzer measures how far the *best* of these estimates is from the enemy's real
+position. It picks the best one knowing the real position, which favours the player.
+
 ## Step 4: measurements (what is tracked)
 
 The match is split into **encounters** (a player and an enemy over a stretch of time) and into individual
@@ -104,6 +112,7 @@ far outside what legitimate players do.
 | Aim on the current hidden position | Whether aim stays closer to where a hidden enemy *is now* than to where they were a moment ago. | Match-level statistics with confidence intervals; the enemy must have moved. |
 | Pre-aim before visibility | Whether aim converges on an enemy's real position before they become visible. | Holding an angle an enemy walks into does not count; pre-aiming a common spot does not count. Kept at low weight because good players pre-aim well. |
 | Aim near hidden enemies | How often the crosshair rests near hidden enemies, compared with the same player's movement shifted in time (a "what would chance give" baseline). | Needs a lot of data; very low weight, because common angles explain much of it. |
+| Following hidden enemies beyond what could be known | Over the whole match: how much of hidden enemies' own movement (behind walls or the stable core of a smoke) the crosshair stays on, at moments when the best legitimate estimate of their position is clearly off. Also how many first shots at such enemies land on target. A wallhack lets a player follow an enemy, including his direction changes, again and again; sound and old sightings do not. | Only the enemy's own movement counts, so holding an angle an enemy walks into adds almost nothing. Estimates are generous and only information from before each moment counts. It takes both a large amount and a large share of tracked movement over the match; clean players typically keep the crosshair on about 1% of it, and no clean player in the calibration data reached the bar. First shots only add weight. |
 | Kills through smoke | How many of a player's kills the game itself records as going through a smoke. A wallhack shows enemies inside and behind smokes. | One lucky spray is common: it takes many such kills that are also a large share of the player's kills; clean players rarely have more than a handful in a match. |
 
 ### Aim and shooting mechanics
@@ -225,6 +234,11 @@ the 140 pro players, 1 reaches Elevated from the pattern with either reference.
 
 The mouse-input check was also run on 31 real matchmaking demos from nine maps and the 15 pro matches:
 456 of 465 player slots fitted a mouse grid, and no player there met its evidence criteria.
+
+The check for following hidden enemies beyond what could be known was calibrated on the 174 CS2CD Mirage
+and Nuke matches: it flags no clean player (714) and no unlabelled player in cheater matches (600), and
+flags 46 of 420 labelled cheaters (23 of 98 on Nuke, 23 of 322 on Mirage). Smokes in that data rarely
+hide players behind a stable core for long, so the check is better calibrated for walls than for smokes.
 
 Detector thresholds are described here as ranges and percentiles rather than exact values, so that the
 detection is not trivial to tune a cheat against. Every threshold lives in the source code's
