@@ -50,6 +50,7 @@ def test_overview_counts(config, tmp_path):
             m.meta = {"analysis_s": secs, "queue_wait_s": 5.0}
         s.get(M.Match, "m3").processing_status = "FAILED"
         s.get(M.PlayerAssessment, ENEMY).classification = "VERY_HIGH"
+        s.get(M.PlayerMatchAssessment, (MATE, "m1")).classification = "HIGH"   # HIGH in one match, NORMAL overall
     token = _link(c)  # signs in as ME and links a companion app
     app = TestClient(c.app)
     ok = app.post("/lobby/risk", json={"players": [{"steamId": str(ENEMY)}, {"steamId": str(MATE)}]},
@@ -62,6 +63,8 @@ def test_overview_counts(config, tmp_path):
     assert o["matches"]["analyzed24h"] == 2 and sum(d["count"] for d in o["matches"]["perDay"]) == 2
     assert o["matches"]["byMap"] == [{"map": "de_mirage", "count": 2}]
     assert o["players"]["total"] == 5 and o["players"]["byClass"]["HIGH"] == 1 and o["players"]["byClass"]["NORMAL"] == 4
+    # Per match: m3 failed; MATE counted once at HIGH, ENEMY stays NORMAL in its match.
+    assert o["players"]["byHighestMatchClass"] == {"NORMAL": 4, "ELEVATED": 0, "HIGH": 1, "INSUFFICIENT_DATA": 0}
     assert o["speed"]["analysisSeconds"] == {"count": 2, "median": 60.0, "p90": 80.0, "mean": 60.0}
     assert o["speed"]["queueWaitSeconds"]["median"] == 5.0
     assert o["companion"]["linkedApps"] == 1 and o["companion"]["activeLast15m"] == 1

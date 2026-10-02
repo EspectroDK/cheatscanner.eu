@@ -235,7 +235,7 @@ export interface AdminOverview {
     byMap: { map: string; count: number }[];
     perDay: { date: string; count: number }[];
   };
-  players: { total: number; assessed: number; byClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; evidenceEvents: number };
+  players: { total: number; assessed: number; byClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; byHighestMatchClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; evidenceEvents: number };
   fetch: {
     byStatus: Record<ShareCodeJob["status"], number>;
     oldestQueuedAt: string | null;
