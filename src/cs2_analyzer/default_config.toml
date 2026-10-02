@@ -330,7 +330,9 @@ min_pre_moves = 100
 min_off_rate = 0.02              # legit 99th percentile before shots: 0.08% (46 demos)
 full_off_rate = 0.2
 min_rate_ratio = 3.0             # pre-shot rate vs the player's idle rate
-max_idle_off_rate = 0.01         # idle movement must itself be clean (noisy input is not evidence)
+max_idle_off_rate = 0.01         # idle movement must itself be clean (noisy input is not evidence),
+                                 # median over rounds: a cheat switched on for a few rounds is not noise
+min_round_idle_moves = 200       # rounds with fewer idle moves are left out of that median
 max_p_value = 1e-6
 
 [scoring]

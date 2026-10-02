@@ -38,6 +38,11 @@ def normalize_yaw(yaw):
     return (np.asarray(yaw, dtype=np.float64) + 180.0) % 360.0 - 180.0
 
 
+# Where newer CS2 builds network the aim punch angle (demoparser2's
+# ``aim_punch_angle`` is empty there).
+AIM_PUNCH_SERVICES_PROP = "CCSPlayerPawn.CCSPlayer_AimPunchServices.m_predictableBaseAngle"
+
+
 def _punch(values: pd.Series, idx: int) -> np.ndarray:
     out = np.full(len(values), np.nan)
     for i, v in enumerate(values.to_numpy()):
@@ -139,7 +144,10 @@ def normalize_ticks(raw: pd.DataFrame, rounds: pd.DataFrame, tickrate: float) ->
             ),
         }
     )
-    punch = _opt(raw, "aim_punch_angle", None, missing)
+    if "aim_punch_angle" not in raw and AIM_PUNCH_SERVICES_PROP in raw:
+        punch = raw[AIM_PUNCH_SERVICES_PROP]
+    else:
+        punch = _opt(raw, "aim_punch_angle", None, missing)
     df["aim_punch_pitch"] = _punch(punch, 0)
     df["aim_punch_yaw"] = _punch(punch, 1)
     weapons = _opt(raw, "active_weapon_name", None, missing)
