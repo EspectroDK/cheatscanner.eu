@@ -12,7 +12,10 @@ demo (demoparser2 0.42), not assumed. Findings are recorded in
   in metadata so every run documents its own error.
 * ``fire_bullets.angles == view + 2 * aim_punch_angle`` (median error ~0.1 deg),
   i.e. the bullet direction includes recoil scaled by 2 while ``pitch/yaw``
-  is the player's (crosshair) view.
+  is the player's (crosshair) view. Since CS2 patch ~14180 demoparser2's
+  ``aim_punch_angle`` comes back empty; the same angle is networked as
+  ``CCSPlayer_AimPunchServices.m_predictableBaseAngle`` (same relation,
+  median error ~0.1 deg), which is read as a fallback.
 * ``player_footstep`` events are sparse in SourceTV demos; the knowledge
   model therefore also derives possible footstep noise from movement.
 """
@@ -29,6 +32,7 @@ import pandas as pd
 
 from cs2_analyzer.parser.base import MatchMeta, ParsedDemo
 from cs2_analyzer.parser.normalize import (
+    AIM_PUNCH_SERVICES_PROP,
     EYE_HEIGHT_CROUCH,
     EYE_HEIGHT_STANDING,
     normalize_ticks,
@@ -40,6 +44,8 @@ TICK_PROPS = [
     "flash_max_alpha", "is_scoped", "duck_amount", "ducking", "is_walking",
     "is_airborne", "shots_fired", "buttons", "FIRE", "spotted",
     "approximate_spotted_by", "game_time", "team_rounds_total",
+    # newer demos: aim punch moved here (unknown fields are skipped on older demos)
+    AIM_PUNCH_SERVICES_PROP,
 ]
 
 RANK_TYPES = {11: "premier", 12: "competitive", 7: "wingman", 10: "danger_zone"}
@@ -81,6 +87,22 @@ def _event(parser, name: str, available: set[str]) -> pd.DataFrame:
         return pd.DataFrame()
     df = parser.parse_event(name)
     return df if df is not None else pd.DataFrame()
+
+
+def smoke_expiries(det: pd.DataFrame, exp: pd.DataFrame) -> list[int]:
+    """Expiry tick for each smoke detonation, -1 when none is found.
+
+    Entity ids are reused during a match, so each detonation is paired with the
+    first expiry of the same entity at or after it, not with that entity's first
+    expiry in the demo (which dropped some smokes and kept others all match).
+    """
+    by_ent = {e: np.sort(g["tick"].to_numpy()) for e, g in exp.groupby("entityid")} if len(exp) else {}
+    out = []
+    for ent, start in zip(det["entityid"], det["tick"]):
+        ticks = by_ent.get(ent)
+        i = int(np.searchsorted(ticks, start)) if ticks is not None else 0
+        out.append(int(ticks[i]) if ticks is not None and i < len(ticks) else -1)
+    return out
 
 
 class DemoParser2Backend:
@@ -272,12 +294,11 @@ class DemoParser2Backend:
         det = _event(parser, "smokegrenade_detonate", available)
         exp = _event(parser, "smokegrenade_expired", available)
         if len(det):
-            exp_by_ent = exp.groupby("entityid")["tick"].min().to_dict() if len(exp) else {}
             ev["smokes"] = pd.DataFrame(
                 {
                     "entity_id": det["entityid"].astype("int64"),
                     "start_tick": det["tick"].astype("int64"),
-                    "end_tick": [int(exp_by_ent.get(e, -1)) for e in det["entityid"]],
+                    "end_tick": smoke_expiries(det, exp),
                     "x": det["x"], "y": det["y"], "z": det["z"],
                     "thrower_steam_id": _sid(det["user_steamid"]),
                 }

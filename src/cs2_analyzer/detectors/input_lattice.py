@@ -27,7 +27,11 @@ player's own movement ("idle"), so each player is their own baseline.
 * Evidence needs many off-lattice moves before shots, a rate well above the
   player's own idle rate, and a one-sided binomial test.
 * Idle movement must itself be clean (``max_idle_off_rate``): noisy input
-  that is off the lattice everywhere is not evidence.
+  that is off the lattice everywhere is not evidence. The idle rate checked
+  here is the median over rounds, because a cheat that is switched on for a
+  few rounds also moves the view between shots in those rounds; noisy input
+  is off the lattice in every round. The ratio and the binomial test still
+  use the idle rate over the whole match.
 * Calibrated on 121 CS2CD Mirage matches (docs/validation/cs2cd): legitimate
   players have essentially no off-lattice moves before shots (99th percentile
   0.08% on 46 matchmaking and pro demos); the rule fires for 14 labelled
@@ -117,6 +121,19 @@ def off_lattice(delta: np.ndarray, d: float, tol: float) -> np.ndarray:
     return (np.abs(delta) > 0.003) & (np.abs(x - np.round(x)) > tol)
 
 
+def round_median_rate(hit: np.ndarray, base: np.ndarray, round_of: np.ndarray, min_n: int,
+                      min_rounds: int = 3) -> float:
+    """Median over rounds of ``hit.sum() / base.sum()``, using rounds with at least ``min_n``
+    base ticks; ``nan`` when fewer than ``min_rounds`` rounds qualify."""
+    r = np.asarray(round_of)[base]
+    n = np.bincount(r)
+    k = np.bincount(np.asarray(round_of)[hit & base], minlength=n.size)
+    use = n >= min_n
+    if use.sum() < min_rounds:
+        return float("nan")
+    return float(np.median(k[use] / n[use]))
+
+
 def _wrap(a):
     return (a + 180.0) % 360.0 - 180.0
 
@@ -141,6 +158,7 @@ class InputLatticeDetector(Detector):
         min_ratio = float(cfg.get("min_rate_ratio", 3.0))
         max_idle = float(cfg.get("max_idle_off_rate", 0.01))
         max_p = float(cfg.get("max_p_value", 1e-6))
+        min_round_idle = int(cfg.get("min_round_idle_moves", 200))
         emit = bool(cfg.get("emit_events", False))
         events = []
         for p in range(w.P):
@@ -181,6 +199,9 @@ class InputLatticeDetector(Detector):
             n_idle, k_idle = int(idle.sum()), int((off & idle).sum())
             n_pre, k_pre = int(pre_moves.sum()), int((off & pre_moves).sum())
             idle_rate = k_idle / n_idle if n_idle else float("nan")
+            idle_round_rate = round_median_rate(off & idle, idle, w.round_of, min_round_idle)
+            if not np.isfinite(idle_round_rate):
+                idle_round_rate = idle_rate
             pre_rate = k_pre / n_pre if n_pre else float("nan")
             p_value = float("nan")
             if n_pre and n_idle:
@@ -198,13 +219,13 @@ class InputLatticeDetector(Detector):
                             off_deg=float(np.nansum(step[win][of])),
                             max_off_step_deg=float(np.nanmax(step[win][of])) if n_off else 0.0)
 
-            summary.update(idle_off_rate=idle_rate, pre_moves=n_pre, pre_off_rate=pre_rate,
-                           shots_with_off=int(shots_with_off), p_value=p_value)
+            summary.update(idle_off_rate=idle_rate, idle_off_rate_round_median=idle_round_rate, pre_moves=n_pre,
+                           pre_off_rate=pre_rate, shots_with_off=int(shots_with_off), p_value=p_value)
             ctx.observe(f"{self.name}_summary", p, **summary)
 
             if not (emit and valid and n_pre >= min_pre_moves and np.isfinite(pre_rate)):
                 continue
-            if (pre_rate >= min_off_rate and pre_rate >= min_ratio * max(idle_rate, 1e-3) and idle_rate <= max_idle
+            if (pre_rate >= min_off_rate and pre_rate >= min_ratio * max(idle_rate, 1e-3) and idle_round_rate <= max_idle
                     and p_value <= max_p):
                 sev = 0.3 + 0.7 * ramp(pre_rate, min_off_rate, full_off_rate)
                 idx = np.nonzero(off & pre_moves)[0]

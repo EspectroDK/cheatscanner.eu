@@ -104,6 +104,7 @@ far outside what legitimate players do.
 | Aim on the current hidden position | Whether aim stays closer to where a hidden enemy *is now* than to where they were a moment ago. | Match-level statistics with confidence intervals; the enemy must have moved. |
 | Pre-aim before visibility | Whether aim converges on an enemy's real position before they become visible. | Holding an angle an enemy walks into does not count; pre-aiming a common spot does not count. Kept at low weight because good players pre-aim well. |
 | Aim near hidden enemies | How often the crosshair rests near hidden enemies, compared with the same player's movement shifted in time (a "what would chance give" baseline). | Needs a lot of data; very low weight, because common angles explain much of it. |
+| Kills through smoke | How many of a player's kills the game itself records as going through a smoke. A wallhack shows enemies inside and behind smokes. | One lucky spray is common: it takes many such kills that are also a large share of the player's kills; clean players rarely have more than a handful in a match. |
 
 ### Aim and shooting mechanics
 

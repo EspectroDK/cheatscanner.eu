@@ -13,7 +13,13 @@ patch 13984; `src/parser/test_demo.dem` in [LaihoE/demoparser](https://github.co
   against `fire_bullets` origins).
 - **View angles**: `pitch`/`yaw` are the view; positive pitch looks down (Source convention).
   `fire_bullets` angles = view + 2 × `aim_punch_angle` (median error ≈0.1°), used by the recoil and
-  mechanical-impossibility detectors.
+  mechanical-impossibility detectors. From CS2 patch ~14180 `aim_punch_angle` comes back empty; the
+  same angle is in `CCSPlayer_AimPunchServices.m_predictableBaseAngle` (same relation, median error
+  ≈0.1–0.15°) and is read from there when the old prop is missing.
+- **Smokes**: `smokegrenade_detonate` / `smokegrenade_expired` share an `entityid`, but entity ids are
+  reused within a match, so each detonation is paired with the first expiry of that entity after it.
+- `buttons` is no longer networked in recent demos (only `m_nToggleButtonDownMask`); it is recorded as
+  missing and no detector depends on it.
 - **Mode**: `rank_update.rank_type_id == 11` means Premier (12 competitive, 7 wingman); with no rank updates the mode is `None`.
 - **Match id**: from a Valve filename `match730_<id>_...` when present, else `sha256-<24 hex>` of the file.
 - `approximate_spotted_by` (bitmask) and `spotted` exist and are used as radar/teammate information.

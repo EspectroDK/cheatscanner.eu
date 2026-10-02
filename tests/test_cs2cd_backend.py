@@ -121,6 +121,18 @@ def test_normalize_tolerates_missing_optional_props(tmp_path):
     assert "buttons" in t.attrs["missing_props"] and "FIRE" in t.attrs["missing_props"]
 
 
+def test_normalize_reads_aim_punch_from_new_services_prop():
+    """Newer CS2 builds network aim punch in CCSPlayer_AimPunchServices; demoparser2's aim_punch_angle is empty."""
+    from cs2_analyzer.parser.normalize import AIM_PUNCH_SERVICES_PROP, normalize_ticks
+
+    raw = pd.DataFrame({"tick": [1, 2], "game_time": [0.0, 1 / 64], "steamid": [7, 7], "team_num": [2, 2],
+                        "X": [0.0, 1.0], "Y": [0.0, 0.0], "Z": [0.0, 0.0], "pitch": [0.0, 0.0], "yaw": [10.0, 10.0],
+                        AIM_PUNCH_SERVICES_PROP: [[1.5, -0.25, 0.0], [0.5, 0.0, 0.0]]})
+    t = normalize_ticks(raw, pd.DataFrame(), 64.0)
+    assert t["aim_punch_pitch"].tolist() == [1.5, 0.5] and t["aim_punch_yaw"].tolist() == [-0.25, 0.0]
+    assert "aim_punch_angle" not in t.attrs["missing_props"]
+
+
 def test_score_round_ends_ignores_halftime_swap():
     """Tournament demos: round ends come from one team's score going up by one."""
     from cs2_analyzer.parser.demoparser2_backend import DemoParser2Backend
@@ -134,3 +146,12 @@ def test_score_round_ends_ignores_halftime_swap():
     ends = DemoParser2Backend._score_round_ends(pd.DataFrame(rows))
     assert [(e["tick"], e["winner"]) for e in ends] == [(20, 2), (30, 2), (40, 3), (70, 2)]
     assert DemoParser2Backend._score_round_ends(pd.DataFrame({"tick": [1], "team_num": [2]})) == []
+
+
+def test_smoke_expiry_pairs_reused_entity_ids():
+    from cs2_analyzer.parser.demoparser2_backend import smoke_expiries
+
+    det = pd.DataFrame({"entityid": [5, 9, 5], "tick": [100, 150, 3000]})
+    exp = pd.DataFrame({"entityid": [5, 9, 5], "tick": [1500, 1550, 4400]})
+    assert smoke_expiries(det, exp) == [1500, 1550, 4400]
+    assert smoke_expiries(pd.DataFrame({"entityid": [7], "tick": [10]}), exp) == [-1]
