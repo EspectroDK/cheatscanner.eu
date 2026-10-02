@@ -1,0 +1,45 @@
+# Production additions for the public server (cheatscanner.eu). Not used on a development PC.
+#
+# The server's .env sets COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml and COMPOSE_PROFILES=fetch,
+# so a plain `docker compose up -d` there starts everything below. See docs/deploy/hetzner.md.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CS2A_DOMAIN: ${CS2A_DOMAIN:-cheatscanner.eu}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  db:
+    restart: unless-stopped
+    ports: !reset []
+
+  api:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      # Only Caddy can reach the API (no published port), so trust its X-Forwarded-For: rate limits then
+      # see each visitor's address instead of Caddy's.
+      FORWARDED_ALLOW_IPS: "*"
+      # The worker service analyzes; the API only takes uploads and serves the site.
+      CS2A_API_WORKERS: "0"
+
+  # Analysis workers: CS2A_WORKERS of them (default 2; each needs about one CPU core and a few GB of RAM
+  # for a big demo). More: set CS2A_WORKERS in .env and deploy, or `docker compose up -d --scale worker=3`.
+  worker:
+    profiles: !reset []
+    restart: unless-stopped
+    deploy:
+      replicas: ${CS2A_WORKERS:-2}
+
+volumes:
+  caddy-data:
+  caddy-config:

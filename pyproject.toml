@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cs2-analyzer"
+version = "0.1.0"
+description = "Offline CS2 .dem analyzer producing explainable behavioral evidence (not accusations)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "demoparser2>=0.40",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pyarrow>=14",
+    "scipy>=1.11",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "python-multipart>=0.0.9",
+    "matplotlib>=3.8",
+    "imageio-ffmpeg>=0.4.9",
+    "embreex>=2.17",
+    "cryptography>=41",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[project.scripts]
+cs2-analyzer = "cs2_analyzer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cs2_analyzer = ["default_config.toml", "data/*.csv", "data/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

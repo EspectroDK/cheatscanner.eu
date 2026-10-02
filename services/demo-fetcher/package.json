@@ -1,0 +1,19 @@
+{
+  "name": "cheatscanner-demo-fetcher",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Turns CS2 match share codes into replay download URLs via Valve's Game Coordinator, for the Cheatscanner API.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "globaloffensive": "^3.3.0",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.3.0"
+  }
+}

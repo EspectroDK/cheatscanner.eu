@@ -1,0 +1,56 @@
+#cloud-config
+# Paste this into "Cloud config" when creating the Hetzner server (Ubuntu 24.04). It installs Docker,
+# a firewall, automatic security updates with a nightly reboot window, a 4 GB swap file, and a `deploy`
+# user that GitHub Actions and the map push use. Your own SSH key (chosen in the Hetzner form) works for
+# both root and deploy. Takes about 3 minutes after the server starts.
+package_update: true
+package_upgrade: true
+packages: [ca-certificates, curl, rsync, borgbackup, ufw, fail2ban, unattended-upgrades]
+
+users:
+  - default
+  - name: deploy
+    shell: /bin/bash
+    lock_passwd: true
+
+write_files:
+  - path: /etc/apt/apt.conf.d/52cheatscanner-upgrades
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+  - path: /etc/docker/daemon.json
+    content: |
+      {"log-driver": "json-file", "log-opts": {"max-size": "20m", "max-file": "5"}}
+  - path: /etc/ssh/sshd_config.d/10-cheatscanner.conf
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+  - path: /usr/local/bin/cheatscanner-github-key
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      # Run as deploy: prints the three values GitHub needs to deploy to this server.
+      set -euo pipefail
+      k="$HOME/.ssh/github_deploy"
+      [ -f "$k" ] || ssh-keygen -q -t ed25519 -N "" -C github-actions-deploy -f "$k"
+      grep -qF "$(cat "$k.pub")" "$HOME/.ssh/authorized_keys" || cat "$k.pub" >> "$HOME/.ssh/authorized_keys"
+      ip=$(hostname -I | awk '{print $1}')
+      echo "---- DEPLOY_HOST ----"; echo "$ip"
+      echo "---- DEPLOY_KNOWN_HOSTS ----"; echo "$ip $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)"
+      echo "---- DEPLOY_SSH_KEY (everything between the dashes, including the BEGIN and END lines) ----"; cat "$k"
+      echo "----"
+
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - usermod -aG docker deploy
+  - install -d -o deploy -g deploy -m 700 /home/deploy/.ssh
+  - cp /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+  - chown deploy:deploy /home/deploy/.ssh/authorized_keys
+  - sudo -u deploy ssh-keygen -q -t ed25519 -N "" -C backups -f /home/deploy/.ssh/id_ed25519
+  - install -d -o deploy -g deploy /srv/cheatscanner
+  - fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  - echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - ufw default deny incoming && ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443 && ufw --force enable
+  - systemctl enable --now unattended-upgrades fail2ban
+  - systemctl restart ssh

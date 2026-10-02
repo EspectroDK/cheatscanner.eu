@@ -1,0 +1,281 @@
+# cs2-analyzer default configuration.
+#
+# Values marked UNCALIBRATED are development placeholders chosen to be
+# conservative. They were NOT fitted to population data. Replace them with
+# values produced by tools/calibration before trusting any score.
+
+[parser]
+backend = "demoparser2"
+
+[storage]
+database_url = "sqlite:///./data/cs2_analyzer.sqlite"   # Docker sets CS2A_DATABASE_URL to PostgreSQL
+
+[output]
+dir = "./output"
+observations_dir = "./data/observations"
+parquet_dir = "./data/work"
+
+[retention]
+# Raw demos are temporary artifacts: deleted after successful analysis unless
+# --keep-demo is passed or keep_demos is true (debugging).
+keep_demos = false
+keep_failed_demos = true
+retained_demo_dir = "./data/retained_demos"
+
+[geometry]
+maps_dir = "./data/maps"
+raycast_backend = "auto"         # auto | embree | numpy
+
+[geometry.visibility]
+end_tolerance = 4.0              # u; ignore hits this close to either endpoint
+lateral_margin = 18.0            # u; UNCALIBRATED shoulder-width / interpolation margin
+latency_margin_ms = 100.0        # UNCALIBRATED interpolation + peeker's advantage margin
+fov_half_yaw = 55.0              # deg; generous (16:9 at fov 90 is ~53)
+fov_half_pitch = 42.0
+
+[geometry.smoke]                 # all UNCALIBRATED
+core_radius = 110.0
+core_half_height = 75.0
+shell_radius = 175.0
+shell_half_height = 125.0
+center_z_offset = 55.0
+bloom_s = 1.25
+fade_s = 2.0
+he_clear_radius = 260.0
+he_clear_s = 3.0
+gunfire_hole_s = 1.0
+min_core_chord = 24.0
+
+[knowledge]                      # all UNCALIBRATED; generous on purpose
+known_recent_ms = 600
+likely_recent_seen_ms = 3500
+possibly_recent_seen_ms = 9000
+team_now_ms = 1500
+team_callout_ms = 7000
+damage_likely_ms = 3500
+damage_possibly_ms = 9000
+sound_likely_ms = 2000
+sound_possibly_ms = 5000
+gunfire_radius = 2600
+silenced_gunfire_radius = 900
+footstep_radius = 1250
+footstep_min_speed = 135
+jump_radius = 1250
+reload_radius = 800
+round_start_possibly_s = 15
+bomb_site_possibly_radius = 900
+close_range_units = 350
+unknown_base_confidence = 0.9
+unknown_full_confidence_after_ms = 4000
+map_geometry_confidence = 0.95
+
+[encounters]
+pre_ms = 2000
+post_ms = 1000
+reappear_gap_ms = 1000
+shot_target_max_error_deg = 15.0
+
+[detectors.hidden_tracking]
+enabled = true
+reliability = 0.7
+min_window_ms = 750
+max_window_ms = 4000
+window_step_ms = 2000
+min_moving_ms = 300              # target must actually move for >= this long in the window
+smooth_ticks = 5
+max_reaction_lag_ms = 250
+min_target_angular_speed_deg_s = 4.0
+corr_lo = 0.55                   # UNCALIBRATED
+corr_hi = 0.9                    # UNCALIBRATED
+target_path_lo_deg = 3.0         # UNCALIBRATED
+target_path_hi_deg = 12.0
+mean_error_lo_deg = 3.0
+mean_error_hi_deg = 12.0
+min_event_severity = 0.25
+
+[detectors.smoke_tracking]
+enabled = true
+reliability = 0.55
+min_window_ms = 750
+max_window_ms = 4000
+window_step_ms = 2000
+min_moving_ms = 300
+min_event_severity = 0.25
+
+[detectors.remembered_position]
+enabled = true
+reliability = 0.55
+block_ms = 1000
+min_target_displacement_u = 150
+max_error_deg = 25
+bootstrap_n = 500
+min_blocks = 20                  # UNCALIBRATED
+full_blocks = 60
+ci_low_lo_deg = 1.5              # UNCALIBRATED
+ci_low_hi_deg = 6.0
+max_mean_error_deg = 12.0
+min_event_severity = 0.2
+
+[detectors.previsibility]
+enabled = true
+reliability = 0.4
+min_unknown_fraction = 0.75
+start_error_lo_deg = 6.0         # UNCALIBRATED
+start_error_hi_deg = 15.0
+end_error_lo_deg = 1.0
+end_error_hi_deg = 4.0
+uncalibrated_severity_factor = 0.8
+min_event_severity = 0.25
+
+[detectors.aim_acquisition]
+enabled = true
+reliability = 0.3
+window_ms = 1000
+min_initial_error_deg = 2.0
+target_radius_u = 6.0
+min_acquire_deg = 1.0
+reaction_speed_deg_s = 30.0
+big_error_lo_deg = 15.0          # UNCALIBRATED
+big_error_hi_deg = 35.0
+reaction_lo_ms = 50.0            # UNCALIBRATED (server-side visibility lags the client)
+reaction_hi_ms = 110.0
+acquisition_lo_ms = 110.0
+acquisition_hi_ms = 200.0
+min_event_severity = 0.3
+
+[detectors.snap]
+enabled = true
+reliability = 0.35
+min_speed_deg_s = 300.0
+min_angle_deg = 10.0
+max_duration_ms = 250.0
+max_end_error_consider_deg = 5.0
+target_radius_u = 5.0
+angle_lo_deg = 20.0              # UNCALIBRATED
+angle_hi_deg = 60.0
+duration_lo_ms = 60.0
+duration_hi_ms = 150.0
+max_overshoot_deg = 0.4
+max_shot_delay_ms = 50.0
+min_event_severity = 0.3
+
+[detectors.attraction]
+enabled = true
+reliability = 0.2
+near_deg = 8.0
+far_deg = 30.0
+min_move_deg_s = 2.0
+max_move_deg_s = 120.0
+min_hidden_samples = 400
+autocorrelation_design_effect = 10.0
+hidden_z_lo = 3.0
+hidden_z_hi = 6.0
+min_event_severity = 0.2
+
+[detectors.target_switch]
+enabled = true
+reliability = 0.25
+horizon_ms = 1500
+min_initial_error_deg = 5.0
+angle_lo_deg = 20.0
+angle_hi_deg = 50.0
+acq_lo_ms = 90.0
+acq_hi_ms = 180.0
+min_event_severity = 0.3
+
+[detectors.trigger_timing]
+enabled = true
+reliability = 0.2                # LOW confidence by design
+max_wait_ms = 400
+spray_exclusion_ms = 300
+tight_hold_ms = 500
+head_radius_u = 4.5
+body_radius_u = 9.0
+min_samples = 8
+full_samples = 25
+frac_fast_lo = 0.5               # UNCALIBRATED
+frac_fast_hi = 0.85
+std_lo_ms = 20.0
+std_hi_ms = 60.0
+min_event_severity = 0.2
+
+[detectors.recoil]
+enabled = true
+reliability = 0.25
+max_shot_gap_ms = 160
+min_spray_shots = 5
+min_sprays = 5
+full_sprays = 15
+corr_lo = 0.9                    # UNCALIBRATED
+corr_hi = 0.98
+min_event_severity = 0.2
+
+[detectors.flash]
+enabled = true
+reliability = 0.2
+min_remaining_blind_s = 1.5
+min_window_ms = 500
+min_event_severity = 0.3
+
+[detectors.strategic_information]
+enabled = true
+reliability = 0.1
+near_deg = 5.0
+null_shifts_ms = [-12000, -8000, -5000, 5000, 8000, 12000]
+ratio_lo = 2.5
+ratio_hi = 5.0
+min_samples = 3000
+full_samples = 10000
+min_event_severity = 0.2
+
+[detectors.mechanical_impossibility]
+enabled = true
+reliability = 0.2
+# threshold_deg intentionally unset: collect the legitimate distribution first.
+
+[scoring]
+incident_merge_gap_ms = 3000
+agreement_bonus = 0.1
+min_incidents = 2
+min_incident_strength = 0.15
+single_incident_cap = 0.35
+within_family_secondary_weight = 0.25
+corroboration_min_family = 0.3
+corroboration_bonus = 0.15
+high_severity_threshold = 0.7
+min_encounters = 15
+min_rounds = 5
+
+[scoring.axis_weights]           # UNCALIBRATED
+HIDDEN_INFORMATION = 1.0
+DECISION_INFORMATION = 0.3
+AIM_MECHANICS = 0.7
+SHOT_TIMING = 0.4
+RECOIL = 0.4
+IMPOSSIBLE_MECHANICS = 0.8
+
+[scoring.classification]
+labels = ["NORMAL", "ELEVATED", "HIGH", "VERY_HIGH"]
+thresholds = [0.25, 0.5, 0.75]   # UNCALIBRATED
+insufficient_label = "INSUFFICIENT_DATA"
+
+[history]
+prior_matches = 3
+high_match_threshold = 0.5
+consistency_min_matches = 3
+consistency_weight = 0.25
+min_total_encounters = 30
+
+[history.classification]
+labels = ["NORMAL", "ELEVATED", "HIGH", "VERY_HIGH"]
+thresholds = [0.25, 0.5, 0.75]
+
+[evidence]
+generate_for_classes = ["HIGH", "VERY_HIGH"]   # clips/plots for players at or above these
+top_events_per_player = 5
+clip_seconds_before = 6.0
+clip_seconds_after = 4.0
+clip_fps = 32
+clip_width = 960
+clip_height = 540
+debug_plot_min_confidence = 0.0

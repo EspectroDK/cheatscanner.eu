@@ -1,0 +1,796 @@
+split,match,map,match_making_type,avg_rank,server,cheaters,parquet_bytes
+no_cheater_present,0,de_inferno,Premier Matchmaking,7060,eu_north Server,,7132783
+no_cheater_present,1,de_inferno,Premier Matchmaking,6569,eu_north Server,,80324380
+no_cheater_present,2,de_mirage,Premier Matchmaking,7532,eu_east Server,,52787551
+no_cheater_present,3,de_inferno,Premier Matchmaking,5892,eu_north Server,,80321747
+no_cheater_present,4,de_mirage,Premier Matchmaking,5063,eu_north Server,,79702968
+no_cheater_present,5,de_anubis,Premier Matchmaking,5354,eu_north Server,,76361205
+no_cheater_present,6,de_mirage,Official Matchmaking,Gold Nova II,eu_east Server,,73307061
+no_cheater_present,7,de_mirage,Premier Matchmaking,5113,eu_north Server,,141172249
+no_cheater_present,8,de_mirage,Premier Matchmaking,4916,eu_north Server,,7735734
+no_cheater_present,9,de_dust2,Premier Matchmaking,5339,eu_north Server,,119133198
+no_cheater_present,10,de_dust2,Premier Matchmaking,3543,poland Server,,91544959
+no_cheater_present,11,de_dust2,Premier Matchmaking,4291,eu_east Server,,97087085
+no_cheater_present,12,de_mirage,Premier Matchmaking,3471,helsinki Server,,99673528
+no_cheater_present,13,de_dust2,Premier Matchmaking,5568,eu_east Server,,76383651
+no_cheater_present,14,de_dust2,Official Matchmaking,Silver III,eu_north Server,,78269868
+no_cheater_present,15,de_dust2,Official Matchmaking,Silver IV,eu_west Server,,72147149
+no_cheater_present,16,de_dust2,Official Matchmaking,Silver Elite,helsinki Server,,66159563
+no_cheater_present,17,de_dust2,Official Matchmaking,Silver IV,eu_north Server,,79928105
+no_cheater_present,18,de_anubis,Official Matchmaking,Silver II,eu_north Server,,80809316
+no_cheater_present,19,de_dust2,Premier Matchmaking,4442,eu_west Server,,46738319
+no_cheater_present,20,de_nuke,Official Matchmaking,Gold Nova II,eu_west Server,,93290263
+no_cheater_present,21,de_inferno,Official Matchmaking,Silver IV,eu_north Server,,118226713
+no_cheater_present,22,de_mirage,Official Matchmaking,Gold Nova I,eu_north Server,,103636570
+no_cheater_present,23,de_ancient,Official Matchmaking,Silver Elite,eu_north Server,,100924170
+no_cheater_present,24,de_mirage,Premier Matchmaking,10236,eu_north Server,,119844233
+no_cheater_present,25,de_mirage,Official Matchmaking,Silver Elite,eu_north Server,,103977726
+no_cheater_present,26,de_dust2,Premier Matchmaking,7013,eu_west Server,,64882318
+no_cheater_present,27,de_mirage,Official Matchmaking,Gold Nova I,eu_west Server,,101182626
+no_cheater_present,28,de_dust2,Official Matchmaking,Silver Elite Master,eu_north Server,,74626534
+no_cheater_present,29,de_vertigo,Premier Matchmaking,7235,eu_north Server,,56662700
+no_cheater_present,30,de_dust2,Premier Matchmaking,6915,eu_north Server,,100363737
+no_cheater_present,31,de_mirage,Premier Matchmaking,6205,eu_north Server,,68210959
+no_cheater_present,32,de_inferno,Premier Matchmaking,6592,poland Server,,89131078
+no_cheater_present,33,de_dust2,Premier Matchmaking,7183,eu_west Server,,115094331
+no_cheater_present,34,de_mirage,Premier Matchmaking,8944,poland Server,,93243727
+no_cheater_present,35,de_dust2,Premier Matchmaking,9222,eu_north Server,,93284685
+no_cheater_present,36,de_dust2,Premier Matchmaking,4232,eu_west Server,,123403001
+no_cheater_present,37,de_dust2,Premier Matchmaking,7540,eu_west Server,,85162567
+no_cheater_present,38,de_inferno,Premier Matchmaking,6812,eu_north Server,,96556155
+no_cheater_present,39,de_inferno,Premier Matchmaking,4031,eu_west Server,,130320574
+no_cheater_present,40,de_vertigo,Premier Matchmaking,7942,eu_east Server,,79954161
+no_cheater_present,41,de_inferno,Premier Matchmaking,7661,eu_east Server,,106060237
+no_cheater_present,42,de_inferno,Premier Matchmaking,8912,eu_north Server,,77165179
+no_cheater_present,43,de_mirage,Premier Matchmaking,11388,eu_north Server,,84009871
+no_cheater_present,44,de_mirage,Premier Matchmaking,5187,eu_north Server,,86193050
+no_cheater_present,45,de_nuke,Premier Matchmaking,4059,london Server,,73025210
+no_cheater_present,46,de_dust2,Premier Matchmaking,9042,eu_north Server,,44021913
+no_cheater_present,47,de_mirage,Premier Matchmaking,9091,eu_north Server,,69457563
+no_cheater_present,48,de_mirage,Premier Matchmaking,6464,eu_north Server,,51446306
+no_cheater_present,49,de_train,Official Matchmaking,Silver Elite,eu_west Server,,80247603
+no_cheater_present,50,de_inferno,Premier Matchmaking,7002,eu_north Server,,105175875
+no_cheater_present,51,de_inferno,Official Matchmaking,Master Guardian II,eu_north Server,,18805721
+no_cheater_present,52,de_inferno,Official Matchmaking,Gold Nova Master,eu_north Server,,83219600
+no_cheater_present,53,de_dust2,Official Matchmaking,Master Guardian I,poland Server,,109153485
+no_cheater_present,54,de_edin,Official Matchmaking,Unknown,eu_north Server,,101513619
+no_cheater_present,55,de_inferno,Official Matchmaking,Master Guardian Elite,eu_west Server,,108020007
+no_cheater_present,56,de_inferno,Official Matchmaking,Master Guardian II,helsinki Server,,73813242
+no_cheater_present,57,de_dust2,Official Matchmaking,Master Guardian I,eu_north Server,,74005823
+no_cheater_present,58,de_nuke,Official Matchmaking,Gold Nova III,eu_north Server,,89548619
+no_cheater_present,59,de_nuke,Official Matchmaking,Silver Elite Master,eu_north Server,,106749562
+no_cheater_present,60,de_dust2,Official Matchmaking,Gold Nova Master,eu_north Server,,42582341
+no_cheater_present,61,de_train,Official Matchmaking,Master Guardian I,eu_west Server,,24799644
+no_cheater_present,62,de_inferno,Official Matchmaking,Gold Nova III,eu_west Server,,20763019
+no_cheater_present,63,de_train,Official Matchmaking,Master Guardian II,eu_west Server,,3424930
+no_cheater_present,64,de_train,Official Matchmaking,Master Guardian I,eu_west Server,,22287054
+no_cheater_present,65,de_mirage,Official Matchmaking,Master Guardian I,eu_west Server,,11095863
+no_cheater_present,66,de_train,Official Matchmaking,Master Guardian I,eu_west Server,,38440540
+no_cheater_present,67,de_mirage,Official Matchmaking,Gold Nova III,eu_west Server,,27295361
+no_cheater_present,68,de_train,Official Matchmaking,Master Guardian I,eu_north Server,,21512994
+no_cheater_present,69,de_train,Official Matchmaking,Master Guardian I,eu_north Server,,6442635
+no_cheater_present,70,de_anubis,Official Matchmaking,Gold Nova Master,eu_north Server,,40909935
+no_cheater_present,71,de_anubis,Official Matchmaking,Gold Nova Master,eu_north Server,,31206857
+no_cheater_present,72,de_anubis,Official Matchmaking,Gold Nova Master,eu_north Server,,37264666
+no_cheater_present,73,de_mirage,Official Matchmaking,Gold Nova III,eu_west Server,,22251627
+no_cheater_present,74,de_dust2,Official Matchmaking,Gold Nova Master,eu_west Server,,20577909
+no_cheater_present,75,cs_office,Official Matchmaking,Gold Nova III,poland Server,,25395951
+no_cheater_present,76,cs_office,Official Matchmaking,Gold Nova III,eu_north Server,,7525008
+no_cheater_present,77,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,20131919
+no_cheater_present,78,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,23527474
+no_cheater_present,79,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,19979603
+no_cheater_present,80,cs_office,Official Matchmaking,Gold Nova Master,eu_east Server,,11980271
+no_cheater_present,81,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,6383155
+no_cheater_present,82,de_mirage,Official Matchmaking,Gold Nova III,eu_north Server,,3786089
+no_cheater_present,83,de_anubis,Official Matchmaking,Master Guardian II,eu_north Server,,12105706
+no_cheater_present,84,cs_office,Official Matchmaking,Master Guardian Elite,eu_north Server,,90695644
+no_cheater_present,85,de_anubis,Official Matchmaking,Master Guardian I,helsinki Server,,24658613
+no_cheater_present,86,de_dust2,Premier Matchmaking,16648,eu_west Server,,31020758
+no_cheater_present,87,de_train,Official Matchmaking,Gold Nova Master,eu_west Server,,73174376
+no_cheater_present,88,de_nuke,Official Matchmaking,Gold Nova I,eu_east Server,,46849170
+no_cheater_present,89,de_anubis,Official Matchmaking,Gold Nova II,eu_north Server,,31348065
+no_cheater_present,90,de_ancient,Official Matchmaking,Silver Elite Master,eu_north Server,,19885561
+no_cheater_present,91,de_ancient,Official Matchmaking,Gold Nova III,eu_north Server,,73256807
+no_cheater_present,92,de_mirage,Official Matchmaking,Master Guardian Elite,eu_north Server,,50913159
+no_cheater_present,93,de_mirage,Official Matchmaking,Master Guardian II,poland Server,,44243625
+no_cheater_present,94,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,,52047570
+no_cheater_present,95,cs_office,Official Matchmaking,Master Guardian II,eu_west Server,,51201074
+no_cheater_present,96,cs_office,Official Matchmaking,Master Guardian II,eu_north Server,,45545150
+no_cheater_present,97,de_vertigo,Premier Matchmaking,15682,helsinki Server,,36327439
+no_cheater_present,98,de_overpass,Official Matchmaking,Gold Nova III,eu_west Server,,47036745
+no_cheater_present,99,de_basalt,Official Matchmaking,Gold Nova III,eu_north Server,,55042935
+no_cheater_present,100,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,25932667
+no_cheater_present,101,cs_office,Official Matchmaking,Master Guardian II,eu_north Server,,30162965
+no_cheater_present,102,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,53653385
+no_cheater_present,103,cs_office,Official Matchmaking,Master Guardian II,eu_north Server,,34476428
+no_cheater_present,104,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,41721196
+no_cheater_present,105,de_anubis,Official Matchmaking,Gold Nova III,eu_north Server,,23010494
+no_cheater_present,106,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,122814887
+no_cheater_present,107,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,68971117
+no_cheater_present,108,de_anubis,Premier Matchmaking,9782,eu_north Server,,59528331
+no_cheater_present,109,de_ancient,Premier Matchmaking,10190,poland Server,,61604425
+no_cheater_present,110,de_anubis,Official Matchmaking,Silver II,poland Server,,67397828
+no_cheater_present,111,de_vertigo,Premier Matchmaking,9933,poland Server,,113054429
+no_cheater_present,112,de_ancient,Premier Matchmaking,9541,poland Server,,64762140
+no_cheater_present,113,de_inferno,Premier Matchmaking,11903,eu_west Server,,109331179
+no_cheater_present,114,de_anubis,Premier Matchmaking,11415,eu_east Server,,106628654
+no_cheater_present,115,de_nuke,Premier Matchmaking,10747,eu_west Server,,79315127
+no_cheater_present,116,de_ancient,Premier Matchmaking,12107,eu_west Server,,98990744
+no_cheater_present,117,de_ancient,Official Matchmaking,Gold Nova III,eu_west Server,,116963355
+no_cheater_present,118,de_nuke,Official Matchmaking,Gold Nova II,eu_west Server,,57899055
+no_cheater_present,119,de_nuke,Premier Matchmaking,11102,eu_west Server,,92127587
+no_cheater_present,120,de_inferno,Premier Matchmaking,10939,eu_west Server,,110814167
+no_cheater_present,121,de_anubis,Premier Matchmaking,9737,eu_west Server,,83705411
+no_cheater_present,122,de_nuke,Premier Matchmaking,10176,eu_west Server,,73167100
+no_cheater_present,123,de_inferno,Premier Matchmaking,11261,eu_west Server,,98239160
+no_cheater_present,124,de_ancient,Premier Matchmaking,10227,eu_east Server,,84509395
+no_cheater_present,125,de_nuke,Premier Matchmaking,10637,eu_west Server,,134700741
+no_cheater_present,126,de_inferno,Premier Matchmaking,9206,eu_west Server,,63579642
+no_cheater_present,127,de_vertigo,Premier Matchmaking,8293,eu_north Server,,73827016
+no_cheater_present,128,de_vertigo,Premier Matchmaking,11829,eu_west Server,,70170914
+no_cheater_present,129,de_vertigo,Premier Matchmaking,6575,eu_west Server,,59992231
+no_cheater_present,130,de_inferno,Premier Matchmaking,6859,eu_west Server,,103337498
+no_cheater_present,131,de_nuke,Premier Matchmaking,6125,eu_north Server,,17857198
+no_cheater_present,132,de_inferno,Premier Matchmaking,6533,poland Server,,80510688
+no_cheater_present,133,de_nuke,Premier Matchmaking,6983,eu_north Server,,76603919
+no_cheater_present,134,de_anubis,Official Matchmaking,Gold Nova II,eu_west Server,,107108799
+no_cheater_present,135,de_inferno,Premier Matchmaking,11718,eu_west Server,,82029654
+no_cheater_present,136,de_vertigo,Premier Matchmaking,10623,poland Server,,92809540
+no_cheater_present,137,de_ancient,Premier Matchmaking,10888,poland Server,,74683678
+no_cheater_present,138,de_nuke,Premier Matchmaking,11554,poland Server,,106194399
+no_cheater_present,139,de_vertigo,Premier Matchmaking,7334,eu_west Server,,84622019
+no_cheater_present,140,de_vertigo,Premier Matchmaking,6891,eu_north Server,,87286820
+no_cheater_present,141,de_train,Official Matchmaking,Master Guardian Elite,eu_north Server,,85528651
+no_cheater_present,142,de_train,Official Matchmaking,Master Guardian I,eu_north Server,,76177558
+no_cheater_present,143,de_train,Official Matchmaking,Gold Nova III,eu_west Server,,39175750
+no_cheater_present,144,de_train,Official Matchmaking,Gold Nova III,poland Server,,77137275
+no_cheater_present,145,de_train,Official Matchmaking,Unknown,poland Server,,96241742
+no_cheater_present,146,de_inferno,Premier Matchmaking,13333,poland Server,,89842713
+no_cheater_present,147,de_ancient,Premier Matchmaking,14610,eu_west Server,,107034322
+no_cheater_present,148,de_nuke,Premier Matchmaking,14093,eu_north Server,,96075922
+no_cheater_present,149,de_inferno,Premier Matchmaking,15198,eu_north Server,,87593844
+no_cheater_present,150,de_train,Official Matchmaking,Silver Elite,eu_north Server,,65988931
+no_cheater_present,151,de_overpass,Official Matchmaking,Gold Nova II,poland Server,,117629158
+no_cheater_present,152,de_overpass,Official Matchmaking,Gold Nova III,poland Server,,111174113
+no_cheater_present,153,de_ancient,Premier Matchmaking,3409,eu_north Server,,73271714
+no_cheater_present,154,de_edin,Official Matchmaking,Silver III,poland Server,,14162832
+no_cheater_present,155,de_vertigo,Official Matchmaking,Gold Nova II,eu_north Server,,92155806
+no_cheater_present,156,de_vertigo,Official Matchmaking,Gold Nova I,eu_east Server,,81954577
+no_cheater_present,157,de_vertigo,Official Matchmaking,Gold Nova I,eu_north Server,,51091507
+no_cheater_present,158,cs_office,Official Matchmaking,Gold Nova I,eu_west Server,,77578437
+no_cheater_present,159,de_vertigo,Official Matchmaking,Gold Nova I,eu_west Server,,83895098
+no_cheater_present,160,de_edin,Official Matchmaking,Silver IV,eu_west Server,,60200034
+no_cheater_present,161,de_vertigo,Official Matchmaking,Gold Nova III,poland Server,,51684580
+no_cheater_present,162,de_vertigo,Official Matchmaking,Gold Nova III,spain Server,,53679218
+no_cheater_present,163,de_vertigo,Official Matchmaking,Gold Nova I,eu_north Server,,95860362
+no_cheater_present,164,de_vertigo,Official Matchmaking,Silver Elite Master,eu_west Server,,80314101
+no_cheater_present,165,de_vertigo,Official Matchmaking,Silver Elite,eu_east Server,,64795124
+no_cheater_present,166,de_basalt,Official Matchmaking,Gold Nova II,poland Server,,27805971
+no_cheater_present,167,de_basalt,Official Matchmaking,Gold Nova I,eu_west Server,,13221164
+no_cheater_present,168,de_basalt,Official Matchmaking,Silver Elite Master,eu_west Server,,78328143
+no_cheater_present,169,de_train,Official Matchmaking,Silver Elite Master,eu_north Server,,98111348
+no_cheater_present,170,de_edin,Official Matchmaking,Unknown,eu_west Server,,69133545
+no_cheater_present,171,de_train,Official Matchmaking,Silver Elite Master,eu_north Server,,55974470
+no_cheater_present,172,de_ancient,Premier Matchmaking,3801,eu_north Server,,88246750
+no_cheater_present,173,de_basalt,Official Matchmaking,Silver II,eu_north Server,,63765092
+no_cheater_present,174,de_edin,Official Matchmaking,Silver I,eu_west Server,,63206873
+no_cheater_present,175,de_inferno,Official Matchmaking,Silver III,eu_north Server,,70268244
+no_cheater_present,176,de_basalt,Official Matchmaking,Silver II,eu_north Server,,90468896
+no_cheater_present,177,de_basalt,Official Matchmaking,Silver I,eu_north Server,,82202524
+no_cheater_present,178,de_edin,Official Matchmaking,Silver II,eu_west Server,,58443919
+no_cheater_present,179,de_anubis,Official Matchmaking,Gold Nova I,eu_west Server,,71345533
+no_cheater_present,180,de_nuke,Official Matchmaking,Gold Nova II,eu_west Server,,92481366
+no_cheater_present,181,de_basalt,Official Matchmaking,Silver IV,dubai Server,,69495917
+no_cheater_present,182,de_edin,Official Matchmaking,Silver I,dubai Server,,49696014
+no_cheater_present,183,de_train,Official Matchmaking,Silver IV,india Server,,69903098
+no_cheater_present,184,de_basalt,Official Matchmaking,Silver III,london Server,,8700796
+no_cheater_present,185,de_basalt,Official Matchmaking,Gold Nova I,eu_north Server,,92599418
+no_cheater_present,186,de_thera,Official Matchmaking,Silver IV,poland Server,,90631836
+no_cheater_present,187,cs_italy,Official Matchmaking,Silver IV,eu_north Server,,99485571
+no_cheater_present,188,de_nuke,Official Matchmaking,Silver Elite Master,eu_west Server,,68595891
+no_cheater_present,189,de_inferno,Premier Matchmaking,11153,eu_north Server,,84646587
+no_cheater_present,190,de_nuke,Premier Matchmaking,11796,eu_west Server,,142702264
+no_cheater_present,191,de_nuke,Premier Matchmaking,11191,eu_west Server,,75215027
+no_cheater_present,192,de_basalt,Official Matchmaking,Silver Elite Master,eu_west Server,,57139225
+no_cheater_present,193,de_inferno,Official Matchmaking,Gold Nova Master,london Server,,69584377
+no_cheater_present,194,de_inferno,Premier Matchmaking,12741,eu_west Server,,109252843
+no_cheater_present,195,de_edin,Official Matchmaking,Silver Elite,eu_west Server,,79442040
+no_cheater_present,196,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,,81060009
+no_cheater_present,197,de_edin,Official Matchmaking,Silver IV,eu_west Server,,74280646
+no_cheater_present,198,de_train,Official Matchmaking,Silver Elite Master,helsinki Server,,74390444
+no_cheater_present,199,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,,54982727
+no_cheater_present,200,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,,18375419
+no_cheater_present,201,de_edin,Official Matchmaking,Unknown,eu_west Server,,70786536
+no_cheater_present,202,de_edin,Official Matchmaking,Gold Nova I,eu_west Server,,74445751
+no_cheater_present,203,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,,65704517
+no_cheater_present,204,de_train,Official Matchmaking,Silver IV,eu_west Server,,60329276
+no_cheater_present,205,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,,83318772
+no_cheater_present,206,de_train,Official Matchmaking,Unknown,eu_west Server,,58673167
+no_cheater_present,207,de_basalt,Official Matchmaking,Unknown,eu_west Server,,66273564
+no_cheater_present,208,de_edin,Official Matchmaking,Silver Elite,eu_west Server,,62974984
+no_cheater_present,209,cs_office,Official Matchmaking,Silver Elite Master,poland Server,,111743884
+no_cheater_present,210,de_nuke,Official Matchmaking,Gold Nova III,eu_north Server,,66363752
+no_cheater_present,211,de_nuke,Official Matchmaking,Gold Nova Master,eu_west Server,,102089966
+no_cheater_present,212,cs_italy,Official Matchmaking,Gold Nova I,eu_west Server,,17118611
+no_cheater_present,213,cs_italy,Official Matchmaking,Silver Elite Master,eu_north Server,,97550899
+no_cheater_present,214,de_vertigo,Official Matchmaking,Silver Elite,eu_east Server,,104995562
+no_cheater_present,215,de_edin,Official Matchmaking,Silver II,eu_west Server,,77065344
+no_cheater_present,216,de_train,Official Matchmaking,Silver III,eu_west Server,,91842324
+no_cheater_present,217,de_basalt,Official Matchmaking,Silver III,eu_west Server,,84669417
+no_cheater_present,218,cs_italy,Official Matchmaking,Silver III,eu_west Server,,83681457
+no_cheater_present,219,de_train,Official Matchmaking,Silver II,eu_west Server,,92588517
+no_cheater_present,220,de_overpass,Official Matchmaking,Silver IV,eu_west Server,,109757334
+no_cheater_present,221,de_nuke,Official Matchmaking,Silver III,eu_west Server,,98054506
+no_cheater_present,222,de_inferno,Official Matchmaking,Silver IV,london Server,,115073795
+no_cheater_present,223,de_basalt,Official Matchmaking,Silver II,eu_west Server,,87648409
+no_cheater_present,224,de_edin,Official Matchmaking,Silver I,eu_west Server,,85278687
+no_cheater_present,225,de_train,Official Matchmaking,Silver II,eu_east Server,,112113547
+no_cheater_present,226,de_vertigo,Official Matchmaking,Silver IV,eu_west Server,,64541220
+no_cheater_present,227,de_nuke,Premier Matchmaking,4267,eu_west Server,,86642472
+no_cheater_present,228,de_anubis,Premier Matchmaking,4233,eu_west Server,,143383156
+no_cheater_present,229,de_train,Official Matchmaking,Silver III,eu_west Server,,57179003
+no_cheater_present,230,de_train,Official Matchmaking,Silver IV,poland Server,,96143607
+no_cheater_present,231,de_train,Official Matchmaking,Silver III,poland Server,,80756367
+no_cheater_present,232,cs_office,Official Matchmaking,Silver III,eu_north Server,,69773316
+no_cheater_present,233,de_anubis,Official Matchmaking,Silver III,eu_north Server,,33917200
+no_cheater_present,234,de_vertigo,Official Matchmaking,Gold Nova I,helsinki Server,,34748557
+no_cheater_present,235,de_ancient,Official Matchmaking,Master Guardian I,eu_north Server,,72887647
+no_cheater_present,236,de_ancient,Official Matchmaking,Silver Elite Master,poland Server,,78079482
+no_cheater_present,237,de_vertigo,Official Matchmaking,Gold Nova III,poland Server,,31148866
+no_cheater_present,238,de_anubis,Official Matchmaking,Silver Elite,eu_north Server,,99342299
+no_cheater_present,239,de_nuke,Official Matchmaking,Gold Nova I,eu_east Server,,91036825
+no_cheater_present,240,de_train,Official Matchmaking,Gold Nova III,poland Server,,66182282
+no_cheater_present,241,de_ancient,Premier Matchmaking,20901,london Server,,42201184
+no_cheater_present,242,de_nuke,Premier Matchmaking,15286,eu_west Server,,41124602
+no_cheater_present,243,de_nuke,Premier Matchmaking,15576,poland Server,,67119513
+no_cheater_present,244,de_anubis,Premier Matchmaking,14668,eu_west Server,,81867897
+no_cheater_present,245,de_vertigo,Premier Matchmaking,14407,poland Server,,37939969
+no_cheater_present,246,de_vertigo,Premier Matchmaking,12756,poland Server,,90432058
+no_cheater_present,247,de_basalt,Official Matchmaking,Unknown,eu_west Server,,43350270
+no_cheater_present,248,de_ancient,Official Matchmaking,Gold Nova II,eu_west Server,,19272944
+no_cheater_present,249,de_anubis,Official Matchmaking,Gold Nova Master,poland Server,,20290019
+no_cheater_present,250,cs_italy,Official Matchmaking,Gold Nova I,eu_east Server,,38771270
+no_cheater_present,251,cs_office,Official Matchmaking,Gold Nova II,eu_west Server,,37554454
+no_cheater_present,252,de_anubis,Official Matchmaking,Gold Nova III,eu_west Server,,45669558
+no_cheater_present,253,de_ancient,Official Matchmaking,Gold Nova II,eu_west Server,,40430804
+no_cheater_present,254,de_anubis,Official Matchmaking,Master Guardian II,eu_west Server,,57640205
+no_cheater_present,255,de_ancient,Premier Matchmaking,9276,eu_north Server,,62068235
+no_cheater_present,256,de_mirage,Premier Matchmaking,5904,spain Server,,66413528
+no_cheater_present,257,de_vertigo,Premier Matchmaking,22301,india_east Server,,4722889
+no_cheater_present,258,de_anubis,Premier Matchmaking,13947,india Server,,65710226
+no_cheater_present,259,de_anubis,Premier Matchmaking,16702,india Server,,119878240
+no_cheater_present,260,de_vertigo,Premier Matchmaking,13359,india Server,,75383243
+no_cheater_present,261,de_anubis,Premier Matchmaking,16342,india Server,,92914140
+no_cheater_present,262,de_ancient,Premier Matchmaking,17946,india_east Server,,75792554
+no_cheater_present,263,de_anubis,Premier Matchmaking,15602,india Server,,84311725
+no_cheater_present,264,de_anubis,Premier Matchmaking,14191,india Server,,149735958
+no_cheater_present,265,de_anubis,Premier Matchmaking,15866,india Server,,87943990
+no_cheater_present,266,de_ancient,Premier Matchmaking,11246,india Server,,89380822
+no_cheater_present,267,de_anubis,Premier Matchmaking,13627,india Server,,135814918
+no_cheater_present,268,de_vertigo,Premier Matchmaking,15789,india Server,,84901670
+no_cheater_present,269,de_ancient,Premier Matchmaking,12475,india Server,,80472706
+no_cheater_present,270,de_anubis,Premier Matchmaking,14885,india Server,,113599392
+no_cheater_present,271,de_vertigo,Premier Matchmaking,16589,india_east Server,,107656018
+no_cheater_present,272,de_vertigo,Premier Matchmaking,14282,india Server,,124974320
+no_cheater_present,273,de_vertigo,Premier Matchmaking,13138,india Server,,101181671
+no_cheater_present,274,de_ancient,Premier Matchmaking,15059,india Server,,107101098
+no_cheater_present,275,de_vertigo,Premier Matchmaking,16510,india Server,,138493643
+no_cheater_present,276,de_vertigo,Premier Matchmaking,18498,india Server,,143384599
+no_cheater_present,277,de_ancient,Premier Matchmaking,15491,india_east Server,,128849748
+no_cheater_present,278,de_ancient,Premier Matchmaking,14423,india Server,,49859795
+no_cheater_present,279,de_vertigo,Premier Matchmaking,13709,india Server,,47155599
+no_cheater_present,280,de_ancient,Premier Matchmaking,14520,india Server,,59564964
+no_cheater_present,281,de_ancient,Premier Matchmaking,16369,india Server,,86504939
+no_cheater_present,282,de_basalt,Official Matchmaking,Gold Nova Master,india Server,,68454607
+no_cheater_present,283,de_basalt,Official Matchmaking,Silver III,helsinki Server,,64659985
+no_cheater_present,284,de_edin,Official Matchmaking,Silver Elite,helsinki Server,,55934280
+no_cheater_present,285,de_basalt,Official Matchmaking,Unknown,helsinki Server,,65613504
+no_cheater_present,286,de_edin,Official Matchmaking,Unknown,helsinki Server,,66207015
+no_cheater_present,287,de_mills,Official Matchmaking,Silver IV,helsinki Server,,51389301
+no_cheater_present,288,cs_italy,Official Matchmaking,Silver IV,poland Server,,56508320
+no_cheater_present,289,de_thera,Official Matchmaking,Silver IV,eu_east Server,,65031788
+no_cheater_present,290,cs_office,Official Matchmaking,Gold Nova Master,eu_north Server,,34418411
+no_cheater_present,291,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,69213896
+no_cheater_present,292,de_edin,Official Matchmaking,Gold Nova III,poland Server,,64262453
+no_cheater_present,293,de_overpass,Official Matchmaking,Silver Elite,eu_north Server,,48494093
+no_cheater_present,294,de_basalt,Official Matchmaking,Silver III,london Server,,52649504
+no_cheater_present,295,de_basalt,Official Matchmaking,Silver Elite,eu_west Server,,63411319
+no_cheater_present,296,de_edin,Official Matchmaking,Unknown,eu_north Server,,78543109
+no_cheater_present,297,de_overpass,Official Matchmaking,Silver Elite Master,eu_north Server,,72916923
+no_cheater_present,298,de_basalt,Official Matchmaking,Silver Elite Master,poland Server,,20472816
+no_cheater_present,299,cs_office,Official Matchmaking,Gold Nova I,eu_north Server,,60271354
+no_cheater_present,300,cs_office,Official Matchmaking,Silver Elite Master,eu_west Server,,104778261
+no_cheater_present,301,de_inferno,Official Matchmaking,Silver Elite Master,eu_north Server,,117480693
+no_cheater_present,302,de_basalt,Official Matchmaking,Gold Nova Master,asia Server,,63492447
+no_cheater_present,303,de_anubis,Official Matchmaking,Master Guardian Elite,asia Server,,92573428
+no_cheater_present,304,de_inferno,Official Matchmaking,Master Guardian I,asia Server,,52679192
+no_cheater_present,305,cs_office,Official Matchmaking,Silver Elite Master,asia Server,,66034348
+no_cheater_present,306,de_mirage,Premier Matchmaking,15549,asia Server,,110535327
+no_cheater_present,307,de_overpass,Official Matchmaking,Gold Nova II,eu_east Server,,68162499
+no_cheater_present,308,de_overpass,Official Matchmaking,Gold Nova II,poland Server,,73275988
+no_cheater_present,309,de_overpass,Official Matchmaking,Gold Nova I,london Server,,106646732
+no_cheater_present,310,de_edin,Official Matchmaking,Unknown,eu_west Server,,85858803
+no_cheater_present,311,de_overpass,Official Matchmaking,Gold Nova III,poland Server,,93448381
+no_cheater_present,312,de_basalt,Official Matchmaking,Silver IV,eu_west Server,,90360869
+no_cheater_present,313,de_overpass,Official Matchmaking,Silver Elite Master,poland Server,,75518836
+no_cheater_present,314,de_basalt,Official Matchmaking,Unknown,eu_west Server,,60347593
+no_cheater_present,315,de_thera,Official Matchmaking,Gold Nova III,poland Server,,111211442
+no_cheater_present,316,de_edin,Official Matchmaking,Unknown,eu_west Server,,67374004
+no_cheater_present,317,de_overpass,Official Matchmaking,Gold Nova II,eu_west Server,,84944071
+no_cheater_present,318,de_edin,Official Matchmaking,Unknown,eu_west Server,,65837569
+no_cheater_present,319,de_basalt,Official Matchmaking,Silver Elite Master,eu_east Server,,71414066
+no_cheater_present,320,de_edin,Official Matchmaking,Silver Elite Master,london Server,,92127639
+no_cheater_present,321,de_basalt,Official Matchmaking,Silver Elite,eu_west Server,,99794891
+no_cheater_present,322,de_overpass,Official Matchmaking,Gold Nova I,eu_west Server,,60347800
+no_cheater_present,323,de_basalt,Official Matchmaking,Gold Nova III,eu_north Server,,96752065
+no_cheater_present,324,de_basalt,Official Matchmaking,Unknown,london Server,,72184559
+no_cheater_present,325,cs_italy,Official Matchmaking,Silver Elite Master,eu_east Server,,73707112
+no_cheater_present,326,cs_italy,Official Matchmaking,Gold Nova II,eu_west Server,,82379141
+no_cheater_present,327,de_basalt,Official Matchmaking,Silver Elite,hong_kong Server,,86039098
+no_cheater_present,328,de_edin,Official Matchmaking,Gold Nova I,hong_kong Server,,37985517
+no_cheater_present,329,de_ancient,Premier Matchmaking,14515,hong_kong Server,,24472050
+no_cheater_present,330,de_edin,Official Matchmaking,Gold Nova II,tencent_guangzhou_tgd Server,,83761846
+no_cheater_present,331,de_thera,Official Matchmaking,Gold Nova II,us_north_central Server,,95012729
+no_cheater_present,332,de_thera,Official Matchmaking,Silver Elite,us_southwest Server,,84489943
+no_cheater_present,333,de_overpass,Official Matchmaking,Master Guardian I,us_north_central Server,,107102695
+no_cheater_present,334,de_overpass,Official Matchmaking,Master Guardian I,us_southeast Server,,113132989
+no_cheater_present,335,de_overpass,Official Matchmaking,Silver III,us_southwest Server,,62795569
+no_cheater_present,336,de_edin,Official Matchmaking,Silver I,us_southwest Server,,79601645
+no_cheater_present,337,de_overpass,Official Matchmaking,Master Guardian II,us_southeast Server,,101009355
+no_cheater_present,338,de_basalt,Official Matchmaking,Gold Nova III,us_north_central Server,,100163695
+no_cheater_present,339,de_edin,Official Matchmaking,Gold Nova Master,us_north_central Server,,96296399
+no_cheater_present,340,de_edin,Official Matchmaking,Silver III,us_southwest Server,,81315550
+no_cheater_present,341,de_edin,Official Matchmaking,Gold Nova III,us_southwest Server,,49058731
+no_cheater_present,342,de_overpass,Official Matchmaking,Master Guardian I,us_east Server,,80013704
+no_cheater_present,343,cs_office,Official Matchmaking,Gold Nova III,us_east Server,,123740163
+no_cheater_present,344,de_basalt,Official Matchmaking,Silver II,us_west Server,,88018291
+no_cheater_present,345,de_edin,Official Matchmaking,Silver III,us_north_central Server,,44931545
+no_cheater_present,346,de_basalt,Official Matchmaking,Silver Elite Master,us_west Server,,91595008
+no_cheater_present,347,de_edin,Official Matchmaking,Silver Elite,us_southwest Server,,38754481
+no_cheater_present,348,de_overpass,Official Matchmaking,Silver Elite,us_west Server,,91014593
+no_cheater_present,349,de_edin,Official Matchmaking,Silver Elite,us_southwest Server,,58614303
+no_cheater_present,350,de_basalt,Official Matchmaking,Silver IV,us_southwest Server,,61802975
+no_cheater_present,351,cs_italy,Official Matchmaking,Silver Elite Master,us_southwest Server,,87966146
+no_cheater_present,352,de_inferno,Official Matchmaking,Gold Nova II,us_southwest Server,,26879416
+no_cheater_present,353,de_edin,Official Matchmaking,Silver III,us_southwest Server,,83851720
+no_cheater_present,354,de_basalt,Official Matchmaking,Silver II,us_southwest Server,,80757444
+no_cheater_present,355,de_mirage,Official Matchmaking,Silver Elite,us_southwest Server,,98589500
+no_cheater_present,356,de_basalt,Official Matchmaking,Silver II,us_southwest Server,,87478073
+no_cheater_present,357,de_dust2,Premier Matchmaking,9896,japan Server,,112598456
+no_cheater_present,358,de_basalt,Official Matchmaking,Silver III,eu_north Server,,67316404
+no_cheater_present,359,de_inferno,Premier Matchmaking,10563,seoul Server,,109924713
+no_cheater_present,360,de_nuke,Official Matchmaking,Silver Elite Master,us_east Server,,95879601
+no_cheater_present,361,de_ancient,Premier Matchmaking,8461,japan Server,,115141233
+no_cheater_present,362,de_dust2,Premier Matchmaking,5440,eu_north Server,,96845173
+no_cheater_present,363,de_overpass,Official Matchmaking,Master Guardian I,us_west Server,,118625597
+no_cheater_present,364,de_edin,Official Matchmaking,Unknown,us_north_central Server,,55574219
+no_cheater_present,365,cs_italy,Official Matchmaking,Gold Nova III,eu_north Server,,39455476
+no_cheater_present,366,de_overpass,Official Matchmaking,Gold Nova II,us_southeast Server,,119707316
+no_cheater_present,367,de_edin,Official Matchmaking,Silver III,us_east Server,,32375399
+no_cheater_present,368,de_dust2,Official Matchmaking,Silver Elite Master,us_north_central Server,,46733127
+no_cheater_present,369,de_dust2,Premier Matchmaking,3161,eu_north Server,,103152780
+no_cheater_present,370,de_basalt,Official Matchmaking,Unknown,eu_east Server,,57658637
+no_cheater_present,371,de_edin,Official Matchmaking,Silver Elite,poland Server,,63996057
+no_cheater_present,372,de_thera,Official Matchmaking,Gold Nova Master,poland Server,,84891326
+no_cheater_present,373,de_vertigo,Premier Matchmaking,5131,eu_north Server,,71628519
+no_cheater_present,374,de_edin,Official Matchmaking,Unknown,us_east Server,,57523439
+no_cheater_present,375,de_edin,Official Matchmaking,Master Guardian II,us_north_central Server,,53769332
+no_cheater_present,376,de_edin,Official Matchmaking,Gold Nova II,us_east Server,,86184607
+no_cheater_present,377,de_overpass,Official Matchmaking,Gold Nova Master,us_north_central Server,,77760399
+no_cheater_present,378,de_overpass,Official Matchmaking,Gold Nova II,us_east Server,,104452756
+no_cheater_present,379,cs_italy,Official Matchmaking,Gold Nova III,us_north_central Server,,51676845
+no_cheater_present,380,de_overpass,Official Matchmaking,Silver Elite Master,south_america Server,,80750893
+no_cheater_present,381,de_mirage,Official Matchmaking,Silver Elite Master,eu_north Server,,63491036
+no_cheater_present,382,de_vertigo,Official Matchmaking,Gold Nova III,hong_kong Server,,85628295
+no_cheater_present,383,cs_italy,Official Matchmaking,Gold Nova I,eu_north Server,,63647265
+no_cheater_present,384,de_thera,Official Matchmaking,Silver IV,eu_west Server,,90648652
+no_cheater_present,385,de_nuke,Official Matchmaking,Gold Nova I,spain Server,,67009968
+no_cheater_present,386,de_thera,Official Matchmaking,Silver Elite,eu_west Server,,77649777
+no_cheater_present,387,de_mills,Official Matchmaking,Silver IV,eu_west Server,,65663363
+no_cheater_present,388,de_overpass,Official Matchmaking,Silver IV,eu_west Server,,80314582
+no_cheater_present,389,cs_italy,Official Matchmaking,Silver III,london Server,,69137401
+no_cheater_present,390,de_thera,Official Matchmaking,Silver IV,eu_west Server,,39851555
+no_cheater_present,391,de_thera,Official Matchmaking,Gold Nova I,eu_west Server,,44517940
+no_cheater_present,392,de_overpass,Official Matchmaking,Silver Elite Master,poland Server,,84949533
+no_cheater_present,393,de_overpass,Official Matchmaking,Gold Nova I,poland Server,,66927493
+no_cheater_present,394,de_thera,Official Matchmaking,Silver Elite Master,poland Server,,47099829
+no_cheater_present,395,de_overpass,Official Matchmaking,Gold Nova II,asia Server,,109196146
+no_cheater_present,396,de_inferno,Official Matchmaking,Gold Nova Master,asia Server,,93918075
+no_cheater_present,397,de_overpass,Official Matchmaking,Gold Nova II,asia Server,,64915647
+no_cheater_present,398,de_thera,Official Matchmaking,Gold Nova I,asia Server,,110619750
+no_cheater_present,399,de_thera,Official Matchmaking,Gold Nova I,hong_kong Server,,62512257
+no_cheater_present,400,de_thera,Official Matchmaking,Gold Nova Master,asia Server,,59407525
+no_cheater_present,401,de_dust2,Official Matchmaking,Master Guardian II,asia Server,,83998824
+no_cheater_present,402,de_mirage,Official Matchmaking,Gold Nova III,asia Server,,65480485
+no_cheater_present,403,de_dust2,Official Matchmaking,Gold Nova I,india_east Server,,82374733
+no_cheater_present,404,de_mills,Official Matchmaking,Unknown,asia Server,,82824907
+no_cheater_present,405,de_inferno,Official Matchmaking,Silver III,asia Server,,52624785
+no_cheater_present,406,de_dust2,Official Matchmaking,Silver Elite,eu_north Server,,94564945
+no_cheater_present,407,cs_italy,Official Matchmaking,Silver Elite,hong_kong Server,,57919761
+no_cheater_present,408,cs_italy,Official Matchmaking,Silver Elite,asia Server,,50472725
+no_cheater_present,409,de_mills,Official Matchmaking,Silver Elite,hong_kong Server,,97433988
+no_cheater_present,410,cs_italy,Official Matchmaking,Silver IV,australia Server,,98892684
+no_cheater_present,411,cs_italy,Official Matchmaking,Silver II,australia Server,,45092089
+no_cheater_present,412,cs_italy,Official Matchmaking,Silver IV,australia Server,,71494517
+no_cheater_present,413,de_nuke,Official Matchmaking,Gold Nova I,poland Server,,67597765
+no_cheater_present,414,cs_office,Official Matchmaking,Gold Nova I,poland Server,,82542363
+no_cheater_present,415,de_anubis,Official Matchmaking,Silver III,eu_west Server,,95188308
+no_cheater_present,416,de_nuke,Official Matchmaking,Gold Nova II,london Server,,80840662
+no_cheater_present,417,de_dust2,Premier Matchmaking,10667,london Server,,82412606
+no_cheater_present,418,de_thera,Official Matchmaking,Silver II,eu_east Server,,46434013
+no_cheater_present,419,de_mills,Official Matchmaking,Silver II,eu_west Server,,48969256
+no_cheater_present,420,cs_italy,Official Matchmaking,Silver III,poland Server,,56019848
+no_cheater_present,421,de_dust2,Premier Matchmaking,4164,eu_north Server,,61813138
+no_cheater_present,422,de_thera,Official Matchmaking,Silver Elite,spain Server,,85031796
+no_cheater_present,423,cs_italy,Official Matchmaking,Silver Elite,london Server,,69555231
+no_cheater_present,424,de_ancient,Premier Matchmaking,13970,eu_north Server,,46698749
+no_cheater_present,425,de_mirage,Official Matchmaking,Master Guardian II,eu_north Server,,44266770
+no_cheater_present,426,de_dust2,Official Matchmaking,Silver III,eu_east Server,,14543522
+no_cheater_present,427,de_mirage,Official Matchmaking,Silver I,eu_north Server,,87162944
+no_cheater_present,428,de_inferno,Official Matchmaking,Silver IV,eu_west Server,,80450425
+no_cheater_present,429,de_train,Official Matchmaking,Silver II,poland Server,,66007981
+no_cheater_present,430,de_dust2,Official Matchmaking,Silver Elite,eu_north Server,,82558987
+no_cheater_present,431,de_dust2,Official Matchmaking,Silver III,eu_north Server,,76725020
+no_cheater_present,432,de_dust2,Official Matchmaking,Gold Nova II,eu_west Server,,72800715
+no_cheater_present,433,de_vertigo,Official Matchmaking,Gold Nova III,eu_west Server,,104142893
+no_cheater_present,434,de_dust2,Premier Matchmaking,12221,eu_north Server,,91714071
+no_cheater_present,435,de_train,Official Matchmaking,Gold Nova I,hong_kong Server,,97694981
+no_cheater_present,436,de_ancient,Official Matchmaking,Gold Nova I,eu_north Server,,99781089
+no_cheater_present,437,de_mirage,Official Matchmaking,Gold Nova II,eu_north Server,,93206690
+no_cheater_present,438,de_mirage,Official Matchmaking,Gold Nova I,poland Server,,88441883
+no_cheater_present,439,de_train,Official Matchmaking,Gold Nova II,poland Server,,96597500
+no_cheater_present,440,de_mirage,Official Matchmaking,Silver Elite,japan Server,,66057475
+no_cheater_present,441,de_train,Official Matchmaking,Unknown,eu_north Server,,42532716
+no_cheater_present,442,de_dust2,Premier Matchmaking,3830,eu_north Server,,56593536
+no_cheater_present,443,de_mirage,Official Matchmaking,Gold Nova II,eu_north Server,,86987047
+no_cheater_present,444,de_nuke,Premier Matchmaking,17452,eu_west Server,,75530691
+no_cheater_present,445,de_dust2,Official Matchmaking,Silver Elite Master,us_north_central Server,,86039802
+no_cheater_present,446,de_dust2,Official Matchmaking,Gold Nova III,eu_west Server,,86759243
+no_cheater_present,447,de_dust2,Official Matchmaking,Gold Nova Master,eu_north Server,,65917740
+no_cheater_present,448,de_inferno,Official Matchmaking,Silver IV,south_america Server,,77685994
+no_cheater_present,449,de_mirage,Premier Matchmaking,10261,argentina Server,,64652286
+no_cheater_present,450,de_thera,Official Matchmaking,Silver II,south_america Server,,93484371
+no_cheater_present,451,de_mirage,Premier Matchmaking,13541,poland Server,,100344168
+no_cheater_present,452,de_anubis,Official Matchmaking,Silver Elite Master,helsinki Server,,71359077
+no_cheater_present,453,de_thera,Official Matchmaking,Silver Elite,eu_north Server,,81394789
+no_cheater_present,454,de_thera,Official Matchmaking,Silver Elite,eu_east Server,,86005157
+no_cheater_present,455,de_thera,Official Matchmaking,Silver Elite Master,eu_west Server,,1579068
+no_cheater_present,456,de_mills,Official Matchmaking,Gold Nova II,eu_west Server,,104018165
+no_cheater_present,457,de_thera,Official Matchmaking,Silver IV,eu_west Server,,100369087
+no_cheater_present,458,de_train,Official Matchmaking,Silver Elite,eu_north Server,,61899283
+no_cheater_present,459,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,,108755968
+no_cheater_present,460,de_mirage,Official Matchmaking,Silver IV,us_west Server,,58654009
+no_cheater_present,461,de_dust2,Official Matchmaking,Gold Nova III,asia Server,,101202130
+no_cheater_present,462,de_thera,Official Matchmaking,Silver Elite Master,hong_kong Server,,79967238
+no_cheater_present,463,de_thera,Official Matchmaking,Silver Elite,hong_kong Server,,72665041
+no_cheater_present,464,de_thera,Official Matchmaking,Gold Nova III,hong_kong Server,,93701247
+no_cheater_present,465,de_mirage,Premier Matchmaking,15952,asia Server,,79647816
+no_cheater_present,466,de_mirage,Premier Matchmaking,3359,eu_north Server,,60319211
+no_cheater_present,467,de_dust2,Premier Matchmaking,12293,poland Server,,109098507
+no_cheater_present,468,de_basalt,Official Matchmaking,Silver III,eu_east Server,,34022620
+no_cheater_present,469,de_train,Official Matchmaking,Silver I,eu_west Server,,12107887
+no_cheater_present,470,de_dust2,Premier Matchmaking,8613,eu_west Server,,98882461
+no_cheater_present,471,de_nuke,Official Matchmaking,Silver IV,eu_east Server,,53388480
+no_cheater_present,472,de_dust2,Official Matchmaking,Silver Elite Master,eu_east Server,,77784165
+no_cheater_present,473,de_train,Official Matchmaking,Gold Nova I,eu_east Server,,71494191
+no_cheater_present,474,de_train,Official Matchmaking,Silver Elite,eu_west Server,,86512266
+no_cheater_present,475,de_mirage,Premier Matchmaking,8191,eu_east Server,,68526421
+no_cheater_present,476,de_mirage,Premier Matchmaking,7772,eu_north Server,,79680819
+no_cheater_present,477,de_train,Official Matchmaking,Silver IV,australia Server,,75092211
+with_cheater_present,0,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,Player_3;Player_4,42152571
+with_cheater_present,1,de_dust2,Premier Matchmaking,8208,helsinki Server,Player_10,60210043
+with_cheater_present,2,de_train,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,21199093
+with_cheater_present,3,de_mirage,Official Matchmaking,Distinguished Master Guardian,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_8;Player_9,33700198
+with_cheater_present,4,de_train,Official Matchmaking,Master Guardian II,poland Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6,36190443
+with_cheater_present,5,de_train,Official Matchmaking,Master Guardian Elite,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8,37288239
+with_cheater_present,6,de_edin,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_9;Player_10,37858015
+with_cheater_present,7,de_basalt,Official Matchmaking,Gold Nova III,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,8604343
+with_cheater_present,8,de_train,Official Matchmaking,Gold Nova Master,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5,17207138
+with_cheater_present,9,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5,16623551
+with_cheater_present,10,de_basalt,Official Matchmaking,Gold Nova I,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5,30979550
+with_cheater_present,11,de_train,Official Matchmaking,Gold Nova III,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_8,29407190
+with_cheater_present,12,de_train,Official Matchmaking,Master Guardian I,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5,25154689
+with_cheater_present,13,de_dust2,Official Matchmaking,Master Guardian Elite,eu_east Server,Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,53332130
+with_cheater_present,14,de_dust2,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_9,30186749
+with_cheater_present,15,de_dust2,Premier Matchmaking,19074,eu_west Server,Player_2;Player_3;Player_5,30550145
+with_cheater_present,16,de_inferno,Official Matchmaking,Master Guardian II,eu_north Server,Player_1;Player_2;Player_4;Player_5;Player_7,31775965
+with_cheater_present,17,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,Player_6;Player_7,8655587
+with_cheater_present,18,de_dust2,Official Matchmaking,Master Guardian II,eu_north Server,Player_3;Player_5;Player_10,48962531
+with_cheater_present,19,cs_office,Official Matchmaking,Gold Nova II,eu_east Server,Player_1;Player_2;Player_6;Player_8,39341835
+with_cheater_present,20,de_inferno,Official Matchmaking,Gold Nova III,eu_west Server,Player_1;Player_5;Player_7;Player_8,54681557
+with_cheater_present,21,de_dust2,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_4;Player_7;Player_8;Player_10,57750656
+with_cheater_present,22,de_train,Official Matchmaking,Silver II,poland Server,Player_3;Player_4;Player_6;Player_7;Player_8,61378851
+with_cheater_present,23,de_mirage,Premier Matchmaking,9726,helsinki Server,Player_2;Player_3;Player_10,93990861
+with_cheater_present,24,de_dust2,Premier Matchmaking,5693,eu_north Server,Player_5,78732464
+with_cheater_present,25,de_anubis,Official Matchmaking,Silver Elite Master,helsinki Server,Player_6;Player_10,102087249
+with_cheater_present,26,de_dust2,Official Matchmaking,Master Guardian I,eu_east Server,Player_1;Player_2;Player_3;Player_7;Player_8;Player_9;Player_10,41610502
+with_cheater_present,27,de_train,Official Matchmaking,Gold Nova I,spain Server,Player_1;Player_5;Player_6;Player_7;Player_8,32425183
+with_cheater_present,28,de_dust2,Official Matchmaking,Master Guardian I,poland Server,Player_2;Player_6;Player_10,42975359
+with_cheater_present,29,de_inferno,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_2;Player_3;Player_6;Player_7;Player_8;Player_9,29735391
+with_cheater_present,30,de_dust2,Official Matchmaking,Gold Nova Master,eu_west Server,Player_5;Player_6;Player_7,68224035
+with_cheater_present,31,de_inferno,Official Matchmaking,Gold Nova III,eu_north Server,Player_1;Player_2;Player_4;Player_6;Player_7,63401375
+with_cheater_present,32,de_dust2,Official Matchmaking,Master Guardian I,eu_west Server,Player_1;Player_2,41858166
+with_cheater_present,33,de_overpass,Official Matchmaking,Gold Nova II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_6;Player_8;Player_9;Player_10,55668876
+with_cheater_present,34,de_dust2,Official Matchmaking,Master Guardian Elite,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_9,39206583
+with_cheater_present,35,de_mirage,Premier Matchmaking,17311,eu_north Server,Player_1;Player_3,31825704
+with_cheater_present,36,de_mirage,Premier Matchmaking,18183,eu_west Server,Player_2;Player_3;Player_4;Player_6;Player_7;Player_8;Player_9,79744661
+with_cheater_present,37,de_nuke,Premier Matchmaking,21745,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,33465988
+with_cheater_present,38,de_dust2,Premier Matchmaking,20465,eu_west Server,Player_1;Player_2;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,56453116
+with_cheater_present,39,de_mirage,Premier Matchmaking,18169,poland Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_7;Player_8,36289650
+with_cheater_present,40,de_inferno,Premier Matchmaking,16761,eu_north Server,Player_1;Player_3;Player_7,13241357
+with_cheater_present,41,de_mirage,Premier Matchmaking,15245,poland Server,Player_1;Player_2;Player_3;Player_6;Player_7,40099786
+with_cheater_present,42,de_dust2,Premier Matchmaking,17994,poland Server,Player_3;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,44275016
+with_cheater_present,43,de_inferno,Premier Matchmaking,19488,eu_west Server,Player_1;Player_2;Player_3;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,68655483
+with_cheater_present,44,de_mirage,Premier Matchmaking,18118,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_9;Player_10,61378873
+with_cheater_present,45,de_mirage,Premier Matchmaking,16297,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_6;Player_9;Player_10,21429552
+with_cheater_present,46,de_mirage,Premier Matchmaking,15890,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_7;Player_9,52760638
+with_cheater_present,47,de_ancient,Official Matchmaking,Gold Nova III,poland Server,Player_1;Player_2;Player_3,14484820
+with_cheater_present,48,cs_office,Official Matchmaking,Gold Nova I,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_10,29824510
+with_cheater_present,49,cs_office,Official Matchmaking,Gold Nova III,eu_west Server,Player_6;Player_7;Player_8;Player_10,26203102
+with_cheater_present,50,cs_italy,Official Matchmaking,Silver Elite,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,23503012
+with_cheater_present,51,de_dust2,Official Matchmaking,Master Guardian II,eu_east Server,Player_1;Player_2;Player_7;Player_8;Player_9;Player_10,66049568
+with_cheater_present,52,de_inferno,Official Matchmaking,Gold Nova II,eu_north Server,Player_1;Player_6;Player_7;Player_8;Player_9;Player_10,20992656
+with_cheater_present,53,de_mirage,Official Matchmaking,Gold Nova Master,eu_east Server,Player_1;Player_2,69673830
+with_cheater_present,54,de_anubis,Official Matchmaking,Gold Nova II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,18860585
+with_cheater_present,55,de_mirage,Official Matchmaking,Master Guardian I,eu_east Server,Player_1;Player_6;Player_7;Player_8;Player_9;Player_10,39151121
+with_cheater_present,56,de_nuke,Official Matchmaking,Gold Nova I,eu_east Server,Player_1;Player_2;Player_3;Player_4;Player_5,24516550
+with_cheater_present,57,de_mirage,Official Matchmaking,Gold Nova III,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,32643590
+with_cheater_present,58,de_dust2,Official Matchmaking,Master Guardian I,poland Server,Player_1;Player_4;Player_5;Player_6;Player_7;Player_8;Player_10,81735229
+with_cheater_present,59,de_dust2,Official Matchmaking,Master Guardian Elite,eu_east Server,Player_2;Player_3;Player_4;Player_5;Player_10,43077340
+with_cheater_present,60,de_anubis,Official Matchmaking,Gold Nova Master,eu_west Server,Player_6;Player_7;Player_8;Player_9,13060601
+with_cheater_present,61,de_anubis,Official Matchmaking,Gold Nova III,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5,37094346
+with_cheater_present,62,de_mills,Official Matchmaking,Silver Elite,eu_west Server,Player_1;Player_7;Player_8;Player_9;Player_10,42352337
+with_cheater_present,63,de_nuke,Official Matchmaking,Master Guardian I,poland Server,Player_2;Player_3;Player_4;Player_5;Player_7;Player_8;Player_9,52615955
+with_cheater_present,64,de_dust2,Official Matchmaking,Master Guardian II,eu_east Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_10,33450566
+with_cheater_present,65,de_mirage,Official Matchmaking,Master Guardian II,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_9,15313861
+with_cheater_present,66,de_dust2,Official Matchmaking,Gold Nova Master,eu_west Server,Player_2;Player_3;Player_4;Player_5,12610335
+with_cheater_present,67,de_dust2,Premier Matchmaking,14580,eu_north Server,Player_1;Player_2;Player_4;Player_5;Player_6;Player_7;Player_9;Player_10,45410772
+with_cheater_present,68,de_vertigo,Premier Matchmaking,8650,eu_north Server,Player_1,103546708
+with_cheater_present,69,de_mirage,Premier Matchmaking,10129,helsinki Server,Player_1;Player_8,32491389
+with_cheater_present,70,de_dust2,Premier Matchmaking,8630,eu_north Server,Player_3;Player_5,61266945
+with_cheater_present,71,de_mirage,Premier Matchmaking,7473,eu_west Server,Player_5,90733305
+with_cheater_present,72,de_dust2,Premier Matchmaking,18753,india Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_8,29289359
+with_cheater_present,73,de_inferno,Premier Matchmaking,17142,india Server,Player_1,28903436
+with_cheater_present,74,de_mirage,Premier Matchmaking,20613,india Server,Player_1;Player_2;Player_4;Player_6;Player_8;Player_9;Player_10,21701663
+with_cheater_present,75,de_nuke,Premier Matchmaking,12587,india_east Server,Player_1;Player_3;Player_6;Player_7,63375566
+with_cheater_present,76,de_dust2,Premier Matchmaking,18590,india Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8,100132456
+with_cheater_present,77,de_inferno,Premier Matchmaking,16497,india Server,Player_1;Player_6;Player_7;Player_8,39515812
+with_cheater_present,78,de_nuke,Official Matchmaking,Gold Nova III,eu_north Server,Player_4;Player_9;Player_10,69999661
+with_cheater_present,79,de_nuke,Official Matchmaking,Gold Nova I,eu_west Server,Player_1;Player_5;Player_8,46584247
+with_cheater_present,80,de_mirage,Official Matchmaking,Master Guardian II,helsinki Server,Player_1;Player_10,87189034
+with_cheater_present,81,de_mirage,Official Matchmaking,Gold Nova III,eu_north Server,Player_9,98366209
+with_cheater_present,82,de_mirage,Official Matchmaking,Silver Elite Master,eu_north Server,Player_2,98022703
+with_cheater_present,83,de_mirage,Official Matchmaking,Silver Elite,eu_north Server,Player_10,76817479
+with_cheater_present,84,de_inferno,Premier Matchmaking,10322,eu_north Server,Player_3;Player_4;Player_5;Player_7;Player_9,87158691
+with_cheater_present,85,de_mirage,Premier Matchmaking,11617,eu_west Server,Player_1;Player_2,39368894
+with_cheater_present,86,de_anubis,Premier Matchmaking,10384,poland Server,Player_1;Player_4;Player_7;Player_10,66740393
+with_cheater_present,87,de_inferno,Premier Matchmaking,14745,asia Server,Player_1;Player_2;Player_3,33543736
+with_cheater_present,88,de_inferno,Official Matchmaking,Master Guardian I,hong_kong Server,Player_5;Player_9,89175346
+with_cheater_present,89,de_dust2,Official Matchmaking,Master Guardian I,hong_kong Server,Player_8,81498056
+with_cheater_present,90,de_inferno,Premier Matchmaking,16564,seoul Server,Player_1;Player_4;Player_5;Player_6;Player_7,71614174
+with_cheater_present,91,de_vertigo,Premier Matchmaking,16971,alicloud_chengdu_ctuali Server,Player_8,83800489
+with_cheater_present,92,de_mirage,Official Matchmaking,Silver Elite,japan Server,Player_8,86670430
+with_cheater_present,93,de_mirage,Official Matchmaking,Gold Nova II,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_9;Player_10,20803384
+with_cheater_present,94,de_mirage,Premier Matchmaking,16882,us_southwest Server,Player_1;Player_3;Player_6;Player_7;Player_8,67558758
+with_cheater_present,95,de_mirage,Premier Matchmaking,18296,us_north_central Server,Player_1;Player_2;Player_3;Player_6;Player_7;Player_8;Player_9,53013914
+with_cheater_present,96,de_dust2,Premier Matchmaking,16031,us_north_central Server,Player_1;Player_6;Player_7;Player_8;Player_9,37952208
+with_cheater_present,97,de_inferno,Premier Matchmaking,15832,us_north_central Server,Player_1;Player_3;Player_4;Player_5,49270100
+with_cheater_present,98,de_dust2,Premier Matchmaking,12793,us_southwest Server,Player_1;Player_6;Player_10,62971365
+with_cheater_present,99,de_vertigo,Premier Matchmaking,17873,us_north_central Server,Player_1;Player_2;Player_6;Player_8;Player_9;Player_10,47847589
+with_cheater_present,100,de_vertigo,Official Matchmaking,Silver Elite Master,us_southeast Server,Player_9,19199527
+with_cheater_present,101,de_train,Official Matchmaking,Silver Elite Master,us_southwest Server,Player_2;Player_4;Player_5;Player_9,57806465
+with_cheater_present,102,de_ancient,Official Matchmaking,Silver Elite Master,us_north_central Server,Player_2;Player_4;Player_6;Player_8;Player_9;Player_10,49791457
+with_cheater_present,103,de_anubis,Official Matchmaking,Gold Nova III,london Server,Player_3;Player_4;Player_7;Player_9;Player_10,56083020
+with_cheater_present,104,de_nuke,Official Matchmaking,Gold Nova II,eu_west Server,Player_2;Player_3;Player_4;Player_5;Player_8;Player_9,17403185
+with_cheater_present,105,de_anubis,Premier Matchmaking,18055,us_southeast Server,Player_1;Player_2;Player_4;Player_5,31103927
+with_cheater_present,106,de_dust2,Premier Matchmaking,18980,us_north_central Server,Player_1;Player_2;Player_4;Player_5;Player_9,25738091
+with_cheater_present,107,de_mirage,Premier Matchmaking,18311,us_north_central Server,Player_1;Player_2;Player_4;Player_5,3481513
+with_cheater_present,108,de_vertigo,Premier Matchmaking,19425,us_north_central Server,Player_1;Player_2;Player_5;Player_6;Player_9,26353845
+with_cheater_present,109,de_mirage,Premier Matchmaking,20507,us_north_central Server,Player_2;Player_6;Player_7;Player_9;Player_10,34444211
+with_cheater_present,110,de_inferno,Premier Matchmaking,19159,us_southwest Server,Player_1;Player_2;Player_4;Player_5,36587514
+with_cheater_present,111,de_dust2,Premier Matchmaking,18521,us_north_central Server,Player_1;Player_6;Player_7;Player_8;Player_9,38831880
+with_cheater_present,112,de_inferno,Premier Matchmaking,17148,us_southeast Server,Player_1;Player_2;Player_3;Player_4,33497165
+with_cheater_present,113,de_dust2,Premier Matchmaking,17095,us_southeast Server,Player_1;Player_2;Player_3,35478972
+with_cheater_present,114,de_mirage,Premier Matchmaking,17718,us_north_central Server,Player_1;Player_2;Player_3,29828267
+with_cheater_present,115,de_mirage,Premier Matchmaking,19389,us_north_central Server,Player_1;Player_6;Player_7;Player_8;Player_10,43571997
+with_cheater_present,116,de_dust2,Premier Matchmaking,17001,us_north_central Server,Player_1;Player_6;Player_7;Player_8;Player_9,22984923
+with_cheater_present,117,de_mirage,Premier Matchmaking,18961,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8,75494396
+with_cheater_present,118,de_vertigo,Premier Matchmaking,16921,us_southeast Server,Player_1;Player_2;Player_6;Player_7;Player_8,49901598
+with_cheater_present,119,de_dust2,Official Matchmaking,Silver Elite,poland Server,Player_3,79630754
+with_cheater_present,120,de_vertigo,Official Matchmaking,Master Guardian I,hong_kong Server,Player_1;Player_2;Player_3;Player_4,31323358
+with_cheater_present,121,de_vertigo,Premier Matchmaking,14230,asia Server,Player_3;Player_4;Player_7;Player_9;Player_10,30576981
+with_cheater_present,122,de_dust2,Official Matchmaking,Master Guardian I,asia Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7,30038628
+with_cheater_present,123,de_dust2,Official Matchmaking,Master Guardian II,asia Server,Player_6;Player_7;Player_8;Player_9,49325302
+with_cheater_present,124,de_inferno,Premier Matchmaking,10299,asia Server,Player_1;Player_6;Player_7,67285246
+with_cheater_present,125,de_dust2,Official Matchmaking,Gold Nova Master,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_8;Player_10,7943644
+with_cheater_present,126,de_ancient,Official Matchmaking,Gold Nova III,pwrd_guangdong Server,Player_6;Player_8;Player_9;Player_10,12895787
+with_cheater_present,127,de_dust2,Official Matchmaking,Master Guardian II,alicloud_shanghai_pvg Server,Player_1;Player_3;Player_6,26616319
+with_cheater_present,128,de_dust2,Official Matchmaking,Silver Elite Master,alicloud_chengdu_ctuali Server,Player_1;Player_3;Player_5,64172846
+with_cheater_present,129,de_ancient,Official Matchmaking,Gold Nova I,alicloud_chengdu_ctuali Server,Player_3;Player_4;Player_5;Player_6;Player_7,29421920
+with_cheater_present,130,de_mirage,Official Matchmaking,Gold Nova I,pwrd_guangdong Server,Player_6;Player_7;Player_8,30412369
+with_cheater_present,131,de_mirage,Official Matchmaking,Gold Nova I,pwrd_guangdong Server,Player_3;Player_4;Player_5,44464463
+with_cheater_present,132,de_mirage,Official Matchmaking,Gold Nova II,pwrd_guangdong Server,Player_8,110949482
+with_cheater_present,133,de_ancient,Official Matchmaking,Silver Elite Master,tencent_guangzhou_tgd Server,Player_8;Player_9;Player_10,43367063
+with_cheater_present,134,de_dust2,Official Matchmaking,Gold Nova I,alicloud_chengdu_ctuali Server,Player_2;Player_3;Player_6;Player_7;Player_8;Player_9,26477183
+with_cheater_present,135,de_dust2,Official Matchmaking,Gold Nova II,alicloud_chengdu_ctuali Server,Player_2;Player_4;Player_5;Player_6;Player_7;Player_8,25997841
+with_cheater_present,136,de_dust2,Official Matchmaking,Gold Nova I,pwrd_guangdong Server,Player_1;Player_2;Player_3;Player_10,19619525
+with_cheater_present,137,de_dust2,Official Matchmaking,Silver Elite Master,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_6;Player_7;Player_8;Player_9,38851022
+with_cheater_present,138,de_dust2,Official Matchmaking,Gold Nova II,alicloud_chengdu_ctuali Server,Player_1;Player_5;Player_6;Player_7;Player_8,55645736
+with_cheater_present,139,de_dust2,Official Matchmaking,Gold Nova III,alicloud_chengdu_ctuali Server,Player_1;Player_2;Player_3;Player_8,13783796
+with_cheater_present,140,de_dust2,Official Matchmaking,Gold Nova Master,alicloud_shanghai_pvg Server,Player_1;Player_3;Player_4;Player_5;Player_9;Player_10,34390028
+with_cheater_present,141,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_4,12752337
+with_cheater_present,142,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3,7855354
+with_cheater_present,143,de_dust2,Official Matchmaking,Gold Nova II,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3,6833128
+with_cheater_present,144,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_7;Player_8;Player_9,32850987
+with_cheater_present,145,de_mirage,Official Matchmaking,Gold Nova Master,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_4;Player_6,65844750
+with_cheater_present,146,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_6;Player_7;Player_8,79055693
+with_cheater_present,147,de_inferno,Official Matchmaking,Gold Nova II,alicloud_chengdu_ctuali Server,Player_8;Player_9,60807850
+with_cheater_present,148,de_dust2,Official Matchmaking,Gold Nova II,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3,18444404
+with_cheater_present,149,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_7,45698753
+with_cheater_present,150,de_vertigo,Official Matchmaking,Gold Nova I,alicloud_shanghai_pvg Server,Player_1;Player_5;Player_6;Player_7;Player_8,23394911
+with_cheater_present,151,de_dust2,Official Matchmaking,Master Guardian II,alicloud_shanghai_pvg Server,Player_6;Player_8;Player_9;Player_10,22165829
+with_cheater_present,152,de_inferno,Official Matchmaking,Gold Nova II,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_9,46498510
+with_cheater_present,153,de_inferno,Official Matchmaking,Gold Nova II,alicloud_shanghai_pvg Server,Player_5;Player_8;Player_9;Player_10,58355880
+with_cheater_present,154,de_vertigo,Official Matchmaking,Silver Elite Master,alicloud_shanghai_pvg Server,Player_3;Player_4;Player_5,34817174
+with_cheater_present,155,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_2;Player_3;Player_4,64935020
+with_cheater_present,156,de_mirage,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_1;Player_2;Player_3;Player_5;Player_9,51912805
+with_cheater_present,157,de_mirage,Official Matchmaking,Silver Elite Master,pwrd_uc_tianjin Server,Player_7;Player_8;Player_9,36885421
+with_cheater_present,158,de_dust2,Official Matchmaking,Silver Elite Master,pwrd_uc_tianjin Server,Player_4;Player_5;Player_6;Player_7;Player_9,89199436
+with_cheater_present,159,de_inferno,Official Matchmaking,Gold Nova II,pwrd_uc_tianjin Server,Player_6;Player_7,6996904
+with_cheater_present,160,de_dust2,Official Matchmaking,Gold Nova III,pwrd_uc_tianjin Server,Player_6;Player_7;Player_8,59968048
+with_cheater_present,161,de_ancient,Official Matchmaking,Gold Nova I,pwrd_uc_tianjin Server,Player_3;Player_4;Player_5;Player_7,78793927
+with_cheater_present,162,de_inferno,Official Matchmaking,Silver Elite,pwrd_uc_tianjin Server,Player_8;Player_9,65480671
+with_cheater_present,163,de_ancient,Official Matchmaking,Silver Elite Master,pwrd_uc_tianjin Server,Player_1;Player_2;Player_3;Player_10,32977964
+with_cheater_present,164,de_mirage,Official Matchmaking,Gold Nova I,pwrd_uc_tianjin Server,Player_3;Player_4;Player_5;Player_6,44544493
+with_cheater_present,165,de_dust2,Official Matchmaking,Gold Nova III,alicloud_shanghai_pvg Server,Player_4;Player_8;Player_9;Player_10,16495146
+with_cheater_present,166,de_dust2,Official Matchmaking,Silver II,australia Server,Player_8,58761898
+with_cheater_present,167,de_dust2,Premier Matchmaking,20283,eu_west Server,Player_6;Player_7;Player_8;Player_9;Player_10,29049120
+with_cheater_present,168,de_anubis,Premier Matchmaking,21128,eu_west Server,Player_1;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,69771821
+with_cheater_present,169,de_dust2,Premier Matchmaking,6401,argentina Server,Player_3;Player_5,60279266
+with_cheater_present,170,de_mirage,Premier Matchmaking,19637,poland Server,Player_1;Player_2;Player_6;Player_7,56673345
+with_cheater_present,171,de_nuke,Official Matchmaking,Silver Elite,poland Server,Player_1,38262541
+with_cheater_present,172,de_dust2,Official Matchmaking,Gold Nova II,helsinki Server,Player_6;Player_8,87051306
+with_cheater_present,173,de_mirage,Official Matchmaking,Master Guardian I,helsinki Server,Player_7,79041042
+with_cheater_present,174,de_train,Official Matchmaking,Gold Nova III,eu_north Server,Player_5;Player_10,59088776
+with_cheater_present,175,de_mirage,Premier Matchmaking,18998,eu_north Server,Player_1;Player_6,39134587
+with_cheater_present,176,de_dust2,Official Matchmaking,Master Guardian I,eu_north Server,Player_3;Player_9,19071182
+with_cheater_present,177,de_mirage,Official Matchmaking,Master Guardian I,eu_north Server,Player_3;Player_4,28732420
+with_cheater_present,178,de_mirage,Premier Matchmaking,14269,poland Server,Player_1;Player_10,37391772
+with_cheater_present,179,de_dust2,Premier Matchmaking,18257,poland Server,Player_2,107175285
+with_cheater_present,180,de_mirage,Official Matchmaking,Gold Nova I,eu_north Server,Player_1;Player_9,92540561
+with_cheater_present,181,de_vertigo,Official Matchmaking,Gold Nova I,hong_kong Server,Player_7,82854004
+with_cheater_present,182,de_inferno,Premier Matchmaking,18500,hong_kong Server,Player_1;Player_2;Player_3;Player_4;Player_5,34299945
+with_cheater_present,183,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,Player_3;Player_7,100296147
+with_cheater_present,184,de_nuke,Premier Matchmaking,9448,eu_north Server,Player_1;Player_2,89254030
+with_cheater_present,185,de_ancient,Premier Matchmaking,15084,eu_north Server,Player_1;Player_2,80977185
+with_cheater_present,186,de_anubis,Premier Matchmaking,12249,asia Server,Player_10,32141472
+with_cheater_present,187,de_inferno,Official Matchmaking,Gold Nova I,eu_north Server,Player_3;Player_4,70334794
+with_cheater_present,188,de_dust2,Premier Matchmaking,3436,eu_north Server,Player_8,102294872
+with_cheater_present,189,de_mirage,Premier Matchmaking,3765,eu_north Server,Player_3;Player_6;Player_7,61695332
+with_cheater_present,190,de_mirage,Premier Matchmaking,18783,eu_west Server,Player_6;Player_7;Player_8,3020198
+with_cheater_present,191,de_dust2,Premier Matchmaking,20415,us_southeast Server,Player_2;Player_3;Player_4;Player_6;Player_7;Player_8;Player_9;Player_10,39909969
+with_cheater_present,192,de_dust2,Premier Matchmaking,14466,us_southwest Server,Player_1;Player_2;Player_3;Player_4;Player_5,28204666
+with_cheater_present,193,de_vertigo,Premier Matchmaking,17380,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5,28392141
+with_cheater_present,194,de_nuke,Premier Matchmaking,14571,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5,27935689
+with_cheater_present,195,de_dust2,Premier Matchmaking,17785,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6,27898522
+with_cheater_present,196,de_inferno,Premier Matchmaking,17268,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5,31216947
+with_cheater_present,197,de_vertigo,Premier Matchmaking,16615,us_southwest Server,Player_1;Player_6;Player_7;Player_8;Player_9;Player_10,4140830
+with_cheater_present,198,de_dust2,Premier Matchmaking,17180,us_north_central Server,Player_1;Player_4;Player_6;Player_7;Player_8;Player_9;Player_10,16618207
+with_cheater_present,199,de_ancient,Official Matchmaking,Gold Nova I,us_north_central Server,Player_1;Player_2;Player_3;Player_5,28910336
+with_cheater_present,200,de_train,Official Matchmaking,Gold Nova III,us_southwest Server,Player_6;Player_7;Player_8;Player_9;Player_10,21496486
+with_cheater_present,201,de_dust2,Official Matchmaking,Gold Nova II,us_southwest Server,Player_6;Player_7;Player_8;Player_9;Player_10,27785572
+with_cheater_present,202,de_nuke,Official Matchmaking,Silver Elite Master,us_north_central Server,Player_1;Player_3;Player_4;Player_5,24726222
+with_cheater_present,203,de_inferno,Official Matchmaking,Silver Elite Master,us_north_central Server,Player_2;Player_6;Player_7;Player_8;Player_9;Player_10,28645660
+with_cheater_present,204,de_vertigo,Official Matchmaking,Silver Elite,us_southwest Server,Player_6;Player_7;Player_8;Player_9;Player_10,26821972
+with_cheater_present,205,de_dust2,Official Matchmaking,Gold Nova II,us_southeast Server,Player_1;Player_2;Player_6;Player_7;Player_8;Player_9;Player_10,40200855
+with_cheater_present,206,de_dust2,Official Matchmaking,Master Guardian I,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_10,26367277
+with_cheater_present,207,de_dust2,Official Matchmaking,Gold Nova I,us_southwest Server,Player_1;Player_2;Player_3;Player_6;Player_7;Player_8;Player_9,47595704
+with_cheater_present,208,de_mirage,Premier Matchmaking,22549,us_north_central Server,Player_1;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,47303887
+with_cheater_present,209,de_mirage,Premier Matchmaking,23136,us_north_central Server,Player_5;Player_6;Player_7;Player_8;Player_9,25225813
+with_cheater_present,210,de_dust2,Premier Matchmaking,15882,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5,29893033
+with_cheater_present,211,de_mirage,Premier Matchmaking,19227,us_southwest Server,Player_2;Player_3;Player_6;Player_7;Player_8;Player_9;Player_10,23039891
+with_cheater_present,212,de_vertigo,Premier Matchmaking,17470,us_north_central Server,Player_1;Player_4;Player_6;Player_7;Player_8;Player_9;Player_10,29196892
+with_cheater_present,213,de_inferno,Premier Matchmaking,15355,us_north_central Server,Player_2;Player_3;Player_4;Player_5,14583127
+with_cheater_present,214,de_mirage,Premier Matchmaking,18225,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_7,20994627
+with_cheater_present,215,de_mirage,Premier Matchmaking,15370,us_east Server,Player_1;Player_2;Player_3;Player_4;Player_5,8168334
+with_cheater_present,216,de_mirage,Premier Matchmaking,18788,us_east Server,Player_1;Player_2;Player_3;Player_4;Player_5,46700514
+with_cheater_present,217,de_mirage,Premier Matchmaking,18146,us_north_central Server,Player_1;Player_2;Player_3;Player_4,33240903
+with_cheater_present,218,de_dust2,Premier Matchmaking,17190,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6,29997824
+with_cheater_present,219,de_mirage,Premier Matchmaking,17295,us_southwest Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7,45036956
+with_cheater_present,220,de_dust2,Premier Matchmaking,18858,us_north_central Server,Player_1;Player_4;Player_6;Player_7;Player_8;Player_9;Player_10,14135079
+with_cheater_present,221,de_dust2,Premier Matchmaking,19024,us_east Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_8;Player_9;Player_10,64723609
+with_cheater_present,222,de_dust2,Official Matchmaking,Gold Nova II,us_north_central Server,Player_1;Player_2;Player_3,78409222
+with_cheater_present,223,de_inferno,Official Matchmaking,Gold Nova II,us_southwest Server,Player_7;Player_8,97164925
+with_cheater_present,224,de_inferno,Official Matchmaking,Gold Nova I,us_southwest Server,Player_1;Player_2;Player_3;Player_4,40199582
+with_cheater_present,225,de_mirage,Official Matchmaking,Gold Nova Master,us_north_central Server,Player_6;Player_7,52984081
+with_cheater_present,226,de_dust2,Official Matchmaking,Gold Nova Master,us_southwest Server,Player_7,73575699
+with_cheater_present,227,de_nuke,Premier Matchmaking,16801,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9,61485529
+with_cheater_present,228,de_dust2,Official Matchmaking,Silver III,us_east Server,Player_1;Player_2;Player_7,66564617
+with_cheater_present,229,de_dust2,Official Matchmaking,Gold Nova II,us_southwest Server,Player_1;Player_2;Player_6;Player_7;Player_8,58895272
+with_cheater_present,230,de_vertigo,Premier Matchmaking,15049,us_southwest Server,Player_1;Player_2;Player_3;Player_4;Player_7;Player_8,75134767
+with_cheater_present,231,de_ancient,Official Matchmaking,Gold Nova I,us_north_central Server,Player_4;Player_5;Player_6;Player_7,62654070
+with_cheater_present,232,de_mirage,Premier Matchmaking,14521,us_north_central Server,Player_1;Player_2;Player_4;Player_6,18804522
+with_cheater_present,233,de_vertigo,Official Matchmaking,Gold Nova I,us_southwest Server,Player_1;Player_5,76780640
+with_cheater_present,234,cs_office,Official Matchmaking,Gold Nova II,us_north_central Server,Player_6;Player_8;Player_9,53393057
+with_cheater_present,235,de_dust2,Official Matchmaking,Gold Nova II,us_southwest Server,Player_4;Player_5,3136324
+with_cheater_present,236,de_dust2,Official Matchmaking,Gold Nova I,us_southwest Server,Player_7;Player_8;Player_9;Player_10,30845847
+with_cheater_present,237,de_inferno,Premier Matchmaking,16307,us_southeast Server,Player_1;Player_2;Player_3;Player_4;Player_5,28357785
+with_cheater_present,238,de_inferno,Premier Matchmaking,16247,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_8,74219637
+with_cheater_present,239,de_mirage,Premier Matchmaking,15800,us_north_central Server,Player_1;Player_2;Player_4;Player_5;Player_6;Player_7;Player_9,78886590
+with_cheater_present,240,de_inferno,Premier Matchmaking,11280,us_southeast Server,Player_1;Player_10,101582188
+with_cheater_present,241,de_mirage,Premier Matchmaking,5119,us_north_central Server,Player_1;Player_4;Player_6;Player_7,55241147
+with_cheater_present,242,de_nuke,Premier Matchmaking,10670,us_southwest Server,Player_1;Player_6;Player_7;Player_8;Player_9,22135336
+with_cheater_present,243,de_mirage,Premier Matchmaking,14811,us_north_central Server,Player_1,17132479
+with_cheater_present,244,de_inferno,Official Matchmaking,Silver III,eu_north Server,Player_5;Player_6;Player_7;Player_8,31571780
+with_cheater_present,245,de_vertigo,Premier Matchmaking,11000,us_east Server,Player_6;Player_7;Player_8;Player_9,30358942
+with_cheater_present,246,de_nuke,Premier Matchmaking,10767,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6,39756821
+with_cheater_present,247,de_vertigo,Premier Matchmaking,17855,us_southeast Server,Player_2;Player_3;Player_4;Player_5;Player_7;Player_10,26126133
+with_cheater_present,248,de_inferno,Premier Matchmaking,13399,us_north_central Server,Player_1;Player_2;Player_4,58525283
+with_cheater_present,249,de_mirage,Premier Matchmaking,15909,us_north_central Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,116341479
+with_cheater_present,250,de_mirage,Premier Matchmaking,15823,us_southwest Server,Player_1;Player_2;Player_6;Player_7;Player_8;Player_9;Player_10,75009133
+with_cheater_present,251,de_dust2,Premier Matchmaking,11551,us_southwest Server,Player_1;Player_2;Player_6;Player_7;Player_8;Player_9,40453573
+with_cheater_present,252,de_mirage,Premier Matchmaking,10208,us_north_central Server,Player_1,72196852
+with_cheater_present,253,de_ancient,Premier Matchmaking,12619,us_north_central Server,Player_2;Player_3;Player_5,32899775
+with_cheater_present,254,de_mirage,Premier Matchmaking,12599,us_north_central Server,Player_1;Player_3;Player_6,84014335
+with_cheater_present,255,de_vertigo,Premier Matchmaking,15558,us_southwest Server,Player_7,62741123
+with_cheater_present,256,de_dust2,Official Matchmaking,Master Guardian I,poland Server,Player_9,95050639
+with_cheater_present,257,de_dust2,Official Matchmaking,Gold Nova Master,eu_west Server,Player_3;Player_7,95639743
+with_cheater_present,258,de_inferno,Official Matchmaking,Silver Elite,poland Server,Player_1;Player_2;Player_6;Player_8,91086451
+with_cheater_present,259,de_inferno,Official Matchmaking,Silver II,south_america Server,Player_1,90327618
+with_cheater_present,260,de_train,Official Matchmaking,Silver II,south_america Server,Player_10,66102314
+with_cheater_present,261,de_dust2,Premier Matchmaking,15720,south_america Server,Player_1;Player_3;Player_5;Player_6;Player_7;Player_8,43809270
+with_cheater_present,262,de_mirage,Premier Matchmaking,10146,south_america Server,Player_1;Player_3;Player_5;Player_6;Player_7,78535468
+with_cheater_present,263,de_dust2,Premier Matchmaking,13575,south_america Server,Player_1;Player_2;Player_4;Player_6;Player_8;Player_10,59641199
+with_cheater_present,264,de_dust2,Premier Matchmaking,11204,south_america Server,Player_2;Player_4;Player_6;Player_7,103156097
+with_cheater_present,265,de_mirage,Official Matchmaking,Gold Nova II,argentina Server,Player_7;Player_8;Player_9;Player_10,33082268
+with_cheater_present,266,de_dust2,Official Matchmaking,Gold Nova II,argentina Server,Player_1;Player_2;Player_3;Player_4;Player_5;Player_6;Player_7,28129900
+with_cheater_present,267,de_mirage,Official Matchmaking,Gold Nova I,argentina Server,Player_1;Player_2;Player_3;Player_4,36843096
+with_cheater_present,268,de_mirage,Official Matchmaking,Gold Nova II,south_america Server,Player_1;Player_7;Player_8;Player_9;Player_10,34287734
+with_cheater_present,269,de_dust2,Official Matchmaking,Gold Nova III,south_america Server,Player_1;Player_2;Player_6;Player_7;Player_8;Player_10,32080078
+with_cheater_present,270,de_nuke,Premier Matchmaking,11338,eu_north Server,Player_2,118944791
+with_cheater_present,271,de_mirage,Official Matchmaking,Master Guardian Elite,eu_west Server,Player_1;Player_2;Player_3;Player_4;Player_6;Player_7;Player_8;Player_9;Player_10,79087126
+with_cheater_present,272,de_mirage,Official Matchmaking,Master Guardian II,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_7;Player_8,54571141
+with_cheater_present,273,de_anubis,Official Matchmaking,Master Guardian I,eu_west Server,Player_1;Player_5;Player_7;Player_8;Player_9;Player_10,45163345
+with_cheater_present,274,de_nuke,Official Matchmaking,Gold Nova III,eu_north Server,Player_1;Player_2;Player_4;Player_5;Player_6;Player_7;Player_8;Player_9;Player_10,57302549
+with_cheater_present,275,de_train,Official Matchmaking,Gold Nova Master,eu_west Server,Player_4;Player_5,7932826
+with_cheater_present,276,de_dust2,Official Matchmaking,Gold Nova I,eu_north Server,Player_5,18830259
+with_cheater_present,277,de_train,Official Matchmaking,Silver III,us_north_central Server,Player_1;Player_2;Player_3;Player_6;Player_8;Player_9;Player_10,66073674
+with_cheater_present,278,cs_office,Official Matchmaking,Gold Nova II,us_southeast Server,Player_1;Player_8;Player_9,33342122
+with_cheater_present,279,de_mirage,Official Matchmaking,Silver Elite,us_north_central Server,Player_5,94590979
+with_cheater_present,280,de_overpass,Official Matchmaking,Silver Elite Master,us_southwest Server,Player_1;Player_2;Player_5;Player_10,8310678
+with_cheater_present,281,de_dust2,Official Matchmaking,Gold Nova III,us_southeast Server,Player_1;Player_3;Player_7;Player_10,67863237
+with_cheater_present,282,de_nuke,Official Matchmaking,Silver Elite Master,us_east Server,Player_2;Player_3;Player_4;Player_5;Player_6,74013823
+with_cheater_present,283,de_inferno,Official Matchmaking,Gold Nova I,us_east Server,Player_6,74734293
+with_cheater_present,284,de_inferno,Official Matchmaking,Gold Nova Master,us_east Server,Player_6;Player_7;Player_8;Player_10,46875244
+with_cheater_present,285,de_mirage,Official Matchmaking,Silver Elite Master,us_east Server,Player_1;Player_3;Player_5;Player_8,46679670
+with_cheater_present,286,cs_office,Official Matchmaking,Gold Nova I,us_southeast Server,Player_3;Player_4;Player_5;Player_6;Player_7,52243770
+with_cheater_present,287,de_dust2,Official Matchmaking,Silver IV,us_southwest Server,Player_1;Player_2;Player_4;Player_8,33481171
+with_cheater_present,288,de_nuke,Official Matchmaking,Silver Elite Master,us_east Server,Player_1;Player_2;Player_3;Player_5;Player_6,55061188
+with_cheater_present,289,de_anubis,Premier Matchmaking,24856,us_north_central Server,Player_6,159334633
+with_cheater_present,290,de_nuke,Official Matchmaking,Master Guardian II,eu_north Server,Player_1;Player_3;Player_4;Player_6,49261209
+with_cheater_present,291,cs_office,Official Matchmaking,Master Guardian I,eu_north Server,Player_1,4111858
+with_cheater_present,292,cs_office,Official Matchmaking,Gold Nova Master,helsinki Server,Player_9,37048486
+with_cheater_present,293,de_dust2,Official Matchmaking,Gold Nova II,japan Server,Player_2,99024227
+with_cheater_present,294,de_mirage,Premier Matchmaking,4246,eu_north Server,Player_10,86628516
+with_cheater_present,295,de_nuke,Premier Matchmaking,11802,london Server,Player_9,98827516
+with_cheater_present,296,de_ancient,Premier Matchmaking,10765,eu_west Server,Player_1,79934239
+with_cheater_present,297,de_vertigo,Official Matchmaking,Silver IV,eu_west Server,Player_4;Player_9,43959443
+with_cheater_present,298,de_ancient,Premier Matchmaking,10392,eu_west Server,Player_2;Player_8,149586459
+with_cheater_present,299,de_mirage,Official Matchmaking,Gold Nova II,poland Server,Player_2;Player_5,69991850
+with_cheater_present,300,de_anubis,Official Matchmaking,Gold Nova I,eu_north Server,Player_3;Player_6;Player_7,60029317
+with_cheater_present,301,de_mirage,Official Matchmaking,Gold Nova Master,eu_west Server,Player_9,100160317
+with_cheater_present,302,de_nuke,Official Matchmaking,Silver III,poland Server,Player_7;Player_8,39322714
+with_cheater_present,303,de_nuke,Official Matchmaking,Silver II,poland Server,Player_1,78527480
+with_cheater_present,304,de_vertigo,Official Matchmaking,Gold Nova II,eu_west Server,Player_6;Player_7;Player_8;Player_9,37016659
+with_cheater_present,305,de_vertigo,Official Matchmaking,Gold Nova I,eu_east Server,Player_8,81290626
+with_cheater_present,306,de_train,Official Matchmaking,Gold Nova II,eu_west Server,Player_1;Player_2;Player_7,50054514
+with_cheater_present,307,de_train,Official Matchmaking,Silver Elite Master,eu_west Server,Player_1;Player_9,85879760
+with_cheater_present,308,de_vertigo,Official Matchmaking,Gold Nova I,eu_east Server,Player_1;Player_2,78280847
+with_cheater_present,309,de_anubis,Premier Matchmaking,10674,eu_east Server,Player_8,59911757
+with_cheater_present,310,de_vertigo,Official Matchmaking,Silver Elite,eu_north Server,Player_6;Player_7,33362688
+with_cheater_present,311,de_mirage,Official Matchmaking,Master Guardian II,eu_west Server,Player_4,75230111
+with_cheater_present,312,de_dust2,Premier Matchmaking,7823,helsinki Server,Player_1,125694738
+with_cheater_present,313,de_inferno,Premier Matchmaking,7123,helsinki Server,Player_4,88900333
+with_cheater_present,314,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,Player_5,87181215
+with_cheater_present,315,de_mirage,Official Matchmaking,Gold Nova Master,eu_north Server,Player_1;Player_2;Player_3;Player_4;Player_6;Player_7;Player_8,46774704
+with_cheater_present,316,de_mirage,Official Matchmaking,Gold Nova III,eu_north Server,Player_6;Player_7,39672438

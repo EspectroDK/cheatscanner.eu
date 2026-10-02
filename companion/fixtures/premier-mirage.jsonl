@@ -1,0 +1,20 @@
+// Hand-written CS2 session in the recording format (see src/main/game/source.ts). Steam IDs are made up.
+// Slot 8 has no Steam ID, as when Overwolf can't fill it in. Replace with a real --record file once available. Warm-up for 30 s, then the match goes live (the overlay hides itself).
+{"t":0,"kind":"running","value":true}
+{"t":800,"kind":"info","feature":"live_data","category":"live_data","key":"provider","value":"{\"name\":\"Counter-Strike 2\",\"steam_id\":\"76561198000000001\"}"}
+{"t":1200,"kind":"info","feature":"match_info","category":"match_info","key":"map","value":"de_mirage"}
+{"t":1200,"kind":"info","feature":"match_info","category":"match_info","key":"game_mode","value":"premier"}
+{"t":1200,"kind":"info","feature":"match_info","category":"match_info","key":"game_phase","value":"warmup"}
+{"t":1500,"kind":"info","feature":"match_info","category":"match_info","key":"roster_0","value":"{\"nickname\":\"Nova\",\"steamid\":\"76561198000000001\",\"team\":\"CT\",\"is_local\":\"1\",\"kills\":0,\"deaths\":0}"}
+{"t":1850,"kind":"info","feature":"match_info","category":"match_info","key":"roster_1","value":"{\"nickname\":\"Kestrel\",\"steamid\":\"76561198000000002\",\"team\":\"CT\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":2200,"kind":"info","feature":"match_info","category":"match_info","key":"roster_2","value":"{\"nickname\":\"mintleaf\",\"steamid\":\"76561198000000003\",\"team\":\"CT\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":2550,"kind":"info","feature":"match_info","category":"match_info","key":"roster_3","value":"{\"nickname\":\"Oberon_7\",\"steamid\":\"76561198000000004\",\"team\":\"CT\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":2900,"kind":"info","feature":"match_info","category":"match_info","key":"roster_4","value":"{\"nickname\":\"pixelwolf\",\"steamid\":\"76561198000000005\",\"team\":\"CT\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":3250,"kind":"info","feature":"match_info","category":"match_info","key":"roster_5","value":"{\"nickname\":\"Brakk\",\"steamid\":\"76561198000000006\",\"team\":\"T\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":3600,"kind":"info","feature":"match_info","category":"match_info","key":"roster_6","value":"{\"nickname\":\"n0va\",\"steamid\":\"76561198000000007\",\"team\":\"T\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":3950,"kind":"info","feature":"match_info","category":"match_info","key":"roster_7","value":"{\"nickname\":\"sundial\",\"steamid\":\"76561198000000008\",\"team\":\"T\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":4300,"kind":"info","feature":"match_info","category":"match_info","key":"roster_8","value":"{\"nickname\":\"Tamsin\",\"steamid\":\"0\",\"team\":\"T\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":4650,"kind":"info","feature":"match_info","category":"match_info","key":"roster_9","value":"{\"nickname\":\"quietfox\",\"steamid\":\"76561198000000010\",\"team\":\"T\",\"is_local\":\"0\",\"kills\":0,\"deaths\":0}"}
+{"t":30000,"kind":"info","feature":"match_info","category":"match_info","key":"game_phase","value":"live"}
+{"t":45000,"kind":"info","feature":"match_info","category":"match_info","key":"roster_2","value":"{\"nickname\":\"mintleaf\",\"steamid\":\"76561198000000003\",\"team\":\"CT\",\"is_local\":\"0\",\"kills\":3,\"deaths\":1}"}
+{"t":90000,"kind":"running","value":false}

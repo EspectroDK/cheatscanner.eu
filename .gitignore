@@ -1,0 +1,36 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+# Raw demos are temporary processing artifacts and must never be committed.
+*.dem
+*.dem.bz2
+*.dem.gz
+# Generated / downloaded data
+data/maps/*.tri
+data/work/
+data/observations/
+data/downloads/
+output/
+*.parquet
+.env
+demos/*.dem
+data/maps/*.tri.json
+web/node_modules/
+web/*.tsbuildinfo
+data/secret.key
+services/demo-fetcher/node_modules/
+services/demo-fetcher/state/
+companion/node_modules/
+companion/dist/
+companion/fixtures/local-*.jsonl
+
+# Server-side deploy files
+backups/
+.deployed-commit
+companion/release/
+data/cs2cd/
+data/cs2cd_obs_maps/

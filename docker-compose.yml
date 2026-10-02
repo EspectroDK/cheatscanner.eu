@@ -1,0 +1,120 @@
+# Local development stack: PostgreSQL + analyzer (CLI / REST API).
+#
+#   docker compose up -d db
+#   docker compose run --rm analyzer maps-fetch de_mirage
+#   docker compose run --rm analyzer analyze /demos/match.dem --debug
+#   docker compose up api          # REST API on http://localhost:8000/docs
+#
+# Credentials come from .env (see .env.example); the defaults are for local use only.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cs2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cs2-local-only}
+      POSTGRES_DB: ${POSTGRES_DB:-cs2}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  analyzer:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./demos:/demos
+    profiles: ["cli"]
+
+  api:
+    build: .
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
+      CS2A_AUTH_ENABLED: ${CS2A_AUTH_ENABLED:-0}
+      CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
+      CS2A_STEAM_API_KEY: ${CS2A_STEAM_API_KEY:-}
+      CS2A_REQUIRE_MATCH_ACCESS: ${CS2A_REQUIRE_MATCH_ACCESS:-1}
+      CS2A_SECRET_KEY: ${CS2A_SECRET_KEY:-}
+      CS2A_SERVICE_TOKEN: ${CS2A_SERVICE_TOKEN:-}
+      CS2A_ADMIN_STEAM_IDS: ${CS2A_ADMIN_STEAM_IDS:-}
+      CS2A_CONTACT_EMAIL: ${CS2A_CONTACT_EMAIL:-}
+      CS2A_MAX_UPLOAD_MB: ${CS2A_MAX_UPLOAD_MB:-}
+      CS2A_MAX_PARALLEL_UPLOADS: ${CS2A_MAX_PARALLEL_UPLOADS:-}
+      CS2A_MAX_UPLOADS_PER_DAY: ${CS2A_MAX_UPLOADS_PER_DAY:-}
+      CS2A_MAX_QUEUED_UPLOADS: ${CS2A_MAX_QUEUED_UPLOADS:-}
+      CS2A_MIN_FREE_DISK_GB: ${CS2A_MIN_FREE_DISK_GB:-}
+      # Analysis threads inside the API (default 1). 0 when the worker service below does the analysis.
+      CS2A_API_WORKERS: ${CS2A_API_WORKERS:-}
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  # Separate analysis workers sharing the queue in the database (src/cs2_analyzer/worker.py). The public
+  # server runs these (docker-compose.prod.yml); locally the API analyzes by itself. To try them locally:
+  #   docker compose --profile workers up -d --scale worker=2   (with CS2A_API_WORKERS=0 in .env)
+  worker:
+    build: .
+    command: ["worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
+      CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    # On stop a worker hands its demo back to the queue (another worker or its restart continues it).
+    stop_grace_period: 30s
+    profiles: ["workers"]
+
+  # Automatic demo fetching: docker compose --profile fetch up -d
+  poller:
+    build: .
+    command: ["ingest", "poll", "--loop"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
+      CS2A_STEAM_API_KEY: ${CS2A_STEAM_API_KEY:-}
+      CS2A_SECRET_KEY: ${CS2A_SECRET_KEY:-}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    profiles: ["fetch"]
+
+  demo-fetcher:
+    build: services/demo-fetcher
+    depends_on: [api]
+    environment:
+      CS2A_API_URL: http://api:8000
+      CS2A_SERVICE_TOKEN: ${CS2A_SERVICE_TOKEN:-}
+      STEAM_BOT_USERNAME: ${STEAM_BOT_USERNAME:-}
+      STEAM_BOT_PASSWORD: ${STEAM_BOT_PASSWORD:-}
+      STEAM_BOT_SHARED_SECRET: ${STEAM_BOT_SHARED_SECRET:-}
+      FETCHER_STATE_DIR: /state
+    volumes:
+      - fetcher-state:/state
+    restart: unless-stopped
+    profiles: ["fetch"]
+
+volumes:
+  pgdata:
+  fetcher-state:

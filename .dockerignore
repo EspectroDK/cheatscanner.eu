@@ -1,0 +1,9 @@
+.git
+data
+output
+demos
+**/__pycache__
+*.dem
+*.parquet
+web/node_modules
+web/dist

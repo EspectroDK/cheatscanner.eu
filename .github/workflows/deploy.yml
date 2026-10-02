@@ -1,0 +1,60 @@
+name: deploy
+# Deploys main to the server after CI passed on it, or by hand (Actions > deploy > Run workflow; the
+# optional ref deploys an older commit to roll back). Does nothing until the DEPLOY_* secrets exist.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit or branch to deploy (default: main)"
+        required: false
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.DEPLOY_HOST }}
+      DOMAIN: ${{ vars.DEPLOY_DOMAIN || 'cheatscanner.eu' }}
+    steps:
+      - name: Check the server is set up
+        id: cfg
+        run: |
+          if [ -z "$HOST" ]; then
+            echo "::notice::DEPLOY_HOST is not set yet, nothing to deploy to (see docs/deploy/hetzner.md)."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cfg.outputs.skip != '1'
+        with:
+          ref: ${{ inputs.ref || github.event.workflow_run.head_sha || 'main' }}
+      - name: SSH key
+        if: steps.cfg.outputs.skip != '1'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+      - name: Copy the code to the server
+        if: steps.cfg.outputs.skip != '1'
+        run: |
+          git rev-parse --short HEAD > .deployed-commit
+          rsync -az --delete \
+            --exclude=.git/ --exclude=.env --exclude=/data/ --exclude=/output/ --exclude=/demos/ \
+            --exclude=/backups/ --exclude=node_modules/ --exclude=/web/dist/ \
+            ./ "deploy@$HOST:/srv/cheatscanner/"
+      - name: Build and restart
+        if: steps.cfg.outputs.skip != '1'
+        run: ssh "deploy@$HOST" bash /srv/cheatscanner/deploy/server-deploy.sh
+      - name: Check the site answers
+        if: steps.cfg.outputs.skip != '1'
+        run: curl -fsS --retry 12 --retry-delay 10 --retry-all-errors "https://$DOMAIN/health"

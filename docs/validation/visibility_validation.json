@@ -1,0 +1,102 @@
+{
+  "demo": "test_demo.dem",
+  "map": "de_mirage",
+  "pair_ticks_by_los": {
+    "NOT_APPLICABLE": 4684636,
+    "DIRECT_VISIBLE": 13175,
+    "VISIBLE_THROUGH_SMOKE": 2928,
+    "SMOKE_OCCLUDED": 4244,
+    "GEOMETRY_OCCLUDED": 1088433,
+    "UNKNOWN": 5084
+  },
+  "valid_pair_ticks": 1113864,
+  "game_spotted_pair_ticks": 5563,
+  "seen_and_spotted": 4429,
+  "game_spotted_but_geometry_occluded": 706,
+  "gap_ticks_to_our_visible_pct": {
+    "p50": 15.0,
+    "p90": 26.5,
+    "p99": 31.0,
+    "max": 32.0
+  },
+  "frac_within_lag": 1.0,
+  "our_seen_segments": 377,
+  "segments_without_game_spotting": 190,
+  "unmatched_segment_len_ticks_pct": {
+    "p50": 17.0,
+    "p90": 64.0,
+    "p99": 128.20999999999984
+  },
+  "worst_unmatched": [
+    {
+      "observer": "Trahun <3 V",
+      "target": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "tick": 24127,
+      "len_ticks": 189,
+      "distance_u": 484.17578125
+    },
+    {
+      "observer": "Dog",
+      "target": "IMI Negev",
+      "tick": 44954,
+      "len_ticks": 138,
+      "distance_u": 1240.008056640625
+    },
+    {
+      "observer": "miu miu",
+      "target": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "tick": 12382,
+      "len_ticks": 127,
+      "distance_u": 1417.70263671875
+    },
+    {
+      "observer": "Dog",
+      "target": "123",
+      "tick": 29594,
+      "len_ticks": 121,
+      "distance_u": 959.1878051757812
+    },
+    {
+      "observer": "-Ex\u03a9tiC-",
+      "target": "123",
+      "tick": 41963,
+      "len_ticks": 111,
+      "distance_u": 401.22625732421875
+    },
+    {
+      "observer": "123",
+      "target": "-Ex\u03a9tiC-",
+      "tick": 41968,
+      "len_ticks": 106,
+      "distance_u": 386.9721374511719
+    },
+    {
+      "observer": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "target": "Dog",
+      "tick": 14209,
+      "len_ticks": 98,
+      "distance_u": 1323.475830078125
+    },
+    {
+      "observer": "Dog",
+      "target": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "tick": 14209,
+      "len_ticks": 98,
+      "distance_u": 1323.0888671875
+    },
+    {
+      "observer": "miu miu",
+      "target": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "tick": 55181,
+      "len_ticks": 98,
+      "distance_u": 1104.0543212890625
+    },
+    {
+      "observer": "\u041f\u043e\u0434\u0441\u043e\u0441\u043d\u0438\u043a blick'a",
+      "target": "miu miu",
+      "tick": 55190,
+      "len_ticks": 92,
+      "distance_u": 1095.487548828125
+    }
+  ]
+}

@@ -1,0 +1,411 @@
+# cs2-analyzer default configuration.
+#
+# Values marked UNCALIBRATED are development placeholders chosen to be
+# conservative. They were NOT fitted to population data. Replace them with
+# values produced by tools/calibration before trusting any score.
+
+[parser]
+backend = "demoparser2"
+
+[storage]
+database_url = "sqlite:///./data/cs2_analyzer.sqlite"   # Docker sets CS2A_DATABASE_URL to PostgreSQL
+
+[output]
+dir = "./output"
+observations_dir = "./data/observations"
+parquet_dir = "./data/work"
+
+[api]
+web_dir = "web/dist"             # built website (cd web && npm run build); served at / when present
+generate_evidence = true         # render clips/plots for flagged players of uploaded and fetched matches
+max_upload_mb = 1000             # env CS2A_MAX_UPLOAD_MB; larger website uploads are refused (413)
+# Per signed-in user (automatically fetched matches don't count): uploads running at once, uploads per
+# 24 hours, and uploaded demos waiting for or in analysis. Refused with 429.
+max_parallel_uploads = 1         # env CS2A_MAX_PARALLEL_UPLOADS
+max_uploads_per_day = 10         # env CS2A_MAX_UPLOADS_PER_DAY
+max_queued_uploads = 3           # env CS2A_MAX_QUEUED_UPLOADS
+min_free_disk_gb = 20            # env CS2A_MIN_FREE_DISK_GB; below this, all uploads are refused (507)
+# Analysis threads inside `cs2-analyzer serve` (env CS2A_API_WORKERS). The production server sets 0 and runs
+# separate `cs2-analyzer worker` processes instead (docker-compose.prod.yml, CS2A_WORKERS of them).
+workers = 1
+
+[worker]
+# Analysis workers share the queue in the database (worker.py), in the API process or as `cs2-analyzer worker`.
+poll_s = 2                       # how often an idle worker looks for new demos
+heartbeat_s = 20                 # a running analysis tells the database it is alive this often
+stale_after_s = 120              # no heartbeat for this long: the worker is gone, another one takes the demo
+max_attempts = 3                 # a demo whose worker keeps dying (e.g. out of memory) fails after this many
+busy_retry_s = 60                # the same match is being analyzed elsewhere: look again after this long
+
+[site]
+name = "Cheatscanner"
+domain = "cheatscanner.eu"       # the public address is auth.public_url (CS2A_PUBLIC_URL=https://cheatscanner.eu)
+contact_email = ""               # env CS2A_CONTACT_EMAIL; shown on the privacy page for data requests
+# Companion app installers (Cheatscanner-Setup-<version>.exe) offered on the front page. Kept out of git; the
+# newest version here is served at /download/companion. Empty folder = no download link.
+downloads_dir = "./data/downloads"
+
+[companion]
+# Companion app (Overwolf): linking to an account and the live lobby lookup (api/companion.py).
+pairing_ttl_s = 900              # how long a link code shown in the app stays valid
+poll_interval_s = 3              # how often the app asks whether the code was confirmed
+pairings_per_ip_per_hour = 20
+confirms_per_user_per_hour = 20
+lobby_lookups_per_minute = 30    # per user; the app asks once per roster change
+
+[auth]
+# Steam sign-in for the website and API (README: Accounts and Steam sign-in).
+# Off by default so the local CLI/API workflow keeps working without accounts. When enabled, every
+# data endpoint needs a signed-in user (session cookie) or an API token (Authorization: Bearer).
+enabled = false                  # env CS2A_AUTH_ENABLED=1
+public_url = "http://localhost:8000"   # env CS2A_PUBLIC_URL; OpenID realm and return address
+post_login_redirect = "/"        # where the browser goes after signing in
+session_days = 30
+steam_api_key = ""               # env CS2A_STEAM_API_KEY; optional, only for names/avatars
+admin_steam_ids = []             # env CS2A_ADMIN_STEAM_IDS (comma-separated SteamID64s); who sees the Admin page
+openid_timeout_s = 10
+
+[ingest]
+# Automatic demo fetching (README: Automatic demo fetching).
+require_match_access = true      # with auth: users must add their Steam authentication code before using the site
+service_token = ""               # env CS2A_SERVICE_TOKEN; shared with services/demo-fetcher
+secret_key_file = "./data/secret.key"   # used when CS2A_SECRET_KEY is not set (local use)
+poll_interval_s = 600            # `cs2-analyzer ingest poll --loop`
+max_codes_per_poll = 30
+max_download_mb = 400
+max_demo_mb = 1500
+download_retry_delays_s = [10, 60, 300]   # waits before re-trying a download cut off by the network
+
+[retention]
+# Raw demos are temporary artifacts: deleted after successful analysis unless
+# --keep-demo is passed or keep_demos is true (debugging).
+keep_demos = false
+keep_failed_demos = true
+retained_demo_dir = "./data/retained_demos"
+
+[geometry]
+maps_dir = "./data/maps"
+raycast_backend = "auto"         # auto | embree | numpy
+patch_tolerance = 10             # warn when demo and mesh (<map>.tri.json) patches differ by more
+
+[geometry.visibility]
+end_tolerance = 4.0              # u; ignore hits this close to either endpoint
+lateral_margin = 18.0            # u; UNCALIBRATED shoulder-width / interpolation margin
+latency_margin_ms = 100.0        # UNCALIBRATED interpolation + peeker's advantage margin
+fov_half_yaw = 55.0              # deg; generous (16:9 at fov 90 is ~53)
+fov_half_pitch = 42.0
+
+[geometry.smoke]                 # all UNCALIBRATED
+core_radius = 110.0
+core_half_height = 75.0
+shell_radius = 175.0
+shell_half_height = 125.0
+center_z_offset = 55.0
+bloom_s = 1.25
+fade_s = 2.0
+he_clear_radius = 260.0
+he_clear_s = 3.0
+gunfire_hole_s = 1.0
+min_core_chord = 24.0
+
+[knowledge]                      # all UNCALIBRATED; generous on purpose
+known_recent_ms = 600
+likely_recent_seen_ms = 3500
+possibly_recent_seen_ms = 9000
+team_now_ms = 1500
+team_callout_ms = 7000
+damage_likely_ms = 3500
+damage_possibly_ms = 9000
+sound_likely_ms = 2000
+sound_possibly_ms = 5000
+gunfire_radius = 2600
+silenced_gunfire_radius = 900
+footstep_radius = 1250
+footstep_min_speed = 135
+jump_radius = 1250
+reload_radius = 800
+round_start_possibly_s = 15
+bomb_site_possibly_radius = 900
+close_range_units = 350
+unknown_base_confidence = 0.9
+unknown_full_confidence_after_ms = 4000
+map_geometry_confidence = 0.95
+
+[encounters]
+pre_ms = 2000
+post_ms = 1000
+reappear_gap_ms = 1000
+shot_target_max_error_deg = 15.0
+
+[detectors.hidden_tracking]
+enabled = true
+reliability = 0.7
+min_window_ms = 750
+max_window_ms = 4000
+window_step_ms = 2000
+min_moving_ms = 300              # target must actually move for >= this long in the window
+smooth_ticks = 5
+max_reaction_lag_ms = 250
+min_target_angular_speed_deg_s = 4.0
+corr_lo = 0.55                   # UNCALIBRATED
+corr_hi = 0.9                    # UNCALIBRATED
+target_path_lo_deg = 3.0         # UNCALIBRATED
+target_path_hi_deg = 12.0
+mean_error_lo_deg = 3.0
+mean_error_hi_deg = 12.0
+min_event_severity = 0.25
+
+[detectors.smoke_tracking]
+enabled = true
+reliability = 0.55
+min_window_ms = 750
+max_window_ms = 4000
+window_step_ms = 2000
+min_moving_ms = 300
+min_event_severity = 0.25
+
+[detectors.remembered_position]
+enabled = true
+reliability = 0.55
+block_ms = 1000
+min_target_displacement_u = 150
+max_error_deg = 25
+bootstrap_n = 500
+min_blocks = 20                  # UNCALIBRATED
+full_blocks = 60
+ci_low_lo_deg = 1.5              # UNCALIBRATED
+ci_low_hi_deg = 6.0
+max_mean_error_deg = 12.0
+min_event_severity = 0.2
+
+[detectors.previsibility]
+enabled = true
+reliability = 0.4
+min_unknown_fraction = 0.75
+start_error_lo_deg = 6.0         # UNCALIBRATED
+start_error_hi_deg = 15.0
+end_error_lo_deg = 1.0
+end_error_hi_deg = 4.0
+uncalibrated_severity_factor = 0.8
+min_event_severity = 0.25
+
+[detectors.aim_acquisition]
+enabled = true
+reliability = 0.3
+window_ms = 1000
+min_initial_error_deg = 2.0
+target_radius_u = 6.0
+min_acquire_deg = 1.0
+reaction_speed_deg_s = 30.0
+big_error_lo_deg = 15.0          # UNCALIBRATED
+big_error_hi_deg = 35.0
+reaction_lo_ms = 50.0            # UNCALIBRATED (server-side visibility lags the client)
+reaction_hi_ms = 110.0
+acquisition_lo_ms = 110.0
+acquisition_hi_ms = 200.0
+min_event_severity = 0.3
+
+[detectors.snap]
+enabled = true
+reliability = 0.35
+min_speed_deg_s = 300.0
+min_angle_deg = 10.0
+max_duration_ms = 250.0
+max_end_error_consider_deg = 5.0
+target_radius_u = 5.0
+angle_lo_deg = 20.0              # UNCALIBRATED
+angle_hi_deg = 60.0
+duration_lo_ms = 60.0
+duration_hi_ms = 150.0
+max_overshoot_deg = 0.4
+max_shot_delay_ms = 50.0
+min_event_severity = 0.3
+
+[detectors.attraction]
+enabled = true
+reliability = 0.2
+near_deg = 8.0
+far_deg = 30.0
+min_move_deg_s = 2.0
+max_move_deg_s = 120.0
+min_hidden_samples = 400
+autocorrelation_design_effect = 10.0
+hidden_z_lo = 3.0
+hidden_z_hi = 6.0
+min_event_severity = 0.2
+
+[detectors.target_switch]
+enabled = true
+reliability = 0.25
+horizon_ms = 1500
+min_initial_error_deg = 5.0
+angle_lo_deg = 20.0
+angle_hi_deg = 50.0
+acq_lo_ms = 90.0
+acq_hi_ms = 180.0
+min_event_severity = 0.3
+
+[detectors.trigger_timing]
+enabled = true
+reliability = 0.2                # LOW confidence by design
+max_wait_ms = 400
+spray_exclusion_ms = 300
+tight_hold_ms = 500
+head_radius_u = 4.5
+body_radius_u = 9.0
+min_samples = 8
+full_samples = 25
+frac_fast_lo = 0.5               # UNCALIBRATED
+frac_fast_hi = 0.85
+std_lo_ms = 20.0
+std_hi_ms = 60.0
+min_event_severity = 0.2
+
+[detectors.recoil]
+enabled = true
+reliability = 0.25
+max_shot_gap_ms = 160
+min_spray_shots = 5
+min_sprays = 5
+full_sprays = 15
+corr_lo = 0.9                    # UNCALIBRATED
+corr_hi = 0.98
+min_event_severity = 0.2
+
+[detectors.flash]
+enabled = true
+reliability = 0.2
+min_remaining_blind_s = 1.5
+min_window_ms = 500
+min_event_severity = 0.3
+
+[detectors.strategic_information]
+enabled = true
+reliability = 0.1
+near_deg = 5.0
+null_shifts_ms = [-12000, -8000, -5000, 5000, 8000, 12000]
+ratio_lo = 2.5
+ratio_hi = 5.0
+min_samples = 3000
+full_samples = 10000
+min_event_severity = 0.2
+
+[detectors.mechanical_impossibility]
+enabled = true
+reliability = 0.2
+# threshold_deg intentionally unset: collect the legitimate distribution first.
+
+[detectors.view_integrity]
+# Snap-and-return on the firing tick (silent aim) and pitch pinned at the limit
+# (anti-aim). No clean CS2CD player showed either (docs/validation/cs2cd).
+enabled = true
+reliability = 0.8
+min_jump_deg = 2.0
+min_return_ratio = 0.7
+max_net_ratio = 0.5
+min_neighbour_ratio = 5.0
+min_snaps = 2                    # one snap can be a demo artefact
+full_snaps = 8
+pitch_limit_deg = 88.9
+min_pinned_fraction = 0.1        # of moving, alive, live-round ticks
+full_pinned_fraction = 0.4
+min_moving_ticks = 640
+
+[detectors.input_lattice]
+# View changes that are not whole mouse counts (sensitivity x 0.022 deg),
+# before shots compared with the player's own other movement. Calibrated on
+# 121 CS2CD Mirage matches (docs/validation/cs2cd): the rule below fires for 14
+# labelled cheaters, 1 clean and 2 unlabelled players, all with the same
+# pattern (idle movement on the lattice, aim before shots off it); no pro and
+# none of 31 of the owner's matchmaking demos.
+enabled = true
+emit_events = true
+reliability = 0.6
+tolerance = 0.1                  # fraction of the divisor
+max_step_deg = 40.0              # larger per-tick changes are teleports/respawns
+min_lattice_fit = 0.95           # idle movement must fit, else no evidence (controller, accel)
+pre_shot_ms = 500
+post_shot_ms = 250               # excluded from the idle baseline
+min_pre_moves = 100
+min_off_rate = 0.02              # legit 99th percentile before shots: 0.08% (46 demos)
+full_off_rate = 0.2
+min_rate_ratio = 3.0             # pre-shot rate vs the player's idle rate
+max_idle_off_rate = 0.01         # idle movement must itself be clean (noisy input is not evidence)
+max_p_value = 1e-6
+
+[scoring]
+incident_merge_gap_ms = 3000
+agreement_bonus = 0.1
+min_incidents = 2
+min_incident_strength = 0.15
+single_incident_cap = 0.24   # below ELEVATED (0.25): one incident alone stays NORMAL
+within_family_secondary_weight = 0.25
+corroboration_min_family = 0.3
+corroboration_bonus = 0.15
+high_severity_threshold = 0.7
+min_encounters = 15
+min_rounds = 5
+
+[scoring.axis_weights]           # UNCALIBRATED
+HIDDEN_INFORMATION = 1.0
+DECISION_INFORMATION = 0.3
+AIM_MECHANICS = 0.7
+SHOT_TIMING = 0.4
+RECOIL = 0.4
+IMPOSSIBLE_MECHANICS = 0.8
+
+[scoring.classification]
+labels = ["NORMAL", "ELEVATED", "HIGH", "VERY_HIGH"]
+thresholds = [0.25, 0.5, 0.75]   # UNCALIBRATED
+insufficient_label = "INSUFFICIENT_DATA"
+
+[player_evidence]
+# Evidence accumulated over all of a player's observations in the match
+# (scoring/player_evidence.py). Enters the score as the "profile" family,
+# capped below HIGH; ELEVATED at the clean 98th percentile.
+enabled = true
+model = ""                       # empty = bundled CS2CD model for the map (pooled for maps outside the dataset); may contain {map}
+
+[population]
+# Match-level comparison with a clean reference population (scoring/population.py).
+# Reported next to the evidence score; it never changes the classification.
+enabled = true
+reference = ""                   # empty = bundled CS2CD reference for the map (pooled for maps outside the dataset); may contain {map}
+min_obs = 5                      # observations per metric for a player median
+min_metrics = 2
+flag_percentile = 0.9            # ~3% of clean and ~1% of pro players reach it (docs/validation/cs2cd)
+
+[history]
+prior_matches = 3
+high_match_threshold = 0.5
+consistency_min_matches = 3
+consistency_weight = 0.25
+min_total_encounters = 30
+# Player evidence across matches (scoring/aggregate.py: profile_history)
+profile_min_matches = 2
+profile_half_life_days = 180     # older matches count less
+profile_z_floor = -2.0           # per-match cap: clean matches cannot cancel much ...
+profile_z_cap = 3.0              # ... and one extreme match cannot dominate
+profile_rho = 0.5                # within-player correlation across matches (UNCALIBRATED; 10 pros with 2 matches gave 0.64)
+profile_jump_min_prior = 3
+profile_jump_z = 2.0             # latest match this far above the player's earlier ones is reported
+
+[history.classification]
+labels = ["NORMAL", "ELEVATED", "HIGH", "VERY_HIGH"]
+thresholds = [0.25, 0.5, 0.75]
+
+[evidence]
+generate_for_classes = ["ELEVATED", "HIGH", "VERY_HIGH"]   # clips/plots for players in these classes
+top_events_per_player = 5
+clip_all_events = true           # also clip the top events of players whose class stays below generate_for_classes
+max_clips_per_match = 30         # rendering takes a few seconds per clip; strongest events first
+clip_seconds_before = 6.0
+clip_seconds_after = 4.0
+clip_fps = 24
+clip_width = 960
+clip_height = 544
+clip_pov_width = 960             # resolution of the 3D view (shown smaller, so edges come out smooth)
+# Map shape used to draw the clips' 3D view. When <map>.tri exists here (built from your own game with
+# tools/geometry/build_tris.py --out data/maps/render), clips use it; line of sight keeps geometry.maps_dir.
+render_maps_dir = "./data/maps/render"
+debug_plot_min_confidence = 0.0

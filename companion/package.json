@@ -1,0 +1,110 @@
+{
+  "name": "cheatscanner-companion",
+  "productName": "Cheatscanner",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cheatscanner companion app and in-game overlay for CS2. Shows the evidence class of the players in your match.",
+  "author": "cheatscanner.eu",
+  "homepage": "https://cheatscanner.eu",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.main.json && tsc --noEmit -p tsconfig.json && vite build",
+    "start": "npm run build && electron .",
+    "start:replay": "npm run build && electron . --replay",
+    "start:overwolf": "npm run build && ow-electron . --overwolf",
+    "coplay": "tsc -p tsconfig.main.json && node dist/main/steam/coplay-cli.js",
+    "dist": "npm run build && electron-builder --win nsis --x64",
+    "dist:store": "npm run build && electron-builder --win appx --x64",
+    "check:package": "electron-builder --linux dir --x64 && node tools/check-package.mjs release/linux-unpacked/resources/app.asar",
+    "dev:ui": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "overwolf": {
+    "packages": [
+      "gep",
+      "overlay"
+    ]
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@overwolf/ow-electron": "^42.7.1",
+    "@overwolf/ow-electron-packages-types": "^1.1.11",
+    "@types/node": "^24.9.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^42.11.8",
+    "electron-builder": "^26.15.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "~5.8.0",
+    "vite": "^7.0.0",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "koffi": "^2.16.3"
+  },
+  "build": {
+    "appId": "eu.cheatscanner.companion",
+    "productName": "Cheatscanner",
+    "copyright": "cheatscanner.eu",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**",
+      "assets/**",
+      "package.json",
+      "!**/*.map",
+      "!dist/main/steam/coplay-cli.js",
+      "!node_modules/koffi/build/koffi/!(win32_x64|linux_x64)/**",
+      "!node_modules/koffi/{src,doc,vendor}/**"
+    ],
+    "asarUnpack": [
+      "node_modules/koffi/**"
+    ],
+    "electronLanguages": [
+      "en-US"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "Cheatscanner-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cheatscanner",
+      "runAfterFinish": true
+    },
+    "publish": null,
+    "appx": {
+      "identityName": "VognsenSolutions.Cheatscanner.euCompanion",
+      "publisher": "CN=71114210-2FEB-4E21-A47D-45EE1E583C2D",
+      "publisherDisplayName": "Vognsen Solutions",
+      "applicationId": "Cheatscanner",
+      "displayName": "Cheatscanner.eu Companion",
+      "backgroundColor": "#0d1014",
+      "languages": [
+        "en-US"
+      ],
+      "artifactName": "Cheatscanner-${version}.${ext}"
+    }
+  }
+}
