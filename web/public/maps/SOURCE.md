@@ -1,8 +1,12 @@
 # Map images
 
-Resized (960x540) from https://github.com/neustcs/cs2mapsthumbnails (commit of 2024-04-25), which are in-game
-screenshots of Counter-Strike 2 maps. That repository states no licence, and the game content belongs to Valve.
-Check the terms before a public launch (plan section 9). Train has no image there; it uses the drawn banner.
+The site's map banners can show in-game screenshots from https://github.com/neustcs/cs2mapsthumbnails
+(commit of 2024-04-25). That repository states no licence and the game content belongs to Valve, so the
+pictures are not part of this repository. On the server, `deploy/server-deploy.sh` runs
+`cs2-analyzer map-images`, which downloads them into `data/maps/images/` (resized to 960x540), and the API
+serves them at `/maps/<map>.jpg`. Without a picture the site shows its drawn banner. Train has no image there.
+
+Locally you can run the same command, or drop your own `<map>.jpg` into this folder.
 
 | Map | Source file |
 | --- | --- |

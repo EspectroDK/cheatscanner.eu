@@ -116,6 +116,7 @@ cs2-analyzer analyze <dataset>/<split>/<n>.parquet ...   # CS2CD dataset match (
 cs2-analyzer player <steamid> [--evidence]      # stored history / risk
 cs2-analyzer serve [--host --port]              # REST API
 cs2-analyzer maps-fetch <map>                   # download a .tri collision mesh
+cs2-analyzer map-images [--force]                # download the map screenshots the website shows
 cs2-analyzer inspect-visibility <demo> --observer <sid> --target <sid> --tick <n>
 cs2-analyzer db-init
 cs2-analyzer calibrate report|build-baselines [--obs-dir DIR] [--exclude FILE]

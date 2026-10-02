@@ -45,6 +45,7 @@ from cs2_analyzer.config import Config
 from cs2_analyzer.ingest.chat import SteamChat
 from cs2_analyzer.ingest.service import Ingest
 from cs2_analyzer.ingest.steam_history import HttpGet
+from cs2_analyzer.map_images import images_dir
 from cs2_analyzer.storage.repository import Database
 from cs2_analyzer.worker import InProcessWorkers
 
@@ -500,6 +501,20 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         return {"results": [_risk(s, v) for s in req.steamIds]}
 
     web = _find_web_dir(web_dir or config.get("api.web_dir", "web/dist"))
+    map_images = images_dir(config.get("geometry.maps_dir"))
+
+    # Map screenshots are downloaded on the server (cs2_analyzer/map_images.py), not shipped with the site;
+    # a picture dropped into web/public/maps/ still works. No picture: 404, and the site draws its banner.
+    @app.get("/maps/{name}.jpg", include_in_schema=False)
+    def map_image(name: str):
+        if not re.fullmatch(r"[a-z0-9_]{1,40}", name):
+            raise HTTPException(404)
+        for folder in (map_images, web / "maps" if web else None):
+            if folder is not None and (folder / f"{name}.jpg").is_file():
+                return FileResponse(folder / f"{name}.jpg", media_type="image/jpeg",
+                                    headers={"Cache-Control": "public, max-age=86400"})
+        raise HTTPException(404)
+
     if web is not None:
         app.mount("/", StaticFiles(directory=web, html=True), name="web")
     else:
