@@ -89,6 +89,22 @@ def _event(parser, name: str, available: set[str]) -> pd.DataFrame:
     return df if df is not None else pd.DataFrame()
 
 
+def smoke_expiries(det: pd.DataFrame, exp: pd.DataFrame) -> list[int]:
+    """Expiry tick for each smoke detonation, -1 when none is found.
+
+    Entity ids are reused during a match, so each detonation is paired with the
+    first expiry of the same entity at or after it, not with that entity's first
+    expiry in the demo (which dropped some smokes and kept others all match).
+    """
+    by_ent = {e: np.sort(g["tick"].to_numpy()) for e, g in exp.groupby("entityid")} if len(exp) else {}
+    out = []
+    for ent, start in zip(det["entityid"], det["tick"]):
+        ticks = by_ent.get(ent)
+        i = int(np.searchsorted(ticks, start)) if ticks is not None else 0
+        out.append(int(ticks[i]) if ticks is not None and i < len(ticks) else -1)
+    return out
+
+
 class DemoParser2Backend:
     name = "demoparser2"
 
@@ -278,12 +294,11 @@ class DemoParser2Backend:
         det = _event(parser, "smokegrenade_detonate", available)
         exp = _event(parser, "smokegrenade_expired", available)
         if len(det):
-            exp_by_ent = exp.groupby("entityid")["tick"].min().to_dict() if len(exp) else {}
             ev["smokes"] = pd.DataFrame(
                 {
                     "entity_id": det["entityid"].astype("int64"),
                     "start_tick": det["tick"].astype("int64"),
-                    "end_tick": [int(exp_by_ent.get(e, -1)) for e in det["entityid"]],
+                    "end_tick": smoke_expiries(det, exp),
                     "x": det["x"], "y": det["y"], "z": det["z"],
                     "thrower_steam_id": _sid(det["user_steamid"]),
                 }

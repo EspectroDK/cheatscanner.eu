@@ -146,3 +146,12 @@ def test_score_round_ends_ignores_halftime_swap():
     ends = DemoParser2Backend._score_round_ends(pd.DataFrame(rows))
     assert [(e["tick"], e["winner"]) for e in ends] == [(20, 2), (30, 2), (40, 3), (70, 2)]
     assert DemoParser2Backend._score_round_ends(pd.DataFrame({"tick": [1], "team_num": [2]})) == []
+
+
+def test_smoke_expiry_pairs_reused_entity_ids():
+    from cs2_analyzer.parser.demoparser2_backend import smoke_expiries
+
+    det = pd.DataFrame({"entityid": [5, 9, 5], "tick": [100, 150, 3000]})
+    exp = pd.DataFrame({"entityid": [5, 9, 5], "tick": [1500, 1550, 4400]})
+    assert smoke_expiries(det, exp) == [1500, 1550, 4400]
+    assert smoke_expiries(pd.DataFrame({"entityid": [7], "tick": [10]}), exp) == [-1]

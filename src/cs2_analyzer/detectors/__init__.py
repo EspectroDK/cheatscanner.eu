@@ -24,6 +24,7 @@ from cs2_analyzer.detectors.shot_mechanics import (
     RecoilDetector,
     TriggerTimingDetector,
 )
+from cs2_analyzer.detectors.smoke_kills import SmokeKillsDetector
 from cs2_analyzer.detectors.view_integrity import ViewIntegrityDetector
 
 ALL_DETECTORS: dict[str, type[Detector]] = {
@@ -44,6 +45,7 @@ ALL_DETECTORS: dict[str, type[Detector]] = {
         MechanicalImpossibilityDetector,
         ViewIntegrityDetector,
         InputLatticeDetector,
+        SmokeKillsDetector,
     )
 }
 

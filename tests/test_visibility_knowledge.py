@@ -107,3 +107,33 @@ def test_last_true_index_resets_per_round():
     reset = np.array([1, 0, 0, 1, 0, 0], bool)
     out = _last_true_index(m, reset)
     assert out[2] == 1 and out[4] < 0
+
+
+def test_gunfire_hole_clears_only_a_tunnel():
+    from cs2_analyzer.geometry.smoke import _segment_distance
+
+    smokes = pd.DataFrame([{"entity_id": 1, "start_tick": 0, "end_tick": 64 * 20, "x": 400.0, "y": 0.0, "z": -55.0,
+                            "thrower_steam_id": 0}])
+    sm = SmokeModel(smokes, 0, 64 * 20, 64.0, SmokeParams())
+    t = np.array([64 * 5])
+    # a shot straight through the smoke along y = 0
+    sm.add_gunfire_holes(np.array([[0.0, 0.0, 0.0]]), np.array([[1.0, 0.0, 0.0]]), t)
+    along = sm.occlusion(np.array([[0.0, 10.0, 0.0]]), np.array([[800.0, 10.0, 0.0]]), t + 10)
+    beside = sm.occlusion(np.array([[0.0, 0.0, 0.0]]), np.array([[800.0, 150.0, 0.0]]), t + 10)
+    later = sm.occlusion(np.array([[0.0, 10.0, 0.0]]), np.array([[800.0, 10.0, 0.0]]), t + 200)
+    assert not along[0][0] and along[1][0]  # near the bullet tunnel: uncertain
+    assert beside[0][0]  # the rest of the smoke stays opaque
+    assert later[0][0]  # the tunnel closes again
+    d = _segment_distance(np.array([[0.0, 0.0, 0.0]]), np.array([[10.0, 0.0, 0.0]]),
+                          np.array([5.0, 3.0, 4.0]), np.array([5.0, 3.0, 40.0]))
+    assert abs(d[0] - 5.0) < 1e-9
+
+
+def test_unpaired_smoke_expiry_falls_back_to_normal_duration():
+    # expiry before the detonation (reused entity id) or far too late: assume about 22 s
+    smokes = pd.DataFrame([{"entity_id": 1, "start_tick": 1000, "end_tick": 500, "x": 0.0, "y": 0.0, "z": 0.0,
+                            "thrower_steam_id": 0},
+                           {"entity_id": 2, "start_tick": 1000, "end_tick": 90000, "x": 0.0, "y": 0.0, "z": 0.0,
+                            "thrower_steam_id": 0}])
+    sm = SmokeModel(smokes, 0, 100000, 64.0, SmokeParams())
+    assert [it["end"] - it["start"] for it in sm.items] == [22 * 64, 22 * 64]
