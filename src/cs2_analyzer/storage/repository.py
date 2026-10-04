@@ -819,16 +819,25 @@ class Database:
                 J.user_id == user_id, J.kind == "upload", J.status.in_(ACTIVE_JOB))) or 0)
 
     def analysis_queue(self, alive_after: timedelta) -> dict:
-        """Live numbers for the admin page and the deploy script."""
+        """Live numbers for the admin page and the deploy script.
+
+        A PROCESSING job without a heartbeat for ``alive_after`` lost its worker (killed by a restart or
+        out of memory): nobody is analyzing it, it waits for the next free worker to take it over. It
+        counts as waiting (``stalled`` says how many), not as being analyzed.
+        """
         now = datetime.now(timezone.utc)
         J, W = M.AnalysisJob, M.AnalysisWorkerSeen
+        stalled_job = (J.status == "PROCESSING") & (J.heartbeat_at < now - alive_after)
+        waiting = (J.status == "QUEUED") | stalled_job
         with self.session() as s:
             counts = dict(s.execute(select(J.status, func.count()).where(J.status.in_(ACTIVE_JOB))
                                     .group_by(J.status)).all())
+            stalled = int(s.scalar(select(func.count()).select_from(J).where(stalled_job)) or 0)
             uploads = s.scalar(select(func.count()).select_from(J).where(J.kind == "upload", J.status.in_(ACTIVE_JOB)))
-            oldest = s.scalar(select(func.min(J.created_at)).where(J.status == "QUEUED"))
+            oldest = s.scalar(select(func.min(J.created_at)).where(waiting))
             workers = s.scalar(select(func.count()).select_from(W).where(W.last_seen_at >= now - alive_after))
-            return {"queued": int(counts.get("QUEUED", 0)), "processing": int(counts.get("PROCESSING", 0)),
+            return {"queued": int(counts.get("QUEUED", 0)) + stalled,
+                    "processing": int(counts.get("PROCESSING", 0)) - stalled, "stalled": stalled,
                     "uploads": int(uploads or 0),
                     "oldestWaitingSeconds": round(max(0.0, (now - _utc(oldest)).total_seconds()), 1) if oldest else 0,
                     "workers": int(workers or 0)}

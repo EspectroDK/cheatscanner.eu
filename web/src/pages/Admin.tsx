@@ -118,7 +118,10 @@ export function Admin() {
       <h2>Right now</h2>
       <div className="stat-grid">
         <Stat label="Waiting for analysis" value={o.live.queued}
-              sub={o.live.queued ? `oldest waiting ${duration(o.live.oldestWaitingSeconds)}` : "queue is empty"}
+              sub={o.live.queued
+                ? `oldest waiting ${duration(o.live.oldestWaitingSeconds)}` +
+                  (o.live.stalled ? `; ${o.live.stalled} lost its worker, restarts on the next free one` : "")
+                : "queue is empty"}
               tone={o.live.queued > 5 ? "warn" : undefined} />
         <Stat label="Being analyzed" value={`${o.live.processing} / ${o.live.workers}`} sub="demos / analysis workers" />
         <Stat label="Waiting for Valve" value={valveWaiting}

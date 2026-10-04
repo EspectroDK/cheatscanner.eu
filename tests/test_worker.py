@@ -65,8 +65,12 @@ def test_a_job_is_claimed_once_and_taken_over_when_its_worker_dies(db, tmp_path)
     assert db.heartbeat_analysis_job(job["jobId"], "w1")
     assert not db.heartbeat_analysis_job(job["jobId"], "w2")
 
+    assert (db.analysis_queue(STALE)["processing"], db.analysis_queue(STALE)["queued"]) == (1, 0)
+
     with db.session() as s:                                       # w1 stops sending heartbeats
         s.get(M.AnalysisJob, job["jobId"]).heartbeat_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+    q = db.analysis_queue(STALE)                                  # nobody analyzes it now: it waits
+    assert (q["processing"], q["queued"], q["stalled"]) == (0, 1, 1)
     again = db.claim_analysis_job("w2", STALE)
     assert again["jobId"] == job["jobId"] and again["attempts"] == 2 and again["takenOver"]
     assert not db.heartbeat_analysis_job(job["jobId"], "w1")      # w1 no longer owns it

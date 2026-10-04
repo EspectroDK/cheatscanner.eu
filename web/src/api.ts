@@ -289,7 +289,7 @@ export interface AdminOverview {
     lookupsRecordedSince: string;
   };
   uploads: { attempts24h: number; attempts7d: number };
-  live: { queued: number; processing: number; uploads: number; oldestWaitingSeconds: number; receivingUploads: number; workers: number };
+  live: { queued: number; processing: number; stalled: number; uploads: number; oldestWaitingSeconds: number; receivingUploads: number; workers: number };
   system: { diskFreeGb: number; diskTotalGb: number; fetcherLastSeenAt: string | null; serverTime: string };
   /** Installed map meshes against the game patch of the last 30 days' demos. */
   maps?: MapMesh[];

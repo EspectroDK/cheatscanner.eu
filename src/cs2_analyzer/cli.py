@@ -425,7 +425,7 @@ def build_parser() -> argparse.ArgumentParser:
     w.set_defaults(func=cmd_worker)
 
     q = sub.add_parser("queue", help="show the analysis queue (JSON)")
-    q.add_argument("--field", choices=["queued", "processing", "uploads", "oldestWaitingSeconds", "workers"],
+    q.add_argument("--field", choices=["queued", "processing", "stalled", "uploads", "oldestWaitingSeconds", "workers"],
                    help="print only this number")
     q.set_defaults(func=cmd_queue)
 

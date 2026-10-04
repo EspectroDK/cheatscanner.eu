@@ -243,7 +243,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         q = db.analysis_queue(worker_alive)
         with lock:
             receiving_now = sum(receiving.values())
-        return {"queued": q["queued"], "processing": q["processing"], "uploads": q["uploads"],
+        return {"queued": q["queued"], "processing": q["processing"], "stalled": q["stalled"], "uploads": q["uploads"],
                 "oldestWaitingSeconds": q["oldestWaitingSeconds"], "receivingUploads": receiving_now,
                 "workers": q["workers"] + local_workers.count}
 
