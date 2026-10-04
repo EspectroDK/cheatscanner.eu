@@ -94,3 +94,47 @@ def test_overview_lists_map_meshes(config, tmp_path):
     assert maps == [{"map": "de_mirage", "mesh": True, "renderMesh": False, "meshPatch": 14185,
                      "meshUpdatedAt": maps[0]["meshUpdatedAt"], "latestDemoPatch": None,
                      "missing": False, "stale": False}]
+
+
+def test_game_end_to_analyzed_and_repeat_players(config, tmp_path):
+    c, db = _client(config, tmp_path)
+    _sign_in(c, ME)
+    now = datetime.now(timezone.utc)
+    signup = now - timedelta(hours=5)
+    with db.session() as s:
+        user = s.query(M.User).one()
+        s.add(M.SteamMatchAccess(user_id=user.id, status="ACTIVE", created_at=signup))
+        # m1: the match typed in at sign-up (left out). m2: fresh, 64 tick, 30 min long.
+        # m3: was 3 days old when found (catch-up, left out).
+        for code, mid, found, played, done in (
+                ("CSGO-a", "m1", signup + timedelta(seconds=2), signup - timedelta(days=9), signup + timedelta(minutes=9)),
+                ("CSGO-b", "m2", now - timedelta(hours=2), now - timedelta(hours=2, minutes=35), now - timedelta(hours=1, minutes=55)),
+                ("CSGO-c", "m3", now - timedelta(hours=2), now - timedelta(days=3), now - timedelta(hours=1))):
+            s.add(M.ShareCodeJob(share_code=code, user_id=user.id, gc_match_id=1, reservation_id=1, tv_port=1,
+                                 status="DONE", match_id=mid, created_at=found, updated_at=done))
+            m = s.get(M.Match, mid)
+            m.played_at, m.processed_at, m.tickrate = played, done, 64.0
+        s.get(M.Match, "m3").processing_status = "COMPLETED"
+        s.add(M.Round(match_id="m2", round_number=1, start_tick=640, end_tick=640 + 64 * 1800))
+    o = c.get("/admin/overview").json()
+    d = o["speed"]["gameEndToAnalyzedSeconds"]
+    # m2 ended 2 h 5 min ago (played 2 h 35 min ago + 30 min), analyzed 1 h 55 min ago: 10 minutes.
+    assert d["count"] == 1 and d["median"] == 600.0 and d["mean"] == 600.0
+    assert d["skipped"] == {"signup": 1, "catchUp": 1, "noMatchTime": 0}
+    # Strangers are in m2 and m3; ME (a user) is left out, MATE and ENEMY are in one match each.
+    p = o["players"]
+    assert (p["nonUsers"], p["nonUsersSeenTwice"], p["nonUsersSeen3Times"]) == (4, 2, 0)
+
+
+def test_public_site_stats(config, tmp_path):
+    c, db = _client(config, tmp_path)
+    with db.session() as s:
+        s.get(M.Match, "m1").tickrate = 64.0
+        s.add(M.Round(match_id="m1", round_number=1, start_tick=0, end_tick=64 * 60 * 20))
+        s.add(M.Round(match_id="m1", round_number=2, start_tick=64 * 60 * 20, end_tick=64 * 60 * 41))
+    r = c.get("/site-stats")      # public: no sign-in
+    assert r.status_code == 200
+    st = r.json()
+    assert (st["matchesAnalyzed"], st["playersAnalyzed"], st["roundsAnalyzed"], st["gameMinutes"]) == (3, 5, 2, 41)
+    assert st["calibration"]["datasetMatches"] == 626
+    assert "steam" not in str(st).lower()     # counts only

@@ -219,6 +219,25 @@ export interface SiteInfo {
   companionDownload: { version: string; url: string; sizeMb: number } | null;
 }
 
+/** GET /site-stats: public usage counts for the front page, and what the scoring was calibrated on. */
+export interface SiteStats {
+  generatedAt: string;
+  matchesAnalyzed: number;
+  matchesAnalyzed7d: number;
+  playersAnalyzed: number;
+  roundsAnalyzed: number;
+  gameMinutes: number;
+  calibration: {
+    datasetMatches: number;
+    datasetCleanMatches: number;
+    datasetLabelledCheaters: number;
+    datasetMaps: number;
+    proMatches: number;
+    proPlayers: number;
+    matchmakingDemos: number;
+  };
+}
+
 type Summary = { count: number; median: number | null; p90: number | null; mean: number | null };
 
 /** GET /admin/overview: queue, speed and usage for the admin page. */
@@ -235,14 +254,28 @@ export interface AdminOverview {
     byMap: { map: string; count: number }[];
     perDay: { date: string; count: number }[];
   };
-  players: { total: number; assessed: number; byClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; byHighestMatchClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; evidenceEvents: number };
+  players: {
+    total: number;
+    /** Players who never signed in to the site, and how many of them are in 2+, 3+, 5+ analyzed matches. */
+    nonUsers: number;
+    nonUsersSeenTwice: number;
+    nonUsersSeen3Times: number;
+    nonUsersSeen5Times: number;
+    assessed: number; byClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; byHighestMatchClass: Record<"NORMAL" | "ELEVATED" | "HIGH" | "INSUFFICIENT_DATA", number>; evidenceEvents: number };
   fetch: {
     byStatus: Record<ShareCodeJob["status"], number>;
     oldestQueuedAt: string | null;
     recentProblems: { shareCode: string; status: string; error: string | null; updatedAt: string | null }[];
     lastHistoryCheckAt: string | null;
   };
-  speed: { analysisSeconds: Summary; queueWaitSeconds: Summary; fetchedToResultSeconds: Summary; recordedSince: string };
+  speed: {
+    analysisSeconds: Summary;
+    queueWaitSeconds: Summary;
+    fetchedToResultSeconds: Summary;
+    /** Fetched matches, last 30 days: estimated game end to analysis done (sign-up and catch-up matches left out). */
+    gameEndToAnalyzedSeconds: Summary & { skipped: { signup: number; catchUp: number; noMatchTime: number } };
+    recordedSince: string;
+  };
   companion: {
     linkedApps: number;
     linkedUsers: number;
@@ -308,6 +341,7 @@ export const api = {
   playerPattern: (sid: string) => call<PatternBreakdown>(`/players/${sid}/pattern`),
   playerTimeline: (sid: string) => call<TimelinePoint[]>(`/players/${sid}/timeline`),
   siteInfo: () => call<SiteInfo>("/site-info"),
+  siteStats: () => call<SiteStats>("/site-stats"),
   confirmAppLink: (userCode: string) => call<{ deviceName: string }>("/companion/pair/confirm", json("POST", { userCode })),
   playerEvidence: (sid: string) => call<EvidenceEvent[]>(`/players/${sid}/evidence?limit=50`),
   tokens: () => call<ApiToken[]>("/me/tokens"),

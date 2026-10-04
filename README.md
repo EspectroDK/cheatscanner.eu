@@ -133,7 +133,7 @@ the browser uses, e.g. `https://scanner.example`) to turn it on:
   before the SteamID is trusted, then a session cookie is set. `GET /me` shows the signed-in user.
 - `POST /me/tokens` (from a signed-in browser) creates an API token for programs, sent as
   `Authorization: Bearer <token>`; `DELETE /me/tokens/{id}` revokes it. Only hashes are stored.
-- All data endpoints then need a session or token; `/health` and `/site-info` stay public.
+- All data endpoints then need a session or token; `/health`, `/site-info` and `/site-stats` (aggregate usage counts for the front page) stay public.
 - `CS2A_MAX_UPLOAD_MB` (default 1000) caps website uploads; larger ones get HTTP 413.
 - Per signed-in user: one upload at a time (`CS2A_MAX_PARALLEL_UPLOADS`), 10 per 24 hours
   (`CS2A_MAX_UPLOADS_PER_DAY`) and at most 3 uploaded demos waiting for analysis
