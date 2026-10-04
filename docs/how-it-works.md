@@ -40,6 +40,9 @@ calibration results in [validation/cs2cd](validation/cs2cd/README.md).
 
 ## Step 1: reading the demo
 
+Only Premier and Competitive matches are analyzed, since the scoring is calibrated on 5 against 5 matches.
+Wingman and other modes, and demos with fewer than 8 players, are skipped right after reading the demo.
+
 The demo is parsed with the open-source [demoparser2](https://github.com/LaihoE/demoparser) library. The
 analysis uses:
 

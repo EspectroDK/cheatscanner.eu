@@ -193,7 +193,7 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
         waits = [float(m["queue_wait_s"]) for m in metas if m and m.get("queue_wait_s") is not None]
         fetch = {
             "byStatus": {k: codes.get(k, 0) for k in
-                         ("QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED")},
+                         ("QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED")},
             "oldestQueuedAt": _iso(oldest),
             "recentProblems": failed_recent,
             "lastHistoryCheckAt": _iso(s.scalar(select(func.max(M.SteamMatchAccess.last_checked_at)))),

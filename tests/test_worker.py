@@ -204,3 +204,33 @@ def test_concurrent_saves_create_each_new_player_once(db):
     with db.session() as s:
         assert s.query(M.Player).count() == 1
 
+
+
+def test_wingman_and_short_demos_are_skipped(config, db, tmp_path, monkeypatch):
+    """Only Premier and Competitive are analyzed; the job ends SKIPPED with the reason and no match row."""
+    from types import SimpleNamespace
+
+    import cs2_analyzer.pipeline as pipeline
+
+    def meta(mode, source="rank_update.rank_type_id"):
+        return SimpleNamespace(mode=mode, mode_source=source)
+
+    assert "Wingman" in pipeline.skip_reason(meta("wingman"), 4, config)
+    assert "Danger Zone" in pipeline.skip_reason(meta("danger_zone"), 10, config)
+    assert "4 players" in pipeline.skip_reason(meta(None, None), 4, config)
+    assert pipeline.skip_reason(meta("premier"), 10, config) is None
+    assert pipeline.skip_reason(meta("competitive"), 10, config) is None
+    assert pipeline.skip_reason(meta(None, None), 10, config) is None          # tournament demo: no rank updates
+    assert pipeline.skip_reason(meta("valve_matchmaking", "server_name"), 10, config) is None
+
+    def wingman(path, config, filter_modes=False, **kw):
+        assert filter_modes
+        raise pipeline.SkippedMatch(pipeline.skip_reason(meta("wingman"), 4, config))
+
+    monkeypatch.setattr(pipeline, "analyze_demo", wingman)
+    jid = db.enqueue_analysis("upload", _demo(tmp_path))["jobId"]
+    _worker(config, db, "w1").process(db.claim_analysis_job("w1", STALE))
+    job = db.get_analysis_job(jid)
+    assert job["status"] == "SKIPPED" and "Wingman" in job["error"]
+    with db.session() as s:
+        assert s.query(M.Match).count() == 0 and s.query(M.AnalysisLock).count() == 0

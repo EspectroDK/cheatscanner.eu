@@ -7,6 +7,14 @@
 [parser]
 backend = "demoparser2"
 
+[match_filter]
+# Uploaded and fetched demos (the analysis workers) are only analyzed when they are Premier or Competitive:
+# the scoring is calibrated on 5v5 matches. The mode comes from the demo's rank updates; demos without them
+# (tournament demos, older demos) pass. Demos with fewer participants than min_players (Wingman, 1v1s)
+# are skipped too. The command line (`cs2-analyzer analyze`) is not filtered.
+allowed_modes = ["premier", "competitive"]
+min_players = 8
+
 [storage]
 database_url = "sqlite:///./data/cs2_analyzer.sqlite"   # Docker sets CS2A_DATABASE_URL to PostgreSQL
 

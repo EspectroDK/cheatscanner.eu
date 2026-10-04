@@ -175,7 +175,7 @@ export interface ApiToken {
 
 export interface Job {
   jobId: string;
-  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "DUPLICATE" | "FAILED";
+  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "DUPLICATE" | "SKIPPED" | "FAILED";
   matchId?: string;
   error?: string;
 }
@@ -199,7 +199,7 @@ export interface SteamChat {
 
 export interface ShareCodeJob {
   shareCode: string;
-  status: "QUEUED" | "FETCHING" | "DOWNLOADING" | "ANALYZING" | "DONE" | "FAILED" | "EXPIRED";
+  status: "QUEUED" | "FETCHING" | "DOWNLOADING" | "ANALYZING" | "DONE" | "SKIPPED" | "FAILED" | "EXPIRED";
   attempts: number;
   matchId: string | null;
   error: string | null;

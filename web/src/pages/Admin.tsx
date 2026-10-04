@@ -166,10 +166,10 @@ export function Admin() {
       <div className="card-table table-wrap">
         <table>
           <thead>
-            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED"] as const).map((s) => <th key={s} className="num-col">{s.toLowerCase()}</th>)}</tr>
+            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED"] as const).map((s) => <th key={s} className="num-col">{s.toLowerCase()}</th>)}</tr>
           </thead>
           <tbody>
-            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED"] as const).map((s) => <td key={s} className="num-col">{n(f[s])}</td>)}</tr>
+            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED"] as const).map((s) => <td key={s} className="num-col">{n(f[s])}</td>)}</tr>
           </tbody>
         </table>
       </div>
