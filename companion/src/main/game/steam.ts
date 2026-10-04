@@ -8,12 +8,12 @@
 import type { MatchState, RosterPlayer } from "../../shared/types";
 import type { CoplayResult } from "../steam/coplay";
 import type { GameState } from "../steam/gsi";
-import { expectedOthers, pickMatchPlayers } from "../steam/pick";
+import { expectedOthers, pickFriends, pickMatchPlayers } from "../steam/pick";
 import { GameSource } from "./source";
 
 export interface SteamSourceDeps {
-  /** Reads Steam's players list (in a separate process in the app). */
-  scan: () => Promise<CoplayResult>;
+  /** Reads Steam's players list and friends in CS2 (in a separate process in the app). */
+  scan: (localSteamId: string | null) => Promise<CoplayResult>;
   /** Starts the game-state listener; returns a stop function. */
   listen: (onState: (s: GameState) => void) => () => void;
   /** Why game-state data may be missing (e.g. CS2's folder wasn't found), or null. */
@@ -135,9 +135,9 @@ export class SteamSource extends GameSource {
     if (!this.inMap) return this.schedule(this.nextDelay());
     this.scanning = true;
     try {
-      const res = await this.deps.scan();
-      this.localName = res.localName;
       const local = this.game?.localSteamId ?? this.deps.localSteamId?.() ?? null;
+      const res = await this.deps.scan(local);
+      this.localName = res.localName;
       const picked = pickMatchPlayers(res.entries, {
         now: Math.floor(this.now / 1000),
         localSteamId: local,
@@ -153,7 +153,15 @@ export class SteamSource extends GameSource {
         const byId = new Map(this.players.map((p) => [p.steamId, p]));
         for (const e of picked.players)
           byId.set(e.steamId, { slot: 0, name: e.name ?? byId.get(e.steamId)?.name ?? "Unknown player", steamId: e.steamId, side: null, isLocal: false });
-        this.players = [...byId.values()].slice(0, expectedOthers(this.game?.mode) + 2).map((p, i) => ({ ...p, slot: i + 1 }));
+        // Steam leaves friends out of its players list: top up a short list with friends in this match.
+        const expected = expectedOthers(this.game?.mode);
+        const friends = pickFriends(res.friends ?? [], {
+          map: this.game?.map ?? null, localPresence: res.localPresence,
+          exclude: new Set([...byId.keys(), local].filter((x): x is string => !!x)), max: expected - byId.size,
+        });
+        for (const f of friends)
+          byId.set(f.steamId, { slot: 0, name: f.name ?? "Unknown player", steamId: f.steamId, side: null, isLocal: false });
+        this.players = [...byId.values()].slice(0, expected + 2).map((p, i) => ({ ...p, slot: i + 1 }));
       }
       // Players found but CS2 never sent game state: it was most likely started before the cfg existed.
       const noGsi = this.gsiAt === 0 && this.players.length > 0

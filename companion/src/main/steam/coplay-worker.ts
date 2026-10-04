@@ -3,11 +3,12 @@
 
 import { readCoplay } from "./coplay";
 
-const port = (process as unknown as { parentPort: { on(e: "message", f: () => void): void; postMessage(m: unknown): void } }).parentPort;
+const port = (process as unknown as { parentPort: { on(e: "message", f: (m: { data?: unknown }) => void): void; postMessage(m: unknown): void } }).parentPort;
 
-port.on("message", () => {
+port.on("message", (m) => {
+  const data = m?.data as { localSteamId?: string | null } | string | undefined;
   try {
-    port.postMessage({ ok: true, result: readCoplay() });
+    port.postMessage({ ok: true, result: readCoplay(typeof data === "object" ? data?.localSteamId : null) });
   } catch (e) {
     port.postMessage({ ok: false, error: e instanceof Error ? e.message : String(e) });
   }

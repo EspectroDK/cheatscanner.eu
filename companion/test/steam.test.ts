@@ -1,9 +1,9 @@
 import { request } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SteamSource } from "../src/main/game/steam";
-import type { CoplayEntry, CoplayResult } from "../src/main/steam/coplay";
+import type { CoplayEntry, CoplayResult, FriendInGame } from "../src/main/steam/coplay";
 import { gsiConfig, libraryPaths, parseGsi, startGsiServer, type GameState } from "../src/main/steam/gsi";
-import { expectedOthers, pickMatchPlayers } from "../src/main/steam/pick";
+import { expectedOthers, pickFriends, pickMatchPlayers } from "../src/main/steam/pick";
 import type { MatchState } from "../src/shared/types";
 import { ago, flagged } from "../src/renderer/parts";
 
@@ -51,6 +51,30 @@ describe("picking the match from Steam's players list", () => {
   });
 });
 
+describe("topping up with Steam friends", () => {
+  const F = (n: number, presence: Record<string, string>): FriendInGame => ({ steamId: id(n), name: `f${n}`, presence });
+
+  it("adds friends in our party first, then friends on the same map, up to the missing count", () => {
+    const friends = [
+      F(1, { "game:map": "de_mirage" }),
+      F(2, { "game:map": "de_nuke", steam_player_group: "77" }),   // our party (map key differs or stale)
+      F(3, { "game:map": "de_dust2" }),                            // another match
+      F(4, { "game:map": "DE_MIRAGE" }),
+    ];
+    const opts = { map: "de_mirage", localPresence: { steam_player_group: "77" }, exclude: new Set<string>(), max: 2 };
+    expect(pickFriends(friends, opts).map((f) => f.name)).toEqual(["f2", "f1"]);
+    expect(pickFriends(friends, { ...opts, max: 9 }).map((f) => f.name)).toEqual(["f2", "f1", "f4"]);
+    expect(pickFriends(friends, { ...opts, exclude: new Set([id(2)]) }).map((f) => f.name)).toEqual(["f1", "f4"]);
+    expect(pickFriends(friends, { ...opts, max: 0 })).toEqual([]);
+  });
+
+  it("ignores an empty party id and needs a map to match on", () => {
+    const friends = [F(1, { steam_player_group: "0", "game:map": "de_mirage" }), F(2, {})];
+    expect(pickFriends(friends, { map: null, localPresence: { steam_player_group: "0" }, exclude: new Set(), max: 9 })).toEqual([]);
+    expect(pickFriends(friends, { map: "de_mirage", exclude: new Set(), max: 9 }).map((f) => f.name)).toEqual(["f1"]);
+  });
+});
+
 describe("CS2 game state feed", () => {
   it("reads map, mode, phase and our Steam ID", () => {
     expect(parseGsi({ provider: { steamid: ME }, map: { name: "de_dust2", mode: "competitive", phase: "warmup" } }))
@@ -86,13 +110,13 @@ describe("SteamSource", () => {
   beforeEach(() => vi.useFakeTimers({ now: 1_800_000_000_000 }));
   afterEach(() => vi.useRealTimers());
 
-  function make(entries: () => CoplayEntry[]) {
+  function make(entries: () => CoplayEntry[], friends: () => FriendInGame[] = () => []) {
     let push: (s: GameState) => void = () => {};
     const scans: number[] = [];
     const src = new SteamSource({
       scan: async (): Promise<CoplayResult> => {
         scans.push(Date.now());
-        return { localName: "Nova", entries: entries() };
+        return { localName: "Nova", entries: entries(), friends: friends() };
       },
       listen: (on) => ((push = on), () => {}),
       fastMs: 1000,
@@ -140,6 +164,21 @@ describe("SteamSource", () => {
     list = [1, 2].map((n) => E(n, t() - 1)).concat(E(3, t() - 30 * 60));
     await vi.advanceTimersByTimeAsync(1_100);
     expect(matches.at(-1)!.players.map((p) => p.name)).toEqual(["Nova", "p1", "p2", "p3"]);
+    src.stop();
+  });
+
+  it("adds a friend in the match that Steam's players list leaves out", async () => {
+    const t = () => Math.floor(Date.now() / 1000);
+    const { src, push, matches } = make(
+      () => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => E(n, t() - 5)),
+      () => [{ steamId: id(50), name: "buddy", presence: { "game:map": "de_mirage" } },
+             { steamId: id(51), name: "elsewhere", presence: { "game:map": "de_inferno" } },
+             { steamId: id(3), name: "p3", presence: { "game:map": "de_mirage" } }],
+    );
+    src.start();
+    push({ map: "de_mirage", mode: "competitive", phase: "warmup" });
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(matches.at(-1)!.players.map((p) => p.name)).toEqual(["Nova", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "buddy"]);
     src.stop();
   });
 

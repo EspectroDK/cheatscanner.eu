@@ -128,7 +128,7 @@ function steamSource(): SteamSource {
 }
 
 /** Reads Steam's players list in a short-lived utility process (steam/coplay-worker.ts). */
-function scanCoplay(): Promise<CoplayResult> {
+function scanCoplay(localSteamId: string | null): Promise<CoplayResult> {
   return new Promise((resolve, reject) => {
     const child = utilityProcess.fork(join(__dirname, "steam", "coplay-worker.js"), [], { serviceName: "Steam players list" });
     const timer = setTimeout(() => {
@@ -145,7 +145,7 @@ function scanCoplay(): Promise<CoplayResult> {
       clearTimeout(timer);
       reject(new Error(`Reading Steam's players list failed (code ${code}).`));
     });
-    child.postMessage("scan");
+    child.postMessage({ localSteamId });
   });
 }
 
