@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 
 from cs2_analyzer.api.app import create_app
-from cs2_analyzer.storage import models as M
+from cs2_analyzer.storage import models as M, stats
 from cs2_analyzer.storage.repository import Database
 from test_access import ENEMY, ME, MATE, _seed
 from test_auth import PUBLIC, FakeSteam
@@ -138,3 +138,22 @@ def test_public_site_stats(config, tmp_path):
     assert (st["matchesAnalyzed"], st["playersAnalyzed"], st["roundsAnalyzed"], st["gameMinutes"]) == (3, 5, 2, 41)
     assert st["calibration"]["datasetMatches"] == 626
     assert "steam" not in str(st).lower()     # counts only
+
+
+def test_queued_per_hour(config, tmp_path):
+    _, db = _client(config, tmp_path)
+    now = datetime(2026, 10, 4, 19, 35, tzinfo=timezone.utc)
+    with db.session() as s:
+        for i, (kind, at) in enumerate((
+                ("fetch", now - timedelta(minutes=5)),            # this hour
+                ("upload", now - timedelta(minutes=20)),          # this hour
+                ("fetch", now - timedelta(hours=3, minutes=10)),  # 16:00-17:00
+                ("import", now - timedelta(hours=23, minutes=30)),  # 20:00 yesterday, the first bar
+                ("fetch", now - timedelta(hours=24)))):           # 19:35 yesterday: too old
+            s.add(M.AnalysisJob(id=f"j{i}", kind=kind, path="x.dem", file_name="x.dem", created_at=at))
+    hours = stats.admin_overview(db, now=now)["matches"]["queuedPerHour"]
+    assert len(hours) == 24
+    assert hours[0] == {"hour": "2026-10-03T20:00:00+00:00", "fetched": 0, "uploaded": 1}
+    assert hours[-1] == {"hour": "2026-10-04T19:00:00+00:00", "fetched": 1, "uploaded": 1}
+    assert hours[-4] == {"hour": "2026-10-04T16:00:00+00:00", "fetched": 1, "uploaded": 0}
+    assert sum(h["fetched"] + h["uploaded"] for h in hours) == 4

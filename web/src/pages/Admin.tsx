@@ -46,6 +46,48 @@ function PerDay({ days }: { days: AdminOverview["matches"]["perDay"] }) {
   );
 }
 
+/** Demos put in the analysis queue per hour, last 24 hours, in the viewer's local time. Bars are stacked:
+ *  fetched matches at the bottom, uploads on top. Hover shows the hour and both counts. */
+function QueuedPerHour({ hours }: { hours: AdminOverview["matches"]["queuedPerHour"] }) {
+  const max = Math.max(1, ...hours.map((h) => h.fetched + h.uploaded));
+  const total = hours.reduce((a, h) => a + h.fetched + h.uploaded, 0);
+  const clock = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return (
+    <figure className="per-day" aria-label="Matches added to the analysis queue per hour, last 24 hours">
+      <div className="per-day-head">
+        <span>Added to the queue per hour, last 24 h: <strong>{n(total)}</strong></span>
+        <span className="per-day-legend muted small">
+          <span><i className="key fetched" /> fetched</span>
+          <span><i className="key uploaded" /> uploaded</span>
+        </span>
+      </div>
+      <div className="per-day-bars">
+        {hours.map((h, i) => {
+          const sum = h.fetched + h.uploaded;
+          const end = i === hours.length - 1 ? "now" : clock(new Date(new Date(h.hour).getTime() + 3600_000).toISOString());
+          return (
+            <div key={h.hour} className="per-day-col stacked"
+                 data-tip={`${clock(h.hour)}–${end}: ${sum} (${h.fetched} fetched, ${h.uploaded} uploaded)`}>
+              {sum ? (
+                <>
+                  {h.uploaded > 0 && <span className="uploaded" style={{ height: `${(h.uploaded / max) * 100}%` }} />}
+                  {h.fetched > 0 && <span className="fetched" style={{ height: `${(h.fetched / max) * 100}%` }} />}
+                </>
+              ) : <span className="zero" />}
+            </div>
+          );
+        })}
+      </div>
+      <figcaption className="per-day-axis muted small">
+        <span>{clock(hours[0].hour)}</span>
+        <span>max {n(max)} per hour; times in {zone}</span>
+        <span>now</span>
+      </figcaption>
+    </figure>
+  );
+}
+
 export function Admin() {
   const [tick, setTick] = useState(0);
   const data = useLoad(api.adminOverview, [tick], true);
@@ -103,6 +145,7 @@ export function Admin() {
                 : "no new fetched matches in 30 days"} />
       </div>
       <PerDay days={o.matches.perDay} />
+      <QueuedPerHour hours={o.matches.queuedPerHour} />
 
       <h2>Users and overlay</h2>
       <div className="stat-grid">

@@ -350,6 +350,17 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
   border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; box-shadow: var(--shadow); z-index: 2;
 }
 .per-day-axis { display: flex; justify-content: space-between; margin-top: 6px; }
+.per-day + .per-day { margin-top: 12px; }
+.per-day-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-bottom: 10px; }
+.per-day-legend { display: flex; gap: 14px; align-items: center; }
+.per-day-legend .key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+.per-day-col.stacked { flex-direction: column; justify-content: flex-end; }
+.per-day-col.stacked span { border-radius: 0; min-height: 0; }
+.per-day-col.stacked span:first-child { border-radius: 4px 4px 0 0; }
+.per-day-col.stacked span.zero { min-height: 2px; }
+.per-day .fetched { background: var(--accent); }
+.per-day .uploaded { background: var(--ct); }
+.per-day-col.stacked span.uploaded:not(:last-child) { margin-bottom: 1px; }
 .admin-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 
 /* Play pattern measurements: four columns on wide screens, stacked on phones. */
