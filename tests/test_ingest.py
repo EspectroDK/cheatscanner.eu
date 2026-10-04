@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from cs2_analyzer.api.app import create_app
 from cs2_analyzer.ingest import sharecode, steam_history
-from cs2_analyzer.ingest.service import REPLAY_URL, Ingest, download_demo
+from cs2_analyzer.ingest.service import Ingest, is_replay_url, download_demo
 from cs2_analyzer.storage.repository import Database
 from test_auth import PUBLIC, FakeSteam, _assertion
 
@@ -183,7 +183,19 @@ def _wait(c):
 
 
 def test_download_demo_checks_url_and_unpacks(tmp_path, monkeypatch):
-    assert REPLAY_URL.match(URL) and not REPLAY_URL.match("http://replay1.valve.net.evil.com/730/1_2.dem.bz2")
+    assert is_replay_url(URL)
+    for ok in ("https://replay412.valve.net/730/003845372578323497175_0723140305.dem.bz2",
+               "http://replay.valve.net/730/003845372578323497175_0723140305.dem.bz2",
+               "http://replay183.valve.net:80/730/003845372578323497175_0723140305.dem.bz2",
+               "http://REPLAY183.Valve.net/730/003845372578323497175_0723140305_273.dem.bz2",
+               "http://replay129.wmsj.cn/730/003845372578323497175_0723140305.dem.bz2"):
+        assert is_replay_url(ok), ok
+    for bad in ("http://replay1.valve.net.evil.com/730/1_2.dem.bz2", "http://evil.com/730/1_2.dem.bz2",
+                "http://user@replay1.valve.net/730/1_2.dem.bz2", "http://replay1.valve.net:8080/730/1_2.dem.bz2",
+                "http://replay1.valve.net/730/../x.dem.bz2", "http://replay1.valve.net/740/1_2.dem.bz2",
+                "http://replay1.valve.net/730/1_2.dem.bz2?x=1", "ftp://replay1.valve.net/730/1_2.dem.bz2",
+                "http://evilvalve.net/730/1_2.dem.bz2", "not a url"):
+        assert not is_replay_url(bad), bad
     with pytest.raises(ValueError):
         download_demo("http://example.com/x.dem.bz2", tmp_path / "x.dem", 10, 10)
 
