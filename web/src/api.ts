@@ -253,6 +253,7 @@ export interface AdminOverview {
     bySource: { fetched: number; uploaded: number; other: number };
     byMap: { map: string; count: number }[];
     perDay: { date: string; count: number }[];
+    queuedPerHour: { hour: string; fetched: number; uploaded: number }[];
   };
   players: {
     total: number;

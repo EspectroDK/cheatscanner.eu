@@ -84,6 +84,20 @@ def _game_end_to_analyzed(s, since: datetime) -> dict:
     return _summary(delays) | {"skipped": skipped}
 
 
+def _queued_per_hour(s, now: datetime, hours: int = 24) -> list[dict]:
+    """Demos put in the analysis queue in each of the last ``hours`` whole hours (UTC, the current hour last
+    and still running), by when the job was created. Fetched matches apart from uploads and path imports."""
+    end = now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    start = end - timedelta(hours=hours - 1)
+    buckets = {start + timedelta(hours=i): {"fetched": 0, "uploaded": 0} for i in range(hours)}
+    for kind, t in s.execute(select(M.AnalysisJob.kind, M.AnalysisJob.created_at)
+                             .where(M.AnalysisJob.created_at >= start)):
+        b = buckets.get(_utc(t).astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0))
+        if b is not None:
+            b["fetched" if kind == "fetch" else "uploaded"] += 1
+    return [{"hour": _iso(h), **c} for h, c in buckets.items()]
+
+
 def admin_overview(db: Database, now: datetime | None = None, days: int = 14) -> dict:
     now = now or datetime.now(timezone.utc)
     day, week, month = now - timedelta(days=1), now - timedelta(days=7), now - timedelta(days=30)
@@ -139,6 +153,7 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
                          "other": max(completed - fetched_n - uploaded_n, 0)},
             "byMap": [{"map": m or "unknown", "count": n} for m, n in by_map],
             "perDay": [{"date": d.isoformat(), "count": n} for d, n in per_day.items()],
+            "queuedPerHour": _queued_per_hour(s, now),
         }
 
         # -------------------------------------------------------- players
