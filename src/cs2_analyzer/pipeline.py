@@ -121,6 +121,24 @@ def build_analysis(demo: ParsedDemo, config: Config, detector_names: list[str] |
     return world, geometry, smoke, vis, knowledge, encounters, ctx, events
 
 
+class SkippedMatch(Exception):
+    """The demo is not a match type we analyze (see ``match_filter`` in the config)."""
+
+
+MODE_NAMES = {"wingman": "Wingman", "danger_zone": "Danger Zone", "premier": "Premier", "competitive": "Competitive"}
+
+
+def skip_reason(meta, players: int, config) -> str | None:
+    """Why a demo is not analyzed, or None. Only modes read from the demo's rank updates are trusted."""
+    allowed = [str(m) for m in config.get("match_filter.allowed_modes", ["premier", "competitive"])]
+    names = " and ".join(MODE_NAMES.get(m, m) for m in allowed)
+    if meta.mode_source == "rank_update.rank_type_id" and meta.mode and meta.mode not in allowed:
+        return f"{MODE_NAMES.get(meta.mode, meta.mode)} match: only {names} matches are analyzed."
+    if players < int(config.get("match_filter.min_players", 8)):
+        return f"Only {players} players in the demo: only {names} matches (5 against 5) are analyzed."
+    return None
+
+
 def analyze_demo(
     path: str | Path,
     config: Config,
@@ -137,6 +155,7 @@ def analyze_demo(
     played_at=None,
     progress=None,
     on_parsed=None,
+    filter_modes: bool = False,
 ) -> AnalysisResult:
     path = Path(path)
     say = progress or (lambda msg: log.info(msg))
@@ -161,6 +180,10 @@ def analyze_demo(
         say(f"Parsing {path.name} ...")
         demo = get_parser(backend).parse(path, match_id=match_id)
     meta = demo.meta
+    if filter_modes and (reason := skip_reason(meta, len(demo.players), config)):
+        if not keep:
+            path.unlink(missing_ok=True)
+        raise SkippedMatch(reason)
     if on_parsed is not None:  # the analysis worker claims the match here (worker.py)
         on_parsed(meta)
     if db is not None:

@@ -326,7 +326,7 @@ class ShareCodeJob(Base):
     reservation_id: Mapped[int] = mapped_column(BigInteger)
     tv_port: Mapped[int] = mapped_column(Integer)
     # QUEUED -> FETCHING (claimed by the demo fetcher) -> DOWNLOADING -> ANALYZING -> DONE
-    # or FAILED / EXPIRED (Valve no longer has the demo)
+    # or SKIPPED (not Premier/Competitive) / FAILED / EXPIRED (Valve no longer has the demo)
     status: Mapped[str] = mapped_column(String(16), default="QUEUED", index=True)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     demo_url: Mapped[str | None] = mapped_column(Text)

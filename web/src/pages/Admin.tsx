@@ -97,6 +97,10 @@ export function Admin() {
               sub={o.speed.queueWaitSeconds.count ? "median" : since} />
         <Stat label="Found to analyzed" value={duration(o.speed.fetchedToResultSeconds.median)}
               sub={o.speed.fetchedToResultSeconds.count ? "median, fetched matches, 30 days" : "no fetched matches in 30 days"} />
+        <Stat label="Game end to analyzed" value={duration(o.speed.gameEndToAnalyzedSeconds.median)}
+              sub={o.speed.gameEndToAnalyzedSeconds.count
+                ? `median; average ${duration(o.speed.gameEndToAnalyzedSeconds.mean)}, ${n(o.speed.gameEndToAnalyzedSeconds.count)} fetched matches, 30 days`
+                : "no new fetched matches in 30 days"} />
       </div>
       <PerDay days={o.matches.perDay} />
 
@@ -121,6 +125,8 @@ export function Admin() {
         <Stat label="Failed analyses" value={o.matches.failed} tone={o.matches.failed ? "warn" : undefined} />
         <Stat label="Players analyzed" value={o.players.total} sub={`${n(o.players.assessed)} with a class`} />
         <Stat label="Evidence events" value={o.players.evidenceEvents} />
+        <Stat label="Non-users seen twice or more" value={o.players.nonUsersSeenTwice}
+              sub={`of ${n(o.players.nonUsers)} non-users; ${n(o.players.nonUsersSeen3Times)} in 3+, ${n(o.players.nonUsersSeen5Times)} in 5+ matches`} />
       </div>
       <div className="admin-two">
         <div className="card-table">
@@ -160,10 +166,10 @@ export function Admin() {
       <div className="card-table table-wrap">
         <table>
           <thead>
-            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED"] as const).map((s) => <th key={s} className="num-col">{s.toLowerCase()}</th>)}</tr>
+            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED"] as const).map((s) => <th key={s} className="num-col">{s.toLowerCase()}</th>)}</tr>
           </thead>
           <tbody>
-            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED"] as const).map((s) => <td key={s} className="num-col">{n(f[s])}</td>)}</tr>
+            <tr>{(["QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED"] as const).map((s) => <td key={s} className="num-col">{n(f[s])}</td>)}</tr>
           </tbody>
         </table>
       </div>
@@ -220,6 +226,14 @@ export function Admin() {
         Time per match, wait before analysis and lobby lookups are only recorded from{" "}
         {new Date(o.speed.recordedSince).toLocaleDateString()} on. "Overlays in use" counts linked apps that talked to
         the server in the period.
+      </p>
+      <p className="muted small">
+        "Game end to analyzed" covers matches fetched from Steam match history, not uploads. The demo has no clock, so the
+        game end is Valve's match time plus the match length from the demo, capped at when the share code was found.
+        Left out: the match each user typed in at sign-up ({n(o.speed.gameEndToAnalyzedSeconds.skipped.signup)}), matches
+        already a day old when found, from catching up on older history ({n(o.speed.gameEndToAnalyzedSeconds.skipped.catchUp)}),
+        and matches without a match time from Valve ({n(o.speed.gameEndToAnalyzedSeconds.skipped.noMatchTime)}).
+        "Non-users" are players in analyzed matches who never signed in to this site.
       </p>
     </>
   );

@@ -34,6 +34,39 @@ const STORE_URL = "https://apps.microsoft.com/detail/9N3R274VP3GV";
 /** "0.1.0" -> "0.1": the front page names versions without a zero patch number. */
 const shortVersion = (v: string) => v.replace(/\.0$/, "");
 
+const n = (x: number) => x.toLocaleString("en-US");
+
+/** Usage so far and what the scoring was calibrated on: counts only, so it is safe to show signed out. */
+function UsageStrip() {
+  const st = useLoad(api.siteStats, []).data;
+  if (!st) return null;
+  const c = st.calibration;
+  const tiles: [string, number, string][] = [
+    ["Matches analyzed", st.matchesAnalyzed, `${n(st.matchesAnalyzed7d)} in the last 7 days`],
+    ["Players analyzed", st.playersAnalyzed, "distinct Steam accounts"],
+    ["Minutes of game time", st.gameMinutes, `${n(st.roundsAnalyzed)} rounds`],
+    ["Reference matches", c.datasetMatches + c.proMatches, "labelled and pro matches"],
+  ];
+  return (
+    <section className="usage" aria-label="Usage so far">
+      <div className="usage-tiles">
+        {tiles.map(([label, value, sub]) => (
+          <div key={label} className="usage-tile">
+            <div className="usage-value">{n(value)}</div>
+            <div className="usage-label">{label}</div>
+            <div className="muted small">{sub}</div>
+          </div>
+        ))}
+      </div>
+      <p className="muted small">
+        The scoring was calibrated on {n(c.datasetMatches)} matches on {c.datasetMaps} maps from the public CS2CD dataset
+        ({n(c.datasetCleanMatches)} without cheaters, {n(c.datasetLabelledCheaters)} players later VAC-banned), {c.proMatches} professional
+        matches ({c.proPlayers} players) and {c.matchmakingDemos} matchmaking demos. <Link to="/how-it-works">How well it works</Link>.
+      </p>
+    </section>
+  );
+}
+
 /** The front page. Signed out it offers Steam sign-in; signed in (reached from the logo) it links to your matches. */
 export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: boolean; signedIn?: boolean }) {
   const Wrapper = signedIn ? "div" : "main";
@@ -56,6 +89,8 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
           Sign in through Steam
         </a>
       )}
+
+      <UsageStrip />
 
       <section className="intro" aria-label="How it works">
         <h2>How it works</h2>

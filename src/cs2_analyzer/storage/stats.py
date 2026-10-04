@@ -17,6 +17,8 @@ from cs2_analyzer.storage.repository import Database, _iso, _utc
 
 COMPANION_TOKEN_PREFIX = "Companion app: "
 SPEED_SAMPLE = 200          # latest analyzed matches used for the time-per-match numbers
+SIGNUP_MATCH_WINDOW = timedelta(minutes=5)   # a user's first share code this close to sign-up is the one they typed in
+CATCH_UP_AGE = timedelta(hours=24)           # matches already this old when found are history being caught up on
 
 
 def _summary(values: list[float]) -> dict:
@@ -25,6 +27,61 @@ def _summary(values: list[float]) -> dict:
     v = sorted(values)
     return {"count": len(v), "median": round(statistics.median(v), 1),
             "p90": round(v[min(len(v) - 1, int(0.9 * len(v)))], 1), "mean": round(statistics.fmean(v), 1)}
+
+
+def _game_seconds(s, completed_only: bool = True) -> dict[str, float]:
+    """Length of each analyzed match in seconds: first round start to last round end, from the demo's ticks."""
+    q = (select(M.Round.match_id, func.min(M.Round.start_tick), func.max(M.Round.end_tick), M.Match.tickrate)
+         .join(M.Match, M.Match.match_id == M.Round.match_id).group_by(M.Round.match_id, M.Match.tickrate))
+    if completed_only:
+        q = q.where(M.Match.processing_status == "COMPLETED")
+    out = {}
+    for mid, first, last, rate in s.execute(q):
+        if first is not None and last is not None and rate and last > first:
+            out[mid] = (last - first) / rate
+    return out
+
+
+def _game_end_to_analyzed(s, since: datetime) -> dict:
+    """Game finished -> analysis done, for matches fetched from Steam match history and analyzed since ``since``.
+
+    Left out: the match a user typed in at sign-up (their first share code, queued within a few minutes of
+    connecting their match history), and matches that were already more than a day old when the poller found
+    them (history being caught up on after an old starting code). Uploads have no share code, so they are
+    never in here.
+
+    The demo has no clock, so the game end is estimated: Valve's match time (``played_at``, from the Game
+    Coordinator) plus the match length from the demo's rounds, but never later than when the poller found
+    the share code, since a share code only exists once the game is over.
+    """
+    access = dict(s.execute(select(M.SteamMatchAccess.user_id, M.SteamMatchAccess.created_at)).all())
+    first_code: dict[int, tuple[datetime, str]] = {}
+    for code, uid, created in s.execute(select(M.ShareCodeJob.share_code, M.ShareCodeJob.user_id,
+                                               M.ShareCodeJob.created_at).where(M.ShareCodeJob.user_id.is_not(None))):
+        if uid not in first_code or _utc(created) < first_code[uid][0]:
+            first_code[uid] = (_utc(created), code)
+    signup = {code for uid, (created, code) in first_code.items()
+              if uid in access and abs(created - _utc(access[uid])) <= SIGNUP_MATCH_WINDOW}
+
+    rows = s.execute(select(M.ShareCodeJob.share_code, M.ShareCodeJob.created_at, M.Match.match_id,
+                            M.Match.played_at, M.Match.processed_at)
+                     .join(M.Match, M.Match.match_id == M.ShareCodeJob.match_id)
+                     .where(M.ShareCodeJob.status == "DONE", M.Match.processing_status == "COMPLETED",
+                            M.Match.processed_at >= since)).all()
+    lengths = _game_seconds(s) if rows else {}
+    delays, skipped = [], {"signup": 0, "catchUp": 0, "noMatchTime": 0}
+    for code, found, mid, played, done in rows:
+        found, played, done = _utc(found), _utc(played), _utc(done)
+        if code in signup:
+            skipped["signup"] += 1
+        elif played is None:
+            skipped["noMatchTime"] += 1
+        elif found - played > CATCH_UP_AGE:
+            skipped["catchUp"] += 1
+        else:
+            end = min(played + timedelta(seconds=lengths.get(mid, 0.0)), found)
+            delays.append(max((done - end).total_seconds(), 0.0))
+    return _summary(delays) | {"skipped": skipped}
 
 
 def admin_overview(db: Database, now: datetime | None = None, days: int = 14) -> dict:
@@ -97,8 +154,20 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
                  .where(M.Match.processing_status == "COMPLETED")
                  .group_by(M.PlayerMatchAssessment.steam_id).subquery())
         by_rank = dict(s.execute(select(worst.c.r, func.count()).group_by(worst.c.r)).all())
+        # Players in 2+ analyzed matches who never signed in to the site: people who keep turning up in
+        # users' matches, rather than the users themselves.
+        per_player = (select(M.MatchPlayer.steam_id.label("sid"), func.count().label("n"))
+                      .join(M.Match, M.Match.match_id == M.MatchPlayer.match_id)
+                      .where(M.Match.processing_status == "COMPLETED",
+                             M.MatchPlayer.steam_id.not_in(select(M.User.steam_id)))
+                      .group_by(M.MatchPlayer.steam_id).subquery())
+        seen = dict(s.execute(select(per_player.c.n, func.count()).group_by(per_player.c.n)).all())
         players = {
             "total": count(select(func.count()).select_from(M.Player)),
+            "nonUsers": sum(seen.values()),
+            "nonUsersSeenTwice": sum(c for k, c in seen.items() if k >= 2),
+            "nonUsersSeen3Times": sum(c for k, c in seen.items() if k >= 3),
+            "nonUsersSeen5Times": sum(c for k, c in seen.items() if k >= 5),
             "assessed": sum(classes.values()),
             "byClass": {"NORMAL": classes.get("NORMAL", 0), "ELEVATED": classes.get("ELEVATED", 0),
                         "HIGH": classes.get("HIGH", 0) + classes.get("VERY_HIGH", 0),
@@ -124,7 +193,7 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
         waits = [float(m["queue_wait_s"]) for m in metas if m and m.get("queue_wait_s") is not None]
         fetch = {
             "byStatus": {k: codes.get(k, 0) for k in
-                         ("QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "FAILED", "EXPIRED")},
+                         ("QUEUED", "FETCHING", "DOWNLOADING", "ANALYZING", "DONE", "SKIPPED", "FAILED", "EXPIRED")},
             "oldestQueuedAt": _iso(oldest),
             "recentProblems": failed_recent,
             "lastHistoryCheckAt": _iso(s.scalar(select(func.max(M.SteamMatchAccess.last_checked_at)))),
@@ -133,6 +202,7 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
             "analysisSeconds": _summary(analysis),
             "queueWaitSeconds": _summary(waits),
             "fetchedToResultSeconds": _summary(end_to_end),
+            "gameEndToAnalyzedSeconds": _game_end_to_analyzed(s, month),
             "recordedSince": "2026-09-29",
         }
 
@@ -165,6 +235,37 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
 
     return {"generatedAt": _iso(now), "users": users, "matches": matches, "players": players, "fetch": fetch,
             "speed": speed, "companion": companion, "uploads": uploads}
+
+
+# What the scoring was fitted and checked on (docs/how-it-works.md, "How well it works"). Fixed numbers:
+# update them together with that page when the calibration changes.
+CALIBRATION = {
+    "datasetMatches": 626,          # CS2CD matches on the nine maps with a game-built map model
+    "datasetCleanMatches": 323,
+    "datasetLabelledCheaters": 1244,
+    "datasetMaps": 9,
+    "proMatches": 15,
+    "proPlayers": 140,
+    "matchmakingDemos": 31,         # real matchmaking demos the mouse-input check was run on
+}
+
+
+def public_stats(db: Database, now: datetime | None = None) -> dict:
+    """Aggregate usage numbers for the front page. Counts only: no names, Steam IDs or classes."""
+    now = now or datetime.now(timezone.utc)
+    with db.session() as s:
+        done = M.Match.processing_status == "COMPLETED"
+        matches = int(s.scalar(select(func.count()).select_from(M.Match).where(done)) or 0)
+        players = int(s.scalar(select(func.count(func.distinct(M.MatchPlayer.steam_id))).select_from(M.MatchPlayer)
+                               .join(M.Match, M.Match.match_id == M.MatchPlayer.match_id).where(done)) or 0)
+        rounds = int(s.scalar(select(func.count()).select_from(M.Round)
+                              .join(M.Match, M.Match.match_id == M.Round.match_id).where(done)) or 0)
+        week = int(s.scalar(select(func.count()).select_from(M.Match)
+                            .where(done, M.Match.processed_at >= now - timedelta(days=7))) or 0)
+        seconds = sum(_game_seconds(s).values())
+    return {"generatedAt": _iso(now), "matchesAnalyzed": matches, "matchesAnalyzed7d": week,
+            "playersAnalyzed": players, "roundsAnalyzed": rounds, "gameMinutes": int(seconds // 60),
+            "calibration": CALIBRATION}
 
 
 def record_lobby_lookup(db: Database, user_id: int | None, players: int) -> None:

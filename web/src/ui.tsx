@@ -14,6 +14,7 @@ export const JOB_LABELS: Record<ShareCodeJob["status"], string> = {
   DOWNLOADING: "Downloading",
   ANALYZING: "Analyzing",
   DONE: "Analyzed",
+  SKIPPED: "Not analyzed (not Premier or Competitive)",
   FAILED: "Failed",
   EXPIRED: "Demo no longer available",
 };

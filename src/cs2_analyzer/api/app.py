@@ -29,6 +29,7 @@ import logging
 import re
 import shutil
 import threading
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -47,10 +48,12 @@ from cs2_analyzer.ingest.service import Ingest
 from cs2_analyzer.ingest.steam_history import HttpGet
 from cs2_analyzer.map_images import images_dir
 from cs2_analyzer.storage.repository import Database
+from cs2_analyzer.storage.stats import public_stats
 from cs2_analyzer.worker import InProcessWorkers
 
 log = logging.getLogger(__name__)
 
+SITE_STATS_TTL_S = 300   # the front page's usage numbers are recomputed at most this often
 _INSTALLER = re.compile(r"Cheatscanner-Setup-(\d+(?:\.\d+)*)\.exe")
 
 
@@ -295,6 +298,16 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         return {"name": site_name, "domain": domain, "publicUrl": auth.public_url, "authEnabled": auth.enabled,
                 "maxUploadMb": max_upload >> 20, "maxUploadsPerDay": max_per_day, "contactEmail": contact or None,
                 "companionDownload": app_download}
+
+    stats_cache: dict = {}
+
+    @app.get("/site-stats")
+    def site_stats():
+        """Public usage numbers for the front page (counts only), recomputed at most every few minutes."""
+        now = time.monotonic()
+        if not stats_cache or now - stats_cache["at"] > SITE_STATS_TTL_S:
+            stats_cache.update(at=now, data=public_stats(db))
+        return stats_cache["data"]
 
     @app.api_route("/download/companion", methods=["GET", "HEAD"])
     def download_companion():
