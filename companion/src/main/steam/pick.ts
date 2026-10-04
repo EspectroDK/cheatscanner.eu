@@ -4,7 +4,7 @@
 // scoreboard were listed with one shared time, plus 2 newer entries ("Now") that were NOT in the match.
 // So the newest entries aren't enough: the match is the biggest group of players reported together.
 
-import { CS2_APP_ID, type CoplayEntry } from "./coplay";
+import { CS2_APP_ID, type CoplayEntry, type FriendInGame } from "./coplay";
 
 export interface PickOptions {
   /** Unix seconds now. */
@@ -70,4 +70,40 @@ export function expectedOthers(mode: string | null | undefined): number {
   if (m.includes("wingman") || m.includes("scrimcomp2v2")) return 3;
   if (m.includes("casual") || m.includes("deathmatch") || m.includes("armsrace")) return 19;
   return 9;
+}
+
+export interface FriendPickOptions {
+  /** The map CS2's game-state feed reports, e.g. "de_mirage". */
+  map: string | null;
+  /** Our own rich presence, when Steam gives it (steam_player_group = our party). */
+  localPresence?: Record<string, string> | null;
+  /** Steam IDs already in the list (and our own). */
+  exclude: Set<string>;
+  /** How many players are still missing. */
+  max: number;
+}
+
+/**
+ * Steam's players list leaves out your Steam friends (seen on a real PC 2026-10-04: a full Mirage lobby
+ * showed 8 of 9, the missing one a friend). So a short list is topped up with friends playing CS2 right
+ * now who are in our party (same steam_player_group) or on the same map, party first.
+ */
+export function pickFriends(friends: FriendInGame[], o: FriendPickOptions): FriendInGame[] {
+  if (o.max <= 0) return [];
+  const group = usable(o.localPresence?.steam_player_group);
+  const map = (o.map ?? "").toLowerCase();
+  const scored: [number, FriendInGame][] = [];
+  for (const f of friends) {
+    if (o.exclude.has(f.steamId)) continue;
+    const inParty = group != null && usable(f.presence.steam_player_group) === group;
+    const sameMap = map !== "" && (f.presence["game:map"] ?? "").toLowerCase() === map;
+    if (inParty) scored.push([0, f]);
+    else if (sameMap) scored.push([1, f]);
+  }
+  return scored.sort((a, b) => a[0] - b[0]).slice(0, o.max).map(([, f]) => f);
+}
+
+function usable(v: string | undefined): string | null {
+  const t = (v ?? "").trim();
+  return t && t !== "0" ? t : null;
 }

@@ -13,11 +13,14 @@
 // the declaration order in Valve's public Steamworks headers for these exact interface versions:
 //   ISteamClient  "SteamClient021":  0 CreateSteamPipe, 1 BReleaseSteamPipe, 2 ConnectToGlobalUser,
 //                                    4 ReleaseUser, 8 GetISteamFriends
-//   ISteamFriends "SteamFriends017": 0 GetPersonaName, 7 GetFriendPersonaName, 50 GetCoplayFriendCount,
-//                                    51 GetCoplayFriend, 52 GetFriendCoplayTime, 53 GetFriendCoplayGame
+//   ISteamFriends "SteamFriends017": 0 GetPersonaName, 3 GetFriendCount, 4 GetFriendByIndex,
+//                                    7 GetFriendPersonaName, 8 GetFriendGamePlayed, 45 GetFriendRichPresence,
+//                                    46 GetFriendRichPresenceKeyCount, 47 GetFriendRichPresenceKeyByIndex,
+//                                    50 GetCoplayFriendCount, 51 GetCoplayFriend, 52 GetFriendCoplayTime,
+//                                    53 GetFriendCoplayGame
 // x64 Windows has one calling convention: `this` is the first argument. GetCoplayFriend returns a
 // CSteamID (a class with constructors), which MSVC returns through a hidden pointer passed right after
-// `this`. A CSteamID argument is 8 bytes and trivially copyable, so it travels as a plain uint64.
+// `this` (also GetFriendByIndex). A CSteamID argument is 8 bytes and trivially copyable, so it travels as a plain uint64.
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -33,9 +36,21 @@ export interface CoplayEntry {
   time: number;
 }
 
+/** A Steam friend who is playing CS2 right now, with the game's rich presence (e.g. game:map). */
+export interface FriendInGame {
+  steamId: string;
+  name: string | null;
+  presence: Record<string, string>;
+}
+
 export interface CoplayResult {
   localName: string | null;
   entries: CoplayEntry[];
+  /** Friends playing CS2 now. Steam leaves friends out of the players list, so a friend in your match
+   * (often your party) is only found here. Missing on older app builds. */
+  friends?: FriendInGame[];
+  /** Our own rich presence (e.g. steam_player_group, the party), when Steam gives it. */
+  localPresence?: Record<string, string>;
 }
 
 const CLIENT_VERSION = "SteamClient021";
@@ -56,7 +71,11 @@ export function steamClientDllPath(): string | null {
 
 export class CoplayError extends Error {}
 
-export function readCoplay(): CoplayResult {
+/** k_EFriendFlagImmediate: regular friends. */
+const FRIEND_FLAG_IMMEDIATE = 0x04;
+
+/** `localSteamId`: our own Steam ID when known, to read our own rich presence too. */
+export function readCoplay(localSteamId?: string | null): CoplayResult {
   if (process.platform !== "win32") throw new CoplayError("Reading Steam's players list only works on Windows.");
   const dll = steamClientDllPath();
   if (!dll) throw new CoplayError("Steam isn't running (or isn't signed in). Start Steam and try again.");
@@ -83,6 +102,13 @@ export function readCoplay(): CoplayResult {
     friendAt: koffi.proto("void *SF_GetCoplayFriend(void *self, _Out_ uint64_t *ret, int index)"),
     time: koffi.proto("int SF_GetFriendCoplayTime(void *self, uint64_t steamId)"),
     game: koffi.proto("uint32_t SF_GetFriendCoplayGame(void *self, uint64_t steamId)"),
+    friendCount: koffi.proto("int SF_GetFriendCount(void *self, int flags)"),
+    friendByIndex: koffi.proto("void *SF_GetFriendByIndex(void *self, _Out_ uint64_t *ret, int index, int flags)"),
+    // FriendGameInfo_t: CGameID (8), game IP (4), game port (2), query port (2), lobby CSteamID (8).
+    gamePlayed: koffi.proto("bool SF_GetFriendGamePlayed(void *self, uint64_t steamId, void *info)"),
+    presence: koffi.proto("const char *SF_GetFriendRichPresence(void *self, uint64_t steamId, const char *key)"),
+    presenceKeys: koffi.proto("int SF_GetFriendRichPresenceKeyCount(void *self, uint64_t steamId)"),
+    presenceKey: koffi.proto("const char *SF_GetFriendRichPresenceKeyByIndex(void *self, uint64_t steamId, int index)"),
   };
   const call = (iface: unknown, index: number, proto: unknown, ...args: unknown[]) =>
     koffi.call(slot(iface, index), proto as never, iface, ...args);
@@ -111,7 +137,38 @@ export function readCoplay(): CoplayResult {
         time: call(friends, 52, P.time, id) as number,
       });
     }
-    return { localName, entries };
+
+    const presenceOf = (id: bigint): Record<string, string> => {
+      const out: Record<string, string> = {};
+      const keys = call(friends, 46, P.presenceKeys, id) as number;
+      for (let i = 0; i < Math.min(keys, 64); i++) {
+        const key = call(friends, 47, P.presenceKey, id, i) as string | null;
+        if (!key) continue;
+        out[key] = (call(friends, 45, P.presence, id, key) as string | null) ?? "";
+      }
+      return out;
+    };
+    // Friends are a bonus: if this part fails, the players list above still counts.
+    const inGame: FriendInGame[] = [];
+    let localPresence: Record<string, string> | undefined;
+    try {
+      const total = call(friends, 3, P.friendCount, FRIEND_FLAG_IMMEDIATE) as number;
+      const info = Buffer.alloc(24);
+      for (let i = 0; i < Math.min(total, 2000); i++) {
+        const out = [0n];
+        call(friends, 4, P.friendByIndex, out, i, FRIEND_FLAG_IMMEDIATE);
+        const id = BigInt(out[0]);
+        if (!id) continue;
+        info.fill(0);
+        if (!call(friends, 8, P.gamePlayed, id, info)) continue;
+        if (Number(info.readBigUInt64LE(0) & 0xffffffn) !== CS2_APP_ID) continue;
+        inGame.push({ steamId: id.toString(), name: cleanName(call(friends, 7, P.friendName, id) as string | null), presence: presenceOf(id) });
+      }
+      if (localSteamId && /^\d{17}$/.test(localSteamId)) localPresence = presenceOf(BigInt(localSteamId));
+    } catch {
+      /* keep what we have */
+    }
+    return { localName, entries, friends: inGame, localPresence };
   } finally {
     if (user) call(client, 4, P.releaseUser, pipe, user);
     call(client, 1, P.releasePipe, pipe);
