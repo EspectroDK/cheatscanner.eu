@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { api, type Job } from "../api";
 import { useLoad } from "../ui";
 
-const DONE = ["COMPLETED", "DUPLICATE", "FAILED"];
+const DONE = ["COMPLETED", "DUPLICATE", "SKIPPED", "FAILED"];
 
 export function Upload() {
   const [file, setFile] = useState<File | null>(null);
@@ -58,6 +58,7 @@ export function Upload() {
           {job.status === "QUEUED" && "Waiting in line…"}
           {job.status === "PROCESSING" && "Analyzing, this takes about a minute…"}
           {job.status === "FAILED" && <span className="error">Analysis failed: {job.error}</span>}
+          {job.status === "SKIPPED" && <span className="muted">Not analyzed. {job.error}</span>}
           {(job.status === "COMPLETED" || job.status === "DUPLICATE") && job.matchId && (
             <>
               {job.status === "DUPLICATE" ? "This match was already analyzed. " : "Done. "}

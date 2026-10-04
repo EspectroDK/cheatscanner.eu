@@ -196,7 +196,8 @@ class AnalysisWorker:
         try:
             res = pipeline.analyze_demo(path, self.config, db=self.db, keep_demo=job["keepDemo"], force=job["force"],
                                         match_id=job["requestedMatchId"], generate_evidence=job["generateEvidence"],
-                                        played_at=job["playedAt"], on_parsed=on_parsed)
+                                        played_at=job["playedAt"], on_parsed=on_parsed,
+                                        filter_modes=True)
         except MatchBusy as exc:
             log.info("%s: match %s is being analyzed by another worker; trying again later", path.name, exc)
             self.db.requeue_analysis_job(jid, None, delay=self.busy_retry)
@@ -210,6 +211,11 @@ class AnalysisWorker:
                 path.unlink(missing_ok=True)
             self.db.finish_analysis_job(jid, "DUPLICATE", match_id=exc.match_id, error=str(exc))
             self._share_code_done(job, "DONE", exc.match_id, None)
+            return
+        except pipeline.SkippedMatch as exc:
+            log.info("%s not analyzed: %s", path.name, exc)
+            self.db.finish_analysis_job(jid, "SKIPPED", error=str(exc))
+            self._share_code_done(job, "SKIPPED", None, str(exc))
             return
         except _Shutdown:
             raise
