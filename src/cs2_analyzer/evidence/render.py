@@ -71,6 +71,21 @@ def _capsule_hits(origins, dirs, a, b, radius):
     return dist
 
 
+def _rays_near(dirs, eye, center, radius):
+    """Indices of the rays (unit ``dirs`` from ``eye``) that pass within ``radius`` of ``center``.
+
+    Everything a ray can hit inside that sphere is only reachable by these rays, so the exact
+    (expensive) intersection tests run on them alone; the margin keeps the cull conservative.
+    """
+    oc = np.asarray(center, dtype=np.float64) - eye
+    r = radius * 1.01 + 1.0
+    occ = float(oc @ oc)
+    if occ <= r * r:  # the eye is inside the sphere: every ray may hit
+        return np.arange(len(dirs))
+    tca = dirs @ oc
+    return np.flatnonzero((tca > 0) & (occ - tca * tca <= r * r))
+
+
 def render_pov(geometry: MapGeometry, eye, pitch: float, yaw: float, width: int = 320, height: int = 180,
                hfov: float = HFOV_16_9, smoke: SmokeModel | None = None, t: int | None = None,
                players: list[dict] | None = None, shadows: bool = True, edges: bool = True) -> np.ndarray:
@@ -127,9 +142,14 @@ def render_pov(geometry: MapGeometry, eye, pitch: float, yaw: float, width: int 
             continue
         a = feet + np.array([0, 0, 14.0])
         b = top - np.array([0, 0, 12.0])
-        pd = _capsule_hits(origins, dirs, a, b, 14.0)
-        hd = _capsule_hits(origins, dirs, top, top + np.array([0, 0, 1e-3]), 7.5)
-        pd = np.minimum(pd, hd)
+        # only rays near the figure can hit it; the rest stay inf (missed)
+        near = _rays_near(dirs, eye, (a + b) / 2, float(np.linalg.norm(b - a)) / 2 + 14.0)
+        near = np.union1d(near, _rays_near(dirs, eye, top, 7.5 + 1e-3))
+        pd = np.full(len(dirs), np.inf)
+        if len(near):
+            o_n, d_n = origins[near], dirs[near]
+            pd[near] = np.minimum(_capsule_hits(o_n, d_n, a, b, 14.0),
+                                  _capsule_hits(o_n, d_n, top, top + np.array([0, 0, 1e-3]), 7.5))
         front = np.isfinite(pd) & (pd < depth)
         if front.any():
             p = origins[front] + dirs[front] * pd[front, None]
@@ -147,9 +167,11 @@ def render_pov(geometry: MapGeometry, eye, pitch: float, yaw: float, width: int 
         hz = hit.reshape(height, width)
         e = np.zeros((height, width), dtype=bool)
         for ax in (0, 1):
-            dd = np.abs(np.diff(dz, axis=ax)) / np.minimum(np.delete(dz, 0, axis=ax), np.delete(dz, -1, axis=ax))
-            nn = np.einsum("ijk,ijk->ij", np.delete(nz, 0, axis=ax), np.delete(nz, -1, axis=ax))
-            both = np.delete(hz, 0, axis=ax) & np.delete(hz, -1, axis=ax)
+            lo = (slice(1, None), slice(None)) if ax == 0 else (slice(None), slice(1, None))   # drop the first row/column
+            hi = (slice(None, -1), slice(None)) if ax == 0 else (slice(None), slice(None, -1))  # drop the last
+            dd = np.abs(np.diff(dz, axis=ax)) / np.minimum(dz[lo], dz[hi])
+            nn = np.einsum("ijk,ijk->ij", nz[lo], nz[hi])
+            both = hz[lo] & hz[hi]
             m = (dd > 0.06) | (both & (nn < 0.75))
             if ax == 0:
                 e[1:] |= m
@@ -160,13 +182,20 @@ def render_pov(geometry: MapGeometry, eye, pitch: float, yaw: float, width: int 
     if smoke is not None and t is not None:
         flat = img.reshape(-1, 3)
         far = origins + dirs * np.minimum(depth, 4000.0)[:, None]
+        sp = smoke.params
         for it in smoke.active_at(t):
-            chord = _ellipsoid_chord(origins, far, it["center"], smoke.params.core_radius, smoke.params.core_half_height)
-            shell = _ellipsoid_chord(origins, far, it["center"], smoke.params.shell_radius, smoke.params.shell_half_height)
+            # rays that miss the smoke's bounding sphere cross neither ellipsoid (chord 0: pixel unchanged)
+            near = _rays_near(dirs, eye, it["center"], max(sp.core_radius, sp.core_half_height,
+                                                            sp.shell_radius, sp.shell_half_height))
+            if not len(near):
+                continue
+            o_n, f_n = origins[near], far[near]
+            chord = _ellipsoid_chord(o_n, f_n, it["center"], sp.core_radius, sp.core_half_height)
+            shell = _ellipsoid_chord(o_n, f_n, it["center"], sp.shell_radius, sp.shell_half_height)
             a = np.clip(chord / 60.0, 0, 0.95)[:, None]
             s = np.clip(shell / 250.0, 0, 0.35)[:, None]
             grey = np.array([0.82, 0.82, 0.84])
-            flat = flat * (1 - np.maximum(a, s)) + grey * np.maximum(a, s)
+            flat[near] = flat[near] * (1 - np.maximum(a, s)) + grey * np.maximum(a, s)
         img = flat.reshape(height, width, 3)
     return np.clip(img, 0, 1)
 
