@@ -31,9 +31,6 @@ const CLASSES: [string, string][] = [
 /** The app's Microsoft Store page; on Windows it opens the Store app. */
 const STORE_URL = "https://apps.microsoft.com/detail/9N3R274VP3GV";
 
-/** "0.1.0" -> "0.1": the front page names versions without a zero patch number. */
-const shortVersion = (v: string) => v.replace(/\.0$/, "");
-
 const n = (x: number) => x.toLocaleString("en-US");
 
 /** Usage so far and what the scoring was calibrated on: counts only, so it is safe to show signed out. */
@@ -70,7 +67,6 @@ function UsageStrip() {
 /** The front page. Signed out it offers Steam sign-in; signed in (reached from the logo) it links to your matches. */
 export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: boolean; signedIn?: boolean }) {
   const Wrapper = signedIn ? "div" : "main";
-  const app = useLoad(api.siteInfo, []).data?.companionDownload ?? null;
   return (
     <Wrapper className={signedIn ? "signin" : "page signin"}>
       <div className="logo-big"><Logo size={64} /></div>
@@ -155,13 +151,6 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
             </a>
             <span className="muted small">For Windows 10 and 11. Installs and updates through the Microsoft Store.</span>
           </div>
-          {app && (
-            <p className="muted small">
-              No Microsoft Store? <a href={app.url} download>Download the installer</a> (version{" "}
-              {shortVersion(app.version)}, {app.sizeMb} MB) instead. It does not update itself, and Windows may warn that it
-              is from an unknown publisher.
-            </p>
-          )}
         </div>
 
         <h2>What it is not</h2>
