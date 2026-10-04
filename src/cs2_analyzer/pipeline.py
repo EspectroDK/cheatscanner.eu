@@ -29,6 +29,7 @@ from cs2_analyzer.geometry.mesh import MapGeometry
 from cs2_analyzer.geometry.smoke import SmokeModel, SmokeParams
 from cs2_analyzer.geometry.visibility import VisibilityEngine, VisibilityParams
 from cs2_analyzer.knowledge.model import KnowledgeModel, KnowledgeParams
+from cs2_analyzer.memory import release_memory
 from cs2_analyzer.parser import backend_for_path, get_parser
 from cs2_analyzer.parser.base import ParsedDemo
 from cs2_analyzer.scoring.aggregate import MatchAssessment, assess_match
@@ -80,11 +81,18 @@ class Timer:
 
 def build_analysis(demo: ParsedDemo, config: Config, detector_names: list[str] | None = None,
                    player_filter: set[int] | None = None, baselines=None, timer: Timer | None = None,
-                   geometry: MapGeometry | None = None):
-    """Run everything between parsing and scoring. Separated for tests and tools."""
+                   geometry: MapGeometry | None = None, release_ticks: bool = False):
+    """Run everything between parsing and scoring. Separated for tests and tools.
+
+    ``release_ticks`` empties ``demo.ticks`` once the world is built from it: nothing after
+    that reads the tick table, and it is the largest object of an analysis.
+    """
     timer = timer or Timer()
     with timer("world"):
         world = build_world(demo)
+        if release_ticks:
+            demo.ticks = demo.ticks.iloc[:0].copy()
+            release_memory()
     with timer("geometry_load"):
         if geometry is None:
             geometry = MapGeometry.load(demo.meta.map_name, config.get("geometry.maps_dir"),
@@ -166,8 +174,9 @@ def analyze_demo(
             with db.session() as s:
                 baselines = BaselineStore.from_db(s)
         say("Reconstructing world, visibility and knowledge ...")
+        match_stats = compute_match_player_stats(demo)  # reads demo.ticks, which build_analysis may release
         world, geometry, smoke, vis, knowledge, encounters, ctx, events = build_analysis(
-            demo, config, detector_names, player_filter, baselines, timer)
+            demo, config, detector_names, player_filter, baselines, timer, release_ticks=not export_parquet)
         warnings = []
         if not geometry.available:
             warnings.append(f"No map geometry for {meta.map_name}: visibility is UNKNOWN everywhere, so hidden-information "
@@ -178,7 +187,6 @@ def analyze_demo(
                             f"If {meta.map_name} changed in between, walls may be missing or extra: review hidden-information "
                             f"evidence with care, or rebuild the mesh (tools/geometry/build_tris.py).")
 
-        match_stats = compute_match_player_stats(demo)
         rounds_alive = {p: int(sum(1 for r in demo.rounds[demo.rounds["live"]].itertuples()
                                    if 0 <= int(r.freeze_end_tick) - world.tick0 < world.T
                                    and world.alive[p, int(r.freeze_end_tick) - world.tick0]))

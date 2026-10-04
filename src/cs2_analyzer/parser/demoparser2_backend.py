@@ -36,7 +36,9 @@ from cs2_analyzer.parser.normalize import (
     EYE_HEIGHT_CROUCH,
     EYE_HEIGHT_STANDING,
     normalize_ticks,
+    punch_angles,
 )
+from cs2_analyzer.memory import release_memory
 
 TICK_PROPS = [
     "X", "Y", "Z", "pitch", "yaw", "health", "team_num", "is_alive",
@@ -47,6 +49,17 @@ TICK_PROPS = [
     # newer demos: aim punch moved here (unknown fields are skipped on older demos)
     AIM_PUNCH_SERVICES_PROP,
 ]
+# ``ducking`` itself is not used, but demoparser2 0.42 only fills ``FIRE`` when it is
+# parsed in the same call.
+
+# Ticks are parsed in slices of this many ticks: demoparser2 builds every requested
+# value of a call before handing it over, so one call for the whole match briefly
+# needs several times the memory of the finished table. Each slice is made compact
+# (see ``_compact``) before the next one is parsed.
+TICK_CHUNK = 32768
+
+# object columns (bool with missing values) turned into what normalize_ticks makes of them
+_BOOL_PROPS = ("FIRE", "is_scoped", "is_walking", "spotted")
 
 RANK_TYPES = {11: "premier", 12: "competitive", 7: "wingman", 10: "danger_zone"}
 
@@ -105,6 +118,57 @@ def smoke_expiries(det: pd.DataFrame, exp: pd.DataFrame) -> list[int]:
     return out
 
 
+def _compact(raw: pd.DataFrame) -> pd.DataFrame:
+    """One slice of ``parse_ticks`` output with its bulky object columns made compact.
+
+    Rows without a steam id are dropped, nullable bools become what ``normalize_ticks``
+    makes of them, aim punch lists become ``aim_punch_pitch``/``aim_punch_yaw``, and
+    columns nothing reads (``name``, ``ducking``) go.
+    """
+    sid = _sid(raw["steamid"])
+    keep = (sid != 0).to_numpy()
+    out = pd.DataFrame({"tick": raw["tick"][keep], "steamid": sid[keep]})
+    for c in raw.columns:
+        if c in ("tick", "steamid", "name", "ducking", "aim_punch_angle", AIM_PUNCH_SERVICES_PROP):
+            continue
+        col = raw[c][keep]
+        out[c] = col.fillna(False).astype(bool) if c in _BOOL_PROPS else col
+    if "aim_punch_angle" in raw or AIM_PUNCH_SERVICES_PROP in raw:
+        out["aim_punch_pitch"], out["aim_punch_yaw"] = punch_angles(raw[keep], [])
+    return out.reset_index(drop=True)
+
+
+# every game event the backend reads (``_events``, ``_ranks``, ``_rounds``)
+GAME_EVENTS = [
+    "weapon_fire", "fire_bullets", "player_hurt", "player_death", "smokegrenade_detonate", "smokegrenade_expired",
+    "hegrenade_detonate", "flashbang_detonate", "player_blind", "player_footstep", "player_jump", "weapon_reload",
+    *(f"bomb_{a}" for a in ("beginplant", "planted", "begindefuse", "defused", "exploded", "dropped", "pickup")),
+    "rank_update", "round_start", "round_prestart", "round_freeze_end", "round_end",
+]
+
+
+class _Prefetched:
+    """Answers ``parse_event``/``parse_player_info`` from results fetched up front.
+
+    All events come from one ``parse_events`` call (one pass over the demo instead of one
+    per event), and the parser (it holds the whole demo file) can be released early.
+    """
+
+    def __init__(self, parser, available: set[str]):
+        wanted = [e for e in GAME_EVENTS if e in available]
+        self.events = {name: df for name, df in parser.parse_events(wanted)} if wanted else {}
+        self._player_info = parser.parse_player_info()
+
+    def parse_event(self, name: str) -> pd.DataFrame:
+        if name not in GAME_EVENTS:
+            raise KeyError(f"{name} is not in GAME_EVENTS")
+        df = self.events.get(name)
+        return df if df is not None else pd.DataFrame()  # the demo has none of it
+
+    def parse_player_info(self) -> pd.DataFrame:
+        return self._player_info
+
+
 class DemoParser2Backend:
     name = "demoparser2"
 
@@ -123,17 +187,24 @@ class DemoParser2Backend:
         header = parser.parse_header()
         available = set(parser.list_game_events())
 
-        raw_ticks = parser.parse_ticks(TICK_PROPS)
-        raw_ticks["steamid"] = _sid(raw_ticks["steamid"])
-        raw_ticks = raw_ticks[raw_ticks["steamid"] != 0]
+        # Events first (one pass), while little else is in memory; the parser (it holds
+        # the whole demo file) is let go before the tick table is normalized.
+        cached = _Prefetched(parser, available)
+        events = self._events(cached, available)
+        ranks = self._ranks(cached, available)
+        last_event_tick = max([int(df["tick"].max()) for df in cached.events.values() if len(df) and "tick" in df]
+                              + [0])
+        raw_ticks = self._parse_ticks(parser, last_event_tick)
+        del parser
+        release_memory()
 
         tickrate = self._tickrate(raw_ticks)
-        rounds = self._rounds(parser, available, raw_ticks)
+        rounds = self._rounds(cached, available, raw_ticks)
         ticks = normalize_ticks(raw_ticks, rounds, tickrate)
+        del raw_ticks
+        release_memory()
 
-        events = self._events(parser, available)
-        players = self._players(parser, ticks)
-        ranks = self._ranks(parser, available)
+        players = self._players(cached, ticks)
 
         sha = _sha256(path)
         mid, source = self._match_id(path, match_id, sha)
@@ -167,6 +238,32 @@ class DemoParser2Backend:
         return ParsedDemo(meta=meta, players=players, rounds=rounds, ticks=ticks, events=events, ranks=ranks)
 
     # ------------------------------------------------------------------ helpers
+
+    @staticmethod
+    def _parse_ticks(parser, last_event_tick: int = 0, chunk: int = TICK_CHUNK) -> pd.DataFrame:
+        """``parse_ticks(TICK_PROPS)`` for the whole demo, ``chunk`` ticks per call.
+
+        Players without a steam id (bots, GOTV) are dropped. Slices are read until the demo
+        ends (a slice after ``last_event_tick`` that stops short of its last tick).
+        """
+        parts = []
+        start = 0
+        while True:
+            g = parser.parse_ticks(TICK_PROPS, ticks=list(range(start, start + chunk)))
+            start += chunk
+            # the demo ended inside this slice: no rows, or none in its last tick
+            ended = start > last_event_tick and (not len(g) or int(g["tick"].max()) < start - 1)
+            if len(g):
+                parts.append(_compact(g))
+            del g
+            release_memory()
+            if ended:
+                break
+        if not parts:  # nothing in the expected tick range: one plain call decides
+            parts.append(_compact(parser.parse_ticks(TICK_PROPS)))
+        raw = pd.concat(parts, ignore_index=True)
+        del parts
+        return raw
 
     @staticmethod
     def _tickrate(raw: pd.DataFrame) -> float:

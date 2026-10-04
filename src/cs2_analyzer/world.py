@@ -108,12 +108,33 @@ def _dense(df: pd.DataFrame, col: str, pidx: np.ndarray, tidx: np.ndarray, shape
     return out
 
 
+def _dense_labels(df: pd.DataFrame, col: str, pidx: np.ndarray, tidx: np.ndarray, shape, fill):
+    """``_dense`` for a text column, with one shared object per distinct value.
+
+    ``to_numpy()`` on a text column makes a new string object for every row, which for a
+    match is millions of copies of a few weapon names (hundreds of MB).
+    """
+    s = df[col]
+    codes, uniques = pd.factorize(s)
+    values = np.empty(len(uniques) + 1, dtype=object)
+    values[:-1] = list(uniques)
+    vals = values[codes]  # missing values (code -1) are filled in below
+    na = np.flatnonzero(codes == -1)
+    if len(na):
+        vals[na] = s.iloc[na].to_numpy()
+    out = np.full(shape, fill, dtype=object)
+    out[pidx, tidx] = vals
+    return out
+
+
 def build_world(demo: ParsedDemo) -> World:
     ticks = demo.ticks
     players = demo.players
     steam_ids = players["steam_id"].to_numpy(dtype=np.int64)
     index_of = {int(s): i for i, s in enumerate(steam_ids)}
-    ticks = ticks[ticks["steam_id"].isin(index_of)]
+    keep = ticks["steam_id"].isin(index_of)
+    if not keep.all():  # filtering copies the whole table, so only when there is something to drop
+        ticks = ticks[keep]
     tick0 = int(ticks["tick"].min())
     T = int(ticks["tick"].max()) - tick0 + 1
     P = len(steam_ids)
@@ -189,8 +210,8 @@ def build_world(demo: ParsedDemo) -> World:
         airborne=f("is_airborne", False, bool),
         scoped=f("is_scoped", False, bool),
         health=f("health", 0, np.int16),
-        weapon=_dense(ticks, "weapon", pidx, tidx, shape, None, object),
-        weapon_class=_dense(ticks, "weapon_class", pidx, tidx, shape, "unknown", object),
+        weapon=_dense_labels(ticks, "weapon", pidx, tidx, shape, None),
+        weapon_class=_dense_labels(ticks, "weapon_class", pidx, tidx, shape, "unknown"),
         shots_fired=f("shots_fired", 0, np.int32),
         punch_pitch=f("aim_punch_pitch"),
         punch_yaw=f("aim_punch_yaw"),

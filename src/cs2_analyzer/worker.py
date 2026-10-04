@@ -33,6 +33,7 @@ from pathlib import Path
 from cs2_analyzer.config import Config
 from cs2_analyzer.ingest.chat import SteamChat
 from cs2_analyzer.ingest.service import download_demo, download_with_retries
+from cs2_analyzer.memory import release_memory
 from cs2_analyzer.storage.repository import AlreadyProcessedError, Database
 
 log = logging.getLogger(__name__)
@@ -149,6 +150,7 @@ class AnalysisWorker:
                 raise
         finally:
             done.set()
+            release_memory()  # an idle worker should not keep the last demo's peak
 
     def _heartbeat(self, jid: str, done: threading.Event) -> None:
         while not done.wait(self.heartbeat_s):
