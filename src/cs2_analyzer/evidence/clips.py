@@ -81,7 +81,7 @@ def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path 
     fps = int(cfg.get("clip_fps", 32))
     step = max(1, int(round(w.tickrate / fps)))
     W, H = int(cfg.get("clip_width", 960)), int(cfg.get("clip_height", 540))
-    pov_w = int(cfg.get("clip_pov_width", 960))
+    pov_w = int(cfg.get("clip_pov_width", 640))
     pov_h = pov_w * 9 // 16
     geo = render_geometry(result, cfg)
     metrics = ev.metrics or {}
@@ -122,15 +122,16 @@ def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path 
     (tgt_dot,) = ax_map.plot([], [], "o", ms=6, mec="magenta")
 
     pov_img = ax_pov.imshow(np.zeros((pov_h, pov_w, 3)), interpolation="antialiased")
-    ax_pov.plot([pov_w / 2 - 10, pov_w / 2 + 10], [pov_h / 2] * 2, color="lime", lw=1.3)
-    ax_pov.plot([pov_w / 2] * 2, [pov_h / 2 - 10, pov_h / 2 + 10], color="lime", lw=1.3)
+    px = pov_w / 960  # overlay offsets below are in pixels of a 960 px wide view; keep their on-screen size
+    ax_pov.plot([pov_w / 2 - 10 * px, pov_w / 2 + 10 * px], [pov_h / 2] * 2, color="lime", lw=1.3)
+    ax_pov.plot([pov_w / 2] * 2, [pov_h / 2 - 10 * px, pov_h / 2 + 10 * px], color="lime", lw=1.3)
     outline = plt.Rectangle((0, 0), 1, 1, fill=False, ec="magenta", lw=1.1, visible=False)
     ax_pov.add_patch(outline)
     ax_pov.set_xlim(0, pov_w)
     ax_pov.set_ylim(pov_h, 0)
-    ax_pov.text(6, 16, "REVIEWER RECONSTRUCTION - magenta outline is an annotation, NOT what the player saw",
+    ax_pov.text(6 * px, 16 * px, "REVIEWER RECONSTRUCTION - magenta outline is an annotation, NOT what the player saw",
                 color="magenta", fontsize=7, bbox=dict(fc="white", alpha=0.6, lw=0))
-    shot_txt = ax_pov.text(pov_w - 70, 20, "", color="red", fontsize=12, weight="bold")
+    shot_txt = ax_pov.text(pov_w - 70 * px, 20 * px, "", color="red", fontsize=12, weight="bold")
     dead_txt = ax_pov.text(pov_w / 2, pov_h / 2, "", ha="center", color="white", fontsize=14)
     flash_txt = ax_pov.text(pov_w / 2, pov_h * 0.12, "", ha="center", va="center", color="#1a1206", fontsize=13,
                             weight="bold", bbox=dict(fc="#f0c040", ec="none", boxstyle="round,pad=0.35"), visible=False)
