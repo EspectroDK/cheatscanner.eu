@@ -31,7 +31,8 @@ def compute_match_player_stats(demo: ParsedDemo) -> pd.DataFrame:
     # Teams swap sides at halftime, so a player's team is identified by the side they STARTED on
     # (first live-round tick on T or CT). Their final side would split teams and, for anyone who
     # left early, be "unassigned".
-    on_side = demo.ticks[demo.ticks["team"].isin([2, 3])] if len(demo.ticks) else demo.ticks
+    sides = demo.ticks[["tick", "steam_id", "team"]]  # only these: the tick table is large
+    on_side = sides[sides["team"].isin([2, 3])] if len(sides) else sides
     first_side = on_side.sort_values("tick").groupby("steam_id")["team"].first().to_dict() if len(on_side) else {}
     live_side = in_live(on_side) if len(on_side) else on_side
     start_side = live_side.sort_values("tick").groupby("steam_id")["team"].first().to_dict() if len(live_side) else {}

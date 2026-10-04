@@ -227,7 +227,8 @@ doesn't lose queued demos. The server runs `CS2A_WORKERS` of them (default 2).
 - **How**: set `CS2A_WORKERS=3` in `/srv/cheatscanner/.env`, then `docker compose up -d` (or wait for the
   next deploy). The Admin page's *Being analyzed* box shows how many workers are running.
 - **Limits of a CX33** (4 vCPU, 8 GB, shared with the database and the website): each analysis uses about
-  one CPU core and, for a long demo, a few GB of RAM, so memory runs out first. Check before adding one:
+  one CPU core and, at its peak, about 1.2 GB of RAM for a 40-minute demo (more for longer ones); an idle
+  worker holds about 0.4 GB. Check before adding one:
 
   ```bash
   docker stats --no-stream                   # memory per container while demos are being analyzed

@@ -32,8 +32,9 @@ services:
       # The worker service analyzes; the API only takes uploads and serves the site.
       CS2A_API_WORKERS: "0"
 
-  # Analysis workers: CS2A_WORKERS of them (default 2; each needs about one CPU core and a few GB of RAM
-  # for a big demo). More: set CS2A_WORKERS in .env and deploy, or `docker compose up -d --scale worker=3`.
+  # Analysis workers: CS2A_WORKERS of them (default 2; each needs about one CPU core and, at its peak,
+  # about 1.2 GB of RAM for a 40-minute demo, more for longer ones). More: set CS2A_WORKERS in .env and
+  # deploy, or `docker compose up -d --scale worker=3`.
   worker:
     profiles: !reset []
     restart: unless-stopped
