@@ -169,7 +169,7 @@ async function work() {
     }
     try {
       await api("POST", `/internal/sharecodes/${encodeURIComponent(job.shareCode)}/result`, result);
-      console.log(`${job.shareCode}: ${result.demoUrl ? "demo found" : result.error}`);
+      console.log(`${job.shareCode}: ${result.demoUrl ? `demo found: ${result.demoUrl}` : result.error}`);
     } catch (err) {
       console.error(err.message);
     }

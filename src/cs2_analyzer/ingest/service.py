@@ -22,6 +22,7 @@ import secrets
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
@@ -36,7 +37,23 @@ from cs2_analyzer.storage.repository import Database
 log = logging.getLogger(__name__)
 
 # Only Valve's replay servers: the fetcher is trusted, but a URL from it must never make us fetch arbitrary hosts.
-REPLAY_URL = re.compile(r"^https?://replay\d{1,4}\.(valve\.net|wmsj\.cn)/730/\d{1,24}_\d{1,24}\.dem\.bz2$")
+# The host is what matters; the exact host and file name forms vary (e.g. no number after "replay", a port,
+# a different file name), so those are checked loosely.
+REPLAY_HOST = re.compile(r"^replay[a-z0-9-]{0,20}\.(valve\.net|wmsj\.cn)$")
+REPLAY_PATH = re.compile(r"^/730/[A-Za-z0-9_.-]{1,120}\.dem\.bz2$")
+
+
+def is_replay_url(url: str) -> bool:
+    """True for a ``.dem.bz2`` on one of Valve's (or Perfect World's) replay servers."""
+    try:
+        u = urlsplit(url.strip())
+        port = u.port
+    except ValueError:
+        return False
+    return (u.scheme.lower() in ("http", "https") and not u.username and not u.password
+            and port in (None, 80, 443) and not u.query and not u.fragment
+            and bool(REPLAY_HOST.match((u.hostname or "").lower())) and bool(REPLAY_PATH.match(u.path)))
+
 MAX_ATTEMPTS = 3
 
 
@@ -54,8 +71,9 @@ class FetchResult(BaseModel):
 
 def download_demo(url: str, dest: Path, max_compressed: int, max_demo: int, timeout: float = 60.0) -> Path:
     """Download a ``.dem.bz2`` from Valve and unpack it to ``dest``, with size limits."""
-    if not REPLAY_URL.match(url):
+    if not is_replay_url(url):
         raise ValueError("not a Valve replay URL")
+    url = url.strip()
     raw = dest.with_suffix(".dem.bz2")
     with urllib.request.urlopen(url, timeout=timeout) as resp, open(raw, "wb") as out:  # noqa: S310 - checked above
         got = 0
@@ -244,9 +262,13 @@ class Ingest:
         @r.post("/internal/sharecodes/{code}/result", dependencies=[Depends(service)])
         def result(code: str, res: FetchResult):
             if res.demoUrl:
-                if not REPLAY_URL.match(res.demoUrl):
-                    job = self.db.update_share_code(code, status="FAILED", error="fetcher returned a non-Valve URL")
+                if not is_replay_url(res.demoUrl):
+                    # Keep the URL in the error so a new Valve URL form can be recognised and allowed.
+                    log.warning("share code %s: fetcher returned a non-Valve URL: %r", code, res.demoUrl)
+                    job = self.db.update_share_code(code, status="FAILED",
+                                                    error=f"fetcher returned a non-Valve URL: {res.demoUrl[:300]}")
                     raise HTTPException(400, "not a Valve replay URL") if job else HTTPException(404, "unknown code")
+                res.demoUrl = res.demoUrl.strip()
                 job = self.db.update_share_code(code, status="DOWNLOADING", demo_url=res.demoUrl, error=None)
                 if job is None:
                     raise HTTPException(404, "unknown share code")
