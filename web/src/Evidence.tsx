@@ -57,9 +57,12 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
       {e.clipUrl ? (
         // Reconstruction from demo data, not game footage: the outlines are reviewer annotations.
         <video src={e.clipUrl} poster={e.posterUrl ?? undefined} controls preload="metadata" playsInline className="clip" />
+      ) : e.clipPending ? (
+        <div className="clip-missing small muted">The clip for this event is being made and appears here when it is ready.</div>
       ) : (
         <div className="clip-missing small muted">
-          No video for this event. Clips are made when the match is analyzed, for maps whose geometry we have.
+          No video for this event. Clips are made for a match's strongest events, on maps whose geometry we have; at
+          times only for players rated Elevated or High in that match.
         </div>
       )}
       {e.plotUrl && (

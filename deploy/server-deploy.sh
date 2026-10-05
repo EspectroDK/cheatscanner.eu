@@ -49,9 +49,12 @@ else
 fi
 
 # Wait (at most 10 minutes) for the demos being analyzed right now; queued ones are safe in the database.
-# (.active-jobs is the count kept by API versions from before the queue moved to the database.)
+# A paused clips job hands itself back after the clip it is drawing, so it ends quickly too. (`busy` counts
+# analyses and clips jobs; older versions only know `processing`, and .active-jobs is the count kept by API
+# versions from before the queue moved to the database.)
 analyzing() {
-  docker compose exec -T api cs2-analyzer queue --field processing 2>/dev/null \
+  docker compose exec -T api cs2-analyzer queue --field busy 2>/dev/null \
+    || docker compose exec -T api cs2-analyzer queue --field processing 2>/dev/null \
     || cat data/work/uploads/.active-jobs 2>/dev/null || echo 0
 }
 for _ in $(seq 60); do

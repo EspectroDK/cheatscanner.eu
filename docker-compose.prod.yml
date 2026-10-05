@@ -34,12 +34,20 @@ services:
 
   # Analysis workers: CS2A_WORKERS of them (default 2; each needs about one CPU core and, at its peak,
   # about 1.2 GB of RAM for a 40-minute demo, more for longer ones). More: set CS2A_WORKERS in .env and
-  # deploy, or `docker compose up -d --scale worker=3`.
+  # deploy, or `docker compose up -d --scale worker=3`. They render evidence clips while no demo waits.
   worker:
     profiles: !reset []
     restart: unless-stopped
     deploy:
       replicas: ${CS2A_WORKERS:-2}
+
+  # Clip workers: CS2A_CLIP_WORKERS of them (default 0) render evidence clips first, so clips keep coming
+  # while many demos wait for analysis; they analyze demos while no clips wait. Same CPU and RAM as above.
+  clip-worker:
+    profiles: !reset []
+    restart: unless-stopped
+    deploy:
+      replicas: ${CS2A_CLIP_WORKERS:-0}
 
 volumes:
   caddy-data:

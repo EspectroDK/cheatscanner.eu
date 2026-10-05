@@ -266,4 +266,4 @@ configuration.
 
 - It never reads or changes CS2's memory and never injects anything into the game.
 - It never reads text chat or voice.
-- It keeps no copies of demos: they are deleted after analysis. See the Privacy page for what is stored.
+- It keeps no copies of demos: they are deleted after analysis, once the match's evidence clips are made. See the Privacy page for what is stored.

@@ -240,6 +240,24 @@ doesn't lose queued demos. The server runs `CS2A_WORKERS` of them (default 2).
   that, and needs uploaded demos to reach it (fetched matches already download from Valve).
 - A worker that stops (deploy, crash, out of memory) gives its demo back to the queue; another worker
   continues it. A demo whose worker dies 3 times is marked failed.
+- **Clips apart from results**: a worker saves a match's results as soon as it is scored (about a minute
+  and a half) and puts the match's evidence clips in the queue as a job of their own; the match page shows
+  the results at once and when the clips should arrive. The demo is kept until its clips are made.
+  Workers have a role:
+  - `worker` containers (`CS2A_WORKERS`) analyze demos first. When no demo waits they render clips, and
+    step aside between two clips as soon as a demo arrives (the clips job goes back to the queue with its
+    finished clips kept).
+  - `clip-worker` containers (`CS2A_CLIP_WORKERS`, default 0) render clips first and analyze demos when no
+    clips wait, so clips keep coming even while many demos wait.
+
+  On a CX33 with 4 workers: `CS2A_WORKERS=2` and `CS2A_CLIP_WORKERS=2` in `.env`, then
+  `docker compose up -d`. The Admin page shows *Clips waiting*. To make clips only for players rated
+  Elevated or High in a match (fewer clips, also for clips already waiting), set `CS2A_CLIP_ALL_EVENTS=0`;
+  remove it to go back.
+  To switch the separation off (no demos kept waiting for clips), set `CS2A_DEFER_CLIPS=0`; clips already
+  queued are still rendered. Workers also render clips inside the analysis by themselves while less than
+  30 GB of disk is free (`worker.defer_min_free_gb`). Kept demos take disk space while clips
+  wait (about 150-250 MB each), and uploads stop below `CS2A_MIN_FREE_DISK_GB`.
 - A deploy first pauses the workers: each finishes the demo it has but takes no new one, so the restart
   (after at most 10 minutes) interrupts as little as possible; the new workers carry on with the queue.
   By hand: `docker compose exec api cs2-analyzer pause on` (or `off`; without either it shows the state).

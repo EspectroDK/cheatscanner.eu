@@ -91,7 +91,7 @@ def _queued_per_hour(s, now: datetime, hours: int = 24) -> list[dict]:
     start = end - timedelta(hours=hours - 1)
     buckets = {start + timedelta(hours=i): {"fetched": 0, "uploaded": 0} for i in range(hours)}
     for kind, t in s.execute(select(M.AnalysisJob.kind, M.AnalysisJob.created_at)
-                             .where(M.AnalysisJob.created_at >= start)):
+                             .where(M.AnalysisJob.created_at >= start, M.AnalysisJob.kind != "clips")):
         b = buckets.get(_utc(t).astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0))
         if b is not None:
             b["fetched" if kind == "fetch" else "uploaded"] += 1

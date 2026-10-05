@@ -250,6 +250,9 @@ Raw per-detector observations (every snap, trigger time, spray, hidden window...
 Uploads and fetched matches go into an analysis queue in the database. `cs2-analyzer serve` analyzes them
 itself (`api.workers` threads, default 1); the public server instead runs separate `cs2-analyzer worker`
 processes (any number, `CS2A_WORKERS`) and sets `CS2A_API_WORKERS=0`. `cs2-analyzer queue` shows the queue.
+A match's results are saved as soon as it is scored; its evidence clips are rendered afterwards by a separate
+clips job (the match page shows when they should arrive). `cs2-analyzer worker --role clips` (on the server
+`CS2A_CLIP_WORKERS`) runs workers that render clips first.
 
 Companion app: `POST /companion/pair` (app gets a link code) · `POST /companion/pair/confirm` (signed-in
 browser confirms it) · `POST /companion/pair/token` (app collects its token) · `POST /lobby/risk` (class and

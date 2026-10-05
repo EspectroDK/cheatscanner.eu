@@ -94,6 +94,8 @@ export interface MatchDetail {
   valveDemo?: { url: string; shareCode: string; availableUntil: string } | null;
   rounds: Round[];
   score: Score | null;
+  /** Evidence clips rendered after the analysis: how many are ready and roughly when the rest arrive. */
+  clips?: ClipStatus | null;
   players: {
     steamId: string;
     name: string | null;
@@ -108,6 +110,15 @@ export interface MatchDetail {
     assessment: Assessment | null;
     visible: boolean;
   }[];
+}
+
+export interface ClipStatus {
+  state: "QUEUED" | "RENDERING" | "DONE" | "FAILED";
+  total: number;
+  ready: number;
+  pending: number;
+  /** Estimate from the clips queued ahead and recent render times; null when unknown. */
+  etaSeconds: number | null;
 }
 
 export interface Player {
@@ -141,6 +152,8 @@ export interface EvidenceEvent {
   explanation: string | null;
   steamId: string;
   clipUrl: string | null;
+  /** The clip is still being rendered (the match's results come first, its clips later). */
+  clipPending?: boolean;
   /** Still frame of the flagged moment, shown before the clip plays. */
   posterUrl?: string | null;
   plotUrl: string | null;
@@ -289,7 +302,11 @@ export interface AdminOverview {
     lookupsRecordedSince: string;
   };
   uploads: { attempts24h: number; attempts7d: number };
-  live: { queued: number; processing: number; uploads: number; oldestWaitingSeconds: number; receivingUploads: number; workers: number };
+  live: {
+    queued: number; processing: number; uploads: number; oldestWaitingSeconds: number; receivingUploads: number; workers: number;
+    /** Evidence clips jobs (one per analyzed match), and the workers that render clips first. */
+    clipsQueued?: number; clipsProcessing?: number; clipsOldestWaitingSeconds?: number; clipWorkers?: number;
+  };
   system: { diskFreeGb: number; diskTotalGb: number; fetcherLastSeenAt: string | null; serverTime: string };
   /** Installed map meshes against the game patch of the last 30 days' demos. */
   maps?: MapMesh[];

@@ -95,6 +95,12 @@ class Config:
                          ("CS2A_MAX_UPLOADS_PER_DAY", "max_uploads_per_day"), ("CS2A_MAX_QUEUED_UPLOADS", "max_queued_uploads")):
             if os.environ.get(env):
                 data["api"][key] = int(os.environ[env])
+        if os.environ.get("CS2A_CLIP_ALL_EVENTS"):
+            data.setdefault("evidence", {})["clip_all_events"] = os.environ["CS2A_CLIP_ALL_EVENTS"].strip().lower() in ("1", "true", "yes")
+        if os.environ.get("CS2A_DEFER_CLIPS"):
+            data.setdefault("worker", {})["defer_clips"] = os.environ["CS2A_DEFER_CLIPS"].strip().lower() in ("1", "true", "yes")
+        if os.environ.get("CS2A_WORKER_ROLE"):
+            data.setdefault("worker", {})["role"] = os.environ["CS2A_WORKER_ROLE"].strip().lower()
         if os.environ.get("CS2A_API_WORKERS"):
             data["api"]["workers"] = int(os.environ["CS2A_API_WORKERS"])
         if os.environ.get("CS2A_MIN_FREE_DISK_GB"):

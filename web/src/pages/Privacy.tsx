@@ -18,7 +18,11 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
 
       <h2>Demo files</h2>
       <ul>
-        <li>A demo is downloaded from Valve's replay servers (or uploaded by you), analyzed, and then <strong>deleted</strong>.</li>
+        <li>
+          A demo is downloaded from Valve's replay servers (or uploaded by you), analyzed, and then{" "}
+          <strong>deleted</strong> as soon as the evidence clips of that match are made (the match's results are shown
+          before that).
+        </li>
         <li>If an analysis fails, the demo may be kept until the problem is fixed and the match is analyzed again. It is deleted after that.</li>
         <li>We don't keep copies of demos, and we don't offer them for download.</li>
       </ul>

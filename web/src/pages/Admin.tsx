@@ -120,7 +120,12 @@ export function Admin() {
         <Stat label="Waiting for analysis" value={o.live.queued}
               sub={o.live.queued ? `oldest waiting ${duration(o.live.oldestWaitingSeconds)}` : "queue is empty"}
               tone={o.live.queued > 5 ? "warn" : undefined} />
-        <Stat label="Being analyzed" value={`${o.live.processing} / ${o.live.workers}`} sub="demos / analysis workers" />
+        <Stat label="Being analyzed" value={`${o.live.processing} / ${o.live.workers}`}
+              sub={o.live.clipWorkers ? `demos / workers (${o.live.clipWorkers} render clips first)` : "demos / analysis workers"} />
+        <Stat label="Clips waiting" value={o.live.clipsQueued ?? 0}
+              sub={o.live.clipsQueued
+                ? `matches; oldest waiting ${duration(o.live.clipsOldestWaitingSeconds ?? 0)}, ${o.live.clipsProcessing ?? 0} rendering`
+                : `${o.live.clipsProcessing ?? 0} match(es) rendering`} />
         <Stat label="Waiting for Valve" value={valveWaiting}
               sub={o.fetch.oldestQueuedAt ? `oldest queued ${ago(o.fetch.oldestQueuedAt)}` : "fetched matches"} />
         <Stat label="Downloading" value={f.DOWNLOADING} sub={`${o.live.receivingUploads} upload(s) arriving`} />
