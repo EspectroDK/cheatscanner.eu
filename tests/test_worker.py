@@ -234,3 +234,49 @@ def test_wingman_and_short_demos_are_skipped(config, db, tmp_path, monkeypatch):
     assert job["status"] == "SKIPPED" and "Wingman" in job["error"]
     with db.session() as s:
         assert s.query(M.Match).count() == 0 and s.query(M.AnalysisLock).count() == 0
+
+
+def test_a_paused_worker_finishes_its_demo_but_takes_no_new_one(config, db, tmp_path, monkeypatch):
+    """The deploy pauses the workers before restarting them (deploy/server-deploy.sh, `cs2-analyzer pause`)."""
+    import os
+
+    from cs2_analyzer.cli import main
+
+    import cs2_analyzer.pipeline as pipeline
+
+    pause = tmp_path / ".pause-analysis"
+    analyzed = []
+
+    def fake_analyze(path, *a, **kw):
+        analyzed.append(path.name)
+        if len(analyzed) == 1:                                    # the deploy pauses during the first demo
+            pause.touch()
+        raise pipeline.SkippedMatch("test")
+
+    monkeypatch.setattr(pipeline, "analyze_demo", fake_analyze)
+    jobs = [db.enqueue_analysis("upload", _demo(tmp_path, f"{n}.dem"))["jobId"] for n in ("one", "two")]
+    w = _worker(config, db, "w1", pause_file=str(pause))
+    t = threading.Thread(target=w.run, daemon=True)
+    t.start()
+    end = time.monotonic() + 5
+    while time.monotonic() < end and db.get_analysis_job(jobs[0])["status"] != "SKIPPED":
+        time.sleep(0.02)
+    time.sleep(0.3)                                               # several polls while paused
+    assert analyzed == ["one.dem"] and db.get_analysis_job(jobs[1])["status"] == "QUEUED"
+
+    cfg = tmp_path / "cfg.toml"
+    cfg.write_text(f'[worker]\npause_file = "{pause.as_posix()}"\n')
+    assert main(["--config", str(cfg), "--db-url", db.url, "pause", "off"]) == 0
+    assert not pause.exists()
+    end = time.monotonic() + 5
+    while time.monotonic() < end and db.get_analysis_job(jobs[1])["status"] != "SKIPPED":
+        time.sleep(0.02)
+    w.stop.set()
+    w.wake.set()
+    t.join(5)
+    assert analyzed == ["one.dem", "two.dem"]
+
+    pause.touch()                                                 # a pause left behind by a broken deploy
+    old = time.time() - 3600
+    os.utime(pause, (old, old))
+    assert not w.paused()

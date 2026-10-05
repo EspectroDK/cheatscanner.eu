@@ -169,6 +169,20 @@ def cmd_worker(args) -> int:
     return 0
 
 
+def cmd_pause(args) -> int:
+    """Pause the analysis workers (they finish their demo, then take no new one) or let them go on (worker.py)."""
+    from cs2_analyzer.worker import pause_file
+
+    f = pause_file(_load_cfg(args))
+    if args.state == "on":
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.touch()
+    elif args.state == "off":
+        f.unlink(missing_ok=True)
+    print("paused" if f.exists() else "running")
+    return 0
+
+
 def cmd_queue(args) -> int:
     """Analysis queue right now, as JSON (or one number with --field, for deploy/server-deploy.sh)."""
     from datetime import timedelta
@@ -423,6 +437,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     w = sub.add_parser("worker", help="analysis worker: analyze queued demos (uploads, fetched matches) until stopped")
     w.set_defaults(func=cmd_worker)
+
+    pz = sub.add_parser("pause", help="pause the analysis workers: they finish their demo but take no new one")
+    pz.add_argument("state", nargs="?", choices=["on", "off"], help="on: pause, off: go on (default: show)")
+    pz.set_defaults(func=cmd_pause)
 
     q = sub.add_parser("queue", help="show the analysis queue (JSON)")
     q.add_argument("--field", choices=["queued", "processing", "uploads", "oldestWaitingSeconds", "workers"],

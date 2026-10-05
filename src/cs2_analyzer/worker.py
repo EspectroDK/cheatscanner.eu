@@ -14,6 +14,11 @@ A running job sends a heartbeat every ``worker.heartbeat_s``; a job whose heartb
 ``worker.max_attempts`` times. Once a demo is parsed its worker locks the match (by match id and demo
 hash), so the same match is never analyzed twice at once: a second copy waits and then turns out to be a
 duplicate. On SIGTERM a worker puts its job back in the queue and stops.
+
+While the pause file (``worker.pause_file``, default ``<output.parquet_dir>/.pause-analysis``) exists,
+workers finish the demo they have but claim no new one: deploy/server-deploy.sh creates it before waiting
+for running analyses and removes it once the new workers run. A pause file older than
+``worker.pause_max_s`` (default 30 minutes; a deploy that broke off) is ignored.
 """
 
 from __future__ import annotations
@@ -47,6 +52,10 @@ class _Shutdown(BaseException):
     """SIGTERM while a demo is being downloaded or analyzed (not an Exception: nothing may swallow it)."""
 
 
+def pause_file(config: Config) -> Path:
+    return Path(config.get("worker.pause_file", None) or Path(config.get("output.parquet_dir", "./data/work")) / ".pause-analysis")
+
+
 class AnalysisWorker:
     def __init__(self, config: Config, db: Database, name: str | None = None, demo_downloader=None,
                  wake: threading.Event | None = None, register: bool = True):
@@ -65,6 +74,8 @@ class AnalysisWorker:
         self.max_demo = int(config.get("ingest.max_demo_mb", 1500)) << 20
         self.retry_delays = [float(d) for d in config.get("ingest.download_retry_delays_s", [10, 60, 300])]
         self.chat = SteamChat(db, str(config.get("auth.public_url", "http://localhost:8000")))
+        self.pause_file = pause_file(config)
+        self.pause_max_s = float(config.get("worker.pause_max_s", 1800))
         self._interruptible = False
 
     # ------------------------------------------------------------------ loop
@@ -73,12 +84,18 @@ class AnalysisWorker:
         """Work until ``stop`` is set: claim, analyze, repeat; wait ``poll_s`` (or for ``wake``) when idle."""
         log.info("analysis worker %s started", self.name)
         last_seen = 0.0
+        was_paused = False
         while not self.stop.is_set():
+            paused = self.paused()
+            if paused != was_paused:
+                log.info("analysis worker %s: %s", self.name,
+                         "paused, taking no new demos" if paused else "taking new demos again")
+                was_paused = paused
             try:
                 if self.register and time.monotonic() - last_seen >= self.heartbeat_s:
                     self.db.worker_seen(self.name, None)
                     last_seen = time.monotonic()
-                job = self.db.claim_analysis_job(self.name, self.stale_after)
+                job = None if paused else self.db.claim_analysis_job(self.name, self.stale_after)
             except Exception:
                 log.warning("analysis worker %s: could not reach the database", self.name, exc_info=True)
                 job = None
@@ -98,6 +115,13 @@ class AnalysisWorker:
             except Exception:
                 pass
         log.info("analysis worker %s stopped", self.name)
+
+    def paused(self) -> bool:
+        """The pause file exists and is recent (a deploy is waiting for the running analyses)."""
+        try:
+            return time.time() - self.pause_file.stat().st_mtime < self.pause_max_s
+        except OSError:
+            return False
 
     def run_process(self) -> None:
         """``cs2-analyzer worker``: like ``run``, and SIGTERM/SIGINT hand the current job back to the queue."""
