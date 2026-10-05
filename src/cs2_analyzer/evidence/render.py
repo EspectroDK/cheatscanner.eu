@@ -215,7 +215,9 @@ def project(points, eye, pitch: float, yaw: float, width: int, height: int, hfov
     return sx, sy, z > 1.0
 
 
-_TOPDOWN_CACHE: dict = {}
+# Full-map images per mesh, kept on the MapGeometry itself so they go away with it (the analysis mesh
+# is loaded per match; a module-level cache kept every match's images for as long as a worker ran).
+_TOPDOWN_CACHE_SIZE = 8
 
 
 def render_topdown(geometry: MapGeometry, ceiling_z: float | None = None, resolution: float = 8.0,
@@ -224,14 +226,17 @@ def render_topdown(geometry: MapGeometry, ceiling_z: float | None = None, resolu
     tris = geometry.triangles
     if tris is None:
         raise RuntimeError("map geometry unavailable")
+    crop = bounds
     if bounds is None:
         mn = tris.reshape(-1, 3).min(axis=0)
         mx = tris.reshape(-1, 3).max(axis=0)
         bounds = (float(mn[0]), float(mx[0]), float(mn[1]), float(mx[1]))
     top = float(ceiling_z) if ceiling_z is not None else float(tris[..., 2].max()) + 10
-    key = (id(geometry), bounds, round(top / 32) * 32, resolution)
-    if key in _TOPDOWN_CACHE:
-        return _TOPDOWN_CACHE[key]
+    # Cropped views (clips) are centred on each event, so they are never asked for twice: not cached.
+    cache = geometry.__dict__.setdefault("_topdown_cache", {}) if crop is None else None
+    key = (round(top / 32) * 32, resolution)
+    if cache is not None and key in cache:
+        return cache[key]
     xmin, xmax, ymin, ymax = bounds
     xs = np.arange(xmin, xmax, resolution)
     ys = np.arange(ymax, ymin, -resolution)
@@ -249,5 +254,8 @@ def render_topdown(geometry: MapGeometry, ceiling_z: float | None = None, resolu
     img[steep] = img[steep] * 0.35
     img[np.isnan(z)] = 0.08
     out = (np.clip(img, 0, 1), (xmin, xmax, ymin, ymax))
-    _TOPDOWN_CACHE[key] = out
+    if cache is not None:
+        if len(cache) >= _TOPDOWN_CACHE_SIZE:
+            del cache[next(iter(cache))]
+        cache[key] = out
     return out

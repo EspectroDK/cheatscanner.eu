@@ -63,3 +63,29 @@ def test_render_mesh_from_the_render_folder_is_preferred(tmp_path):
     assert render_geometry(result, {"render_maps_dir": str(tmp_path)}).source.endswith("de_test.tri")
     assert render_geometry(result, {"render_maps_dir": str(tmp_path / "none")}) is analysis
     assert flash_alpha(3.0) == 0.9 and flash_alpha(0.5) == 0.45 and flash_alpha(0) == 0
+
+
+def test_workers_do_not_keep_map_images_or_meshes_from_earlier_matches(tmp_path):
+    """A worker analyzes match after match: map images and render meshes must not pile up (out of memory)."""
+    import gc
+    import weakref
+
+    from cs2_analyzer.evidence import clips
+    from cs2_analyzer.evidence.render import render_topdown
+    from cs2_analyzer.geometry.mesh import MapGeometry, box_triangles
+
+    geo = MapGeometry("de_test", box_triangles([0, 0, 0], [400, 400, 50]))
+    full = render_topdown(geo, ceiling_z=200)
+    assert render_topdown(geo, ceiling_z=195) is full              # same 32-unit level: reused within the match
+    crop = render_topdown(geo, ceiling_z=200, bounds=(0, 200, 0, 200), resolution=4.0)
+    assert render_topdown(geo, ceiling_z=200, bounds=(0, 200, 0, 200), resolution=4.0) is not crop
+    image = weakref.ref(full[0])
+    del geo, full, crop
+    gc.collect()
+    assert image() is None                                         # gone with the match's mesh
+
+    for name in ("de_a", "de_b"):
+        box_triangles([0, 0, 0], [10, 10, 10]).astype("<f4").tofile(tmp_path / f"{name}.tri")
+    for name in ("de_a", "de_b"):
+        clips.render_geometry(SimpleNamespace(geometry=MapGeometry(name, None)), {"render_maps_dir": str(tmp_path)})
+    assert [k[1] for k in clips._RENDER_GEOMETRY] == ["de_b"]      # only the current map's mesh stays loaded

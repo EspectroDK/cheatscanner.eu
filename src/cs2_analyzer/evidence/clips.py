@@ -57,8 +57,9 @@ def render_geometry(result, cfg: dict) -> MapGeometry:
             stamps.append(None)
     key = (str(folder), name, tuple(stamps))
     if key not in _RENDER_GEOMETRY:
-        for old in [k for k in _RENDER_GEOMETRY if k[:2] == key[:2]]:
-            del _RENDER_GEOMETRY[old]
+        # Only the current map's mesh stays loaded: a worker keeping every map it has drawn grows by
+        # one mesh and ray caster per map until it runs out of memory.
+        _RENDER_GEOMETRY.clear()
         cand = MapGeometry.load(name, folder)
         _RENDER_GEOMETRY[key] = cand if cand.available else None
     return _RENDER_GEOMETRY[key] or geo
