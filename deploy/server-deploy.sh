@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs on the server after GitHub Actions has copied a new version to /srv/cheatscanner.
-# Builds the images, waits (at most 10 minutes) for demos being analyzed, then restarts what changed.
+# Pauses the analysis workers, builds the images, waits (at most 10 minutes) for the demos still being
+# analyzed, then restarts what changed and lets the workers go on.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -28,6 +29,18 @@ done
 [ ${#missing[@]} -eq 0 ] || echo "Note: still empty in .env: ${missing[*]}"
 
 mkdir -p data/maps/render data/work/uploads backups
+# Restarting a worker hands its demo back to the queue, and that analysis starts over. So first pause the
+# workers: they finish the demo they have but take no new one (worker.py), while the images build. The
+# new workers start paused and carry on once the deploy lifts the pause; the trap lifts it too if the
+# deploy stops early, and workers ignore a pause older than 30 minutes. (A server still running a version
+# without `pause` just doesn't pause this once.)
+pause() {  # the API container may still be starting right after a restart, so try a few times
+  for _ in 1 2 3 4 5 6; do docker compose exec -T api cs2-analyzer pause "$1" >/dev/null 2>&1 && return; sleep 5; done
+  echo "Note: could not set the worker pause to $1."
+}
+pause on
+trap 'pause off' EXIT
+
 # Refresh the base images (security fixes) at most once a week; Docker Hub limits anonymous pulls.
 if [ -z "$(find backups/.last-pull -mtime -7 2>/dev/null)" ]; then
   docker compose build --pull && docker compose pull --ignore-buildable && touch backups/.last-pull
@@ -35,8 +48,7 @@ else
   docker compose build
 fi
 
-# Restarting a worker hands its demo back to the queue, and that analysis starts over. So wait (at most
-# 10 minutes) for the demos being analyzed right now; queued ones are safe in the database.
+# Wait (at most 10 minutes) for the demos being analyzed right now; queued ones are safe in the database.
 # (.active-jobs is the count kept by API versions from before the queue moved to the database.)
 analyzing() {
   docker compose exec -T api cs2-analyzer queue --field processing 2>/dev/null \
@@ -50,6 +62,7 @@ for _ in $(seq 60); do
 done
 
 docker compose up -d --remove-orphans
+pause off
 docker image prune -f >/dev/null
 
 # Map screenshots for the website: not in the repository (Valve's images), so download the missing ones.
