@@ -6,6 +6,9 @@ many analyzed matches it is based on. For Elevated and High players, **F7** show
 (evidence score, high-risk matches, wall tracking / aim / reaction levels, recent flagged matches), and
 a siren plays when a High player is in your match.
 
+Platforms: Windows (installer or Microsoft Store) and Linux (from source, with native Steam and CS2; see
+[Running it on Linux](#running-it-on-linux)).
+
 It runs as a plain Electron app, **without Overwolf**. Nothing in it reads or changes CS2's memory,
 injects into the game or hooks its drawing:
 
@@ -17,14 +20,14 @@ injects into the game or hooks its drawing:
   start) and listens on `127.0.0.1:37215`.
 - **Overlay**: a see-through window kept on top of the game; clicks go through to the game. It shows
   itself in warm-up and hides when the match goes live. Needs CS2's display mode **Fullscreen Windowed**
-  (Settings > Video); in plain Fullscreen, Windows draws the game over it.
+  (Settings > Video); in plain Fullscreen the game is drawn over it.
 
 | Key | What it does |
 | --- | --- |
 | **Shift+F2** | Show the lobby list (again to hide) |
 | **F7** | Show the extended card of flagged players (again to hide) |
 
-Settings also has "Start automatically with Windows, minimized" (installed app only; it starts with
+Settings also has "Start automatically with Windows, minimized" (installed Windows app only; it starts with
 `--minimized`). Both keys can be changed under Settings in the app (letters and digits only with Ctrl or Alt). The server
 address is not a setting: the installed app always uses https://cheatscanner.eu (`--server` and
 `CHEATSCANNER_SERVER` are for development).
@@ -70,6 +73,52 @@ Other options, passed after `electron .`:
 `npm run dev:ui` also works in a normal browser with a simulated app: open
 `http://localhost:5173/index.html?screen=lobby` (or `unlinked`, `linking`, `waiting`, `problem`) and
 `overlay.html?screen=lobby` or `overlay.html?screen=detail`.
+
+## Running it on Linux
+
+Linux works from source, with native Steam and native CS2. There is no packaged Linux build yet.
+
+Requirements:
+
+- **Steam**, the native package (not Flatpak or Snap: their sandboxes keep the Steam client out of reach of
+  other processes), running and signed in. The app finds it in `~/.steam/debian-installation` or
+  `~/.local/share/Steam`.
+- **CS2**, native, in one of Steam's libraries (found through `libraryfolders.vdf`), with display mode
+  **Fullscreen Windowed**.
+- **An X11 session.** The overlay window and its global hotkeys have been tried on X11 (Linux Mint 22.3,
+  Cinnamon); Wayland is untested.
+- **Node 22.12 or newer** (`engines` in `package.json`; tested with Node 24). Distro packages are often
+  older, so check `node --version` and use nvm, NodeSource or similar if needed.
+
+```bash
+cd companion
+npm ci
+npm start -- --server=https://cheatscanner.eu
+```
+
+From source the app talks to `http://localhost:8000` unless told otherwise (only the packaged Windows app
+defaults to cheatscanner.eu), hence `--server`. Replay mode, the other options and `npm run dev:ui` above work
+the same in a Linux shell.
+
+Link the app to your account when it asks, restart CS2 once, and join a match. On first start the app writes
+`gamestate_integration_cheatscanner.cfg` into
+`<Steam library>/steamapps/common/Counter-Strike Global Offensive/game/csgo/cfg/`.
+
+`npm run coplay` prints Steam's players list; compare it with Steam > View > Players. If it says Steam isn't
+running, check that native Steam is signed in and that `~/.steam/steam.pid` names a live process.
+
+If Electron refuses to start with a `chrome-sandbox` (SUID sandbox) error, which distros that restrict
+unprivileged user namespaces do (Ubuntu 24.04 and its derivatives), give the bundled helper the permissions it
+needs:
+
+```bash
+sudo chown root:root node_modules/electron/dist/chrome-sandbox
+sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+```
+
+Settings and the linked account are kept in `~/.config/Cheatscanner`. The API token is encrypted with the
+desktop keyring through Electron's `safeStorage`; with no keyring available it is stored as plain text in
+`settings.json`. "Start automatically with Windows" and the installer and Store packages are Windows only.
 
 ## Building the installer (Windows PowerShell, one command per line)
 
@@ -140,7 +189,7 @@ CS2 game state ─────┼─► GameSource ─► Controller ─┤
   no Electron code, so it is unit-tested.
 - `src/main/main.ts`: windows, hotkeys, IPC, the helper process.
 - `src/main/preload.ts`: the only bridge the pages get. The token stays in the main process, encrypted
-  with Windows DPAPI (`safeStorage`) in `settings.json`.
+  with the OS key store (`safeStorage`: Windows DPAPI, the desktop keyring on Linux) in `settings.json`.
 
 Linking works like signing in a TV app: the app asks the server for a code, opens
 `cheatscanner.eu/#/link?code=...` in the browser, the user signs in with Steam and confirms the code, and
