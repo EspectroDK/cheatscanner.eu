@@ -81,6 +81,8 @@ session_days = 30
 steam_api_key = ""               # env CS2A_STEAM_API_KEY; optional, only for names/avatars
 admin_steam_ids = []             # env CS2A_ADMIN_STEAM_IDS (comma-separated SteamID64s); who sees the Admin page
 openid_timeout_s = 10
+share_link_hours = 48            # how long a "Share match" link works for people without an account
+max_share_links = 20             # active share links per user
 
 [ingest]
 # Automatic demo fetching (README: Automatic demo fetching).

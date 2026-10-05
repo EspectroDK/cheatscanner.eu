@@ -109,7 +109,21 @@ export interface MatchDetail {
     rankNew: number | null;
     assessment: Assessment | null;
     visible: boolean;
+    /** Shared page only: the visitor may open this player's page (signed in and has met them). */
+    linkable?: boolean;
   }[];
+  /** Present when the page was opened through a share link. */
+  share?: { expiresAt: string; matchVisible: boolean } | null;
+}
+
+/** A link that shows a match page to people without an account until it expires. */
+export interface ShareLink {
+  id: number;
+  matchId: string;
+  createdAt: string;
+  expiresAt: string;
+  /** Only in the answer that creates the link; the server keeps a hash. */
+  url?: string;
 }
 
 export interface ClipStatus {
@@ -356,6 +370,11 @@ export const api = {
   player: (sid: string) => call<Player>(`/players/${sid}`),
   playerMatches: (sid: string) => call<({ matchId: string; map: string | null; playedAt: string | null; processedAt: string | null } & Assessment)[]>(`/players/${sid}/matches`),
   matchEvidence: (id: string) => call<EvidenceEvent[]>(`/matches/${encodeURIComponent(id)}/evidence`),
+  shares: (id: string) => call<ShareLink[]>(`/matches/${encodeURIComponent(id)}/shares`),
+  createShare: (id: string) => call<ShareLink>(`/matches/${encodeURIComponent(id)}/shares`, { method: "POST" }),
+  deleteShare: (shareId: number) => call<void>(`/shares/${shareId}`, { method: "DELETE" }),
+  sharedMatch: (token: string) => call<MatchDetail>(`/share/${encodeURIComponent(token)}`),
+  sharedEvidence: (token: string) => call<EvidenceEvent[]>(`/share/${encodeURIComponent(token)}/evidence`),
   playerPattern: (sid: string) => call<PatternBreakdown>(`/players/${sid}/pattern`),
   playerTimeline: (sid: string) => call<TimelinePoint[]>(`/players/${sid}/timeline`),
   siteInfo: () => call<SiteInfo>("/site-info"),

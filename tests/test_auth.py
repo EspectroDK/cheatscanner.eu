@@ -84,8 +84,8 @@ def _client(config, tmp_path, enabled=True, valid=True):
     return TestClient(app)
 
 
-def _sign_in(client):
-    r = client.get("/auth/steam/login", follow_redirects=False)
+def _sign_in(client, remember=False):
+    r = client.get("/auth/steam/login" + ("?remember=1" if remember else ""), follow_redirects=False)
     assert r.status_code == 302 and r.headers["location"].startswith(steam_openid.STEAM_OPENID)
     return_to = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(r.headers["location"]).query))["openid.return_to"]
     query = urllib.parse.urlparse(return_to).query
@@ -103,6 +103,15 @@ def test_sign_in_flow_session_and_logout(config, tmp_path):
     assert c.post("/auth/logout", follow_redirects=False).status_code == 303
     c.cookies.clear()
     assert c.get("/me").status_code == 401
+
+
+def test_session_cookie_outlives_the_browser_only_when_asked(config, tmp_path):
+    def session_cookie(r):
+        return next(h for h in r.headers.get_list("set-cookie") if h.startswith(f"{SESSION_COOKIE}="))
+
+    assert "max-age" not in session_cookie(_sign_in(_client(config, tmp_path))).lower()
+    kept = session_cookie(_sign_in(_client(config, tmp_path), remember=True)).lower()
+    assert f"max-age={30 * 86400}" in kept
 
 
 def test_callback_requires_matching_state(config, tmp_path):

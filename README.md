@@ -130,7 +130,8 @@ default, so local use works as before. Set `CS2A_AUTH_ENABLED=1` and `CS2A_PUBLI
 the browser uses, e.g. `https://scanner.example`) to turn it on:
 
 - `GET /auth/steam/login` sends the browser to Steam; the callback is verified directly with Steam
-  before the SteamID is trusted, then a session cookie is set. `GET /me` shows the signed-in user.
+  before the SteamID is trusted, then a session cookie is set (kept 30 days with `?remember=1`, the
+  "Keep me signed in" box; otherwise it ends with the browser session). `GET /me` shows the signed-in user.
 - `POST /me/tokens` (from a signed-in browser) creates an API token for programs, sent as
   `Authorization: Bearer <token>`; `DELETE /me/tokens/{id}` revokes it. Only hashes are stored.
 - All data endpoints then need a session or token; `/health`, `/site-info` and `/site-stats` (aggregate usage counts for the front page) stay public.
@@ -152,7 +153,9 @@ in them, their evidence and a demo upload page. With sign-in enabled, a user see
 played in or uploaded, and only players they have played with or against. For those players it shows
 evidence and a per-match timeline from all their analyzed matches; matches the user wasn't in show map,
 date and names but can't be opened, and other players there link only if the user knows them. Uploading a
-demo counts like playing in that match: the uploader sees every player in it. A Privacy page (`#/privacy`,
+demo counts like playing in that match: the uploader sees every player in it. "Share this match" on a match
+page makes a link (`#/share/<token>`, `auth.share_link_hours`, default 48) that shows the match page read-only,
+as its creator sees it, to anyone without signing in; it opens no player pages. A Privacy page (`#/privacy`,
 readable before sign-in) lists what is stored. Match and player pages play the evidence clips and charts inline (rendered for
 each player's strongest events, whatever their overall class, up to `evidence.max_clips_per_match`), with a `demo_gototick` command to
 jump to the moment in CS2's own demo player.

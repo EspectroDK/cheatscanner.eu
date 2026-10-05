@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo, Wordmark } from "../art";
 import { api } from "../api";
@@ -64,6 +65,22 @@ function UsageStrip() {
   );
 }
 
+/** Steam sign-in. The session cookie outlives the browser only when "Keep me signed in" is ticked. */
+function SteamSignIn() {
+  const [remember, setRemember] = useState(false);
+  return (
+    <div className="signin-action">
+      <a className="button primary" href={remember ? "/auth/steam/login?remember=1" : "/auth/steam/login"}>
+        Sign in through Steam
+      </a>
+      <label className="check small">
+        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+        Keep me signed in for 30 days on this device
+      </label>
+    </div>
+  );
+}
+
 /** The front page. Signed out it offers Steam sign-in; signed in (reached from the logo) it links to your matches. */
 export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: boolean; signedIn?: boolean }) {
   const Wrapper = signedIn ? "div" : "main";
@@ -81,9 +98,7 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
       {signedIn ? (
         <Link className="button primary" to="/">Go to my matches</Link>
       ) : (
-        <a className="button primary" href="/auth/steam/login">
-          Sign in through Steam
-        </a>
+        <SteamSignIn />
       )}
 
       <UsageStrip />

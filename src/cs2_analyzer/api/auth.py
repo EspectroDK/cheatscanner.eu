@@ -77,12 +77,15 @@ class Auth:
         r = APIRouter(tags=["auth"])
 
         @r.get("/auth/steam/login")
-        def login():
+        def login(remember: bool = False):
+            # remember: the user ticked "Keep me signed in". Only then does the session cookie outlive the
+            # browser (EU rules exempt a login cookie from consent while it lasts the browser session, or
+            # longer when the user asked to stay signed in).
             state = secrets.token_urlsafe(24)
             return_to = f"{self.public_url}{CALLBACK_PATH}?state={state}"
             resp = RedirectResponse(steam_openid.login_url(return_to, realm=self.public_url), status_code=302)
-            resp.set_cookie(STATE_COOKIE, state, max_age=600, httponly=True, secure=self.secure_cookies,
-                            samesite="lax", path=CALLBACK_PATH)
+            resp.set_cookie(STATE_COOKIE, f"{state}.{int(remember)}", max_age=600, httponly=True,
+                            secure=self.secure_cookies, samesite="lax", path=CALLBACK_PATH)
             return resp
 
         @r.get(CALLBACK_PATH)
@@ -90,7 +93,7 @@ class Auth:
             params = dict(request.query_params)
             # The state ties the callback to the browser that started the sign-in, so nobody can
             # sign a victim into the attacker's account with a pre-made callback link.
-            state = request.cookies.get(STATE_COOKIE)
+            state, _, remember = (request.cookies.get(STATE_COOKIE) or "").partition(".")
             if not state or not secrets.compare_digest(state, params.get("state", "")):
                 raise HTTPException(400, "sign-in expired or was started in another browser; try again")
             try:
@@ -100,8 +103,8 @@ class Auth:
             user = self.db.upsert_user(steam_id, self.profile_fetcher(steam_id))
             raw, _ = self.db.create_token(user["id"], "session", ttl_days=self.session_days)
             resp = RedirectResponse(self.post_login_redirect, status_code=303)
-            resp.set_cookie(SESSION_COOKIE, raw, max_age=int(self.session_days * 86400), httponly=True,
-                            secure=self.secure_cookies, samesite="lax", path="/")
+            resp.set_cookie(SESSION_COOKIE, raw, max_age=int(self.session_days * 86400) if remember == "1" else None,
+                            httponly=True, secure=self.secure_cookies, samesite="lax", path="/")
             resp.delete_cookie(STATE_COOKIE, path=CALLBACK_PATH)
             return resp
 

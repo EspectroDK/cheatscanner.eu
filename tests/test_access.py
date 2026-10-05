@@ -274,3 +274,67 @@ def test_one_upload_at_a_time(config, tmp_path):
     assert second.status_code == 429 and "already have an upload" in second.json()["detail"]
     assert first == 202
     assert u.post("/matches", files={"file": ("a.dem", b"x")}).status_code == 202   # free again afterwards
+
+
+def test_share_link_shows_the_match_without_signing_in(config, tmp_path):
+    c, db = _signed_in(config, tmp_path)
+    clip = tmp_path / "out" / "m1" / "clip.mp4"
+    clip.parent.mkdir(parents=True, exist_ok=True)
+    clip.write_bytes(b"\x00\x00\x00\x18ftypmp42")
+    with db.session() as s:
+        s.get(M.EvidenceEvent, f"m1-{MATE}").video_path = str(clip)
+        s.get(M.EvidenceEvent, f"m1-{MATE}").target_steam_id = ENEMY
+
+    assert c.post("/matches/m2/shares").status_code == 404           # only matches you can see
+    made = c.post("/matches/m1/shares")
+    assert made.status_code == 201
+    token = made.json()["url"].split("/#/share/")[1]
+    assert [x["id"] for x in c.get("/matches/m1/shares").json()] == [made.json()["id"]]
+
+    anon = TestClient(c.app)
+    m = anon.get(f"/share/{token}").json()
+    assert m["matchId"] == "m1" and m["valveDemo"] is None
+    assert all(p["visible"] and p["assessment"] for p in m["players"])
+    assert not any(p["linkable"] for p in m["players"])
+    events = {e["steamId"]: e for e in anon.get(f"/share/{token}/evidence").json()}
+    assert set(events) == {str(ME), str(MATE), str(ENEMY)}
+    mate = events[str(MATE)]
+    assert mate["targetSteamId"] is None and mate["targetName"]  # name shown, no player link
+    assert mate["clipUrl"] == f"/share/{token}/evidence/m1-{MATE}/clip"
+    assert anon.get(mate["clipUrl"]).status_code == 200
+    assert anon.get(f"/share/{token}/evidence/m2-{STRANGER}/plot").status_code == 404  # other matches stay closed
+    # Player pages, the match API and other matches still need an account.
+    assert anon.get(f"/players/{MATE}").status_code == 401
+    assert anon.get("/matches/m1").status_code == 401
+    assert anon.get(f"/evidence/m1-{MATE}/clip").status_code == 401
+
+    # A signed-in visitor gets player links only for players they have met themselves.
+    other = TestClient(c.app)
+    loc = other.get("/auth/steam/login", follow_redirects=False).headers["location"]
+    return_to = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(loc).query))["openid.return_to"]
+    params = _assertion(return_to=return_to, steam_id=STRANGER) | dict(urllib.parse.parse_qsl(urllib.parse.urlparse(return_to).query))
+    other.get("/auth/steam/callback", params=params, follow_redirects=False)
+    seen = other.get(f"/share/{token}").json()
+    assert not any(p["linkable"] for p in seen["players"]) and seen["share"]["matchVisible"] is False
+
+    # Removed or expired links stop working.
+    assert c.delete(f"/shares/{made.json()['id']}").status_code == 204
+    assert anon.get(f"/share/{token}").status_code == 404
+    assert anon.get(mate["clipUrl"]).status_code == 404
+    token2 = c.post("/matches/m1/shares").json()["url"].split("/#/share/")[1]
+    with db.session() as s:
+        for sh in s.query(M.MatchShare):
+            sh.expires_at = sh.created_at
+    assert anon.get(f"/share/{token2}").status_code == 404
+    assert anon.get("/share/not-a-token").status_code == 404
+
+
+def test_share_link_stops_when_its_creator_loses_access(config, tmp_path):
+    c, db = _signed_in(config, tmp_path)
+    db.record_upload("m3", c.get("/me").json()["id"])
+    token = c.post("/matches/m3/shares").json()["url"].split("/#/share/")[1]
+    anon = TestClient(c.app)
+    assert all(p["visible"] for p in anon.get(f"/share/{token}").json()["players"])
+    with db.session() as s:
+        s.query(M.MatchUpload).delete()
+    assert anon.get(f"/share/{token}").status_code == 404
