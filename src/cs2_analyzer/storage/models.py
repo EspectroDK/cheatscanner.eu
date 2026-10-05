@@ -282,6 +282,22 @@ class AuthToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class MatchShare(Base):
+    """A link that shows one match page to anyone holding it, until it expires (``POST /matches/{id}/shares``).
+
+    Only a SHA-256 of the link's token is stored. The shared page shows what its creator can see in that match.
+    """
+
+    __tablename__ = "match_shares"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    match_id: Mapped[str] = mapped_column(ForeignKey("matches.match_id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class MatchUpload(Base):
     """Which signed-in user supplied a match's demo (upload or automatic fetch)."""
 

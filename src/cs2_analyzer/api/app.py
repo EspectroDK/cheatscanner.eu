@@ -18,6 +18,9 @@ user sees follows these rules (also described in the README, section Website):
   viewer has played with or against them somewhere.
 - uploading a demo counts like playing in that match: the uploader sees every
   player in it, with their evidence.
+- a share link (``/share/{token}``, made by someone who can see the match)
+  shows that match page read-only to anyone holding it until it expires, with
+  what its creator can see there. It opens no player pages.
 
 Without auth (local use) everything is visible, as before. If the website has
 been built (``web/dist``), it is served at ``/``.
@@ -418,9 +421,9 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
 
     output_root = Path(config.get("output.dir", "./output")).resolve()
 
-    def _evidence_file(event_id: str, v: Viewer, key: str, media_type: str):
+    def _evidence_file(event_id: str, v: Viewer, key: str, media_type: str, match_id: str | None = None):
         e = db.get_evidence_event(event_id)
-        if e is None or not _may_see_event(e, v):
+        if e is None or not _may_see_event(e, v) or (match_id is not None and e["matchId"] != match_id):
             raise HTTPException(404, "evidence not found")
         path = Path(e[key]).resolve() if e[key] else None
         if path is None or output_root not in path.parents or not path.is_file():
@@ -438,6 +441,101 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.get("/evidence/{event_id}/plot")
     def get_evidence_plot(event_id: str, v: Viewer = Depends(viewer)):
         return _evidence_file(event_id, v, "_plotPath", "image/png")
+
+    # Share links: a match page, read-only, for anyone holding the link until it expires. The shared page shows
+    # what the link's creator can see in that match (checked on every request, so it never shows more than they
+    # could). Player pages are not shared: a visitor gets a link to a player only if they may open that player's
+    # page themselves (signed in and played with or against them).
+    share_hours = float(config.get("auth.share_link_hours", 48))
+    max_shares = int(config.get("auth.max_share_links", 20))
+
+    def _sharer(v: Viewer) -> dict:
+        if v.user is None:
+            raise HTTPException(401, "sign in with Steam to share a match")
+        return v.user
+
+    @app.post("/matches/{match_id}/shares", status_code=201)
+    def create_share(match_id: str, v: Viewer = Depends(viewer)):
+        user = _sharer(v)
+        if not v.can_see_match(match_id) or db.get_match(match_id) is None:
+            raise HTTPException(404, "match not found")
+        created = db.create_share(match_id, user["id"], share_hours, max_shares)
+        if created is None:
+            raise HTTPException(429, f"You have {max_shares} share links that still work. Remove one before making another.")
+        raw, info = created
+        return info | {"url": f"{auth.public_url}/#/share/{raw}"}
+
+    @app.get("/matches/{match_id}/shares")
+    def list_shares(match_id: str, v: Viewer = Depends(viewer)):
+        """The signed-in user's links for this match that still work (the links themselves are shown only once)."""
+        user = _sharer(v)
+        if not v.can_see_match(match_id):
+            raise HTTPException(404, "match not found")
+        return db.list_shares(user["id"], match_id)
+
+    @app.delete("/shares/{share_id}", status_code=204)
+    def delete_share(share_id: int, v: Viewer = Depends(viewer)):
+        if not db.revoke_share(_sharer(v)["id"], share_id):
+            raise HTTPException(404, "share link not found")
+
+    def _shared(token: str) -> tuple[dict, Viewer]:
+        """The share behind a token and its creator's view of the match, or 404."""
+        sh = db.resolve_share(token)
+        if sh is not None:
+            owner = Viewer(db, sh["user"], restricted=auth.enabled)
+            if owner.can_see_match(sh["matchId"]):
+                return sh, owner
+        raise HTTPException(404, "This link has expired or was removed.")
+
+    def _visitor(request: Request) -> Viewer | None:
+        """Whoever opened a share link, if signed in (None for visitors without an account)."""
+        if not auth.enabled:
+            return Viewer(db, None, restricted=False)
+        user = auth.current_user(request)
+        return Viewer(db, user, restricted=True) if user else None
+
+    @app.get("/share/{token}")
+    def get_shared_match(token: str, request: Request):
+        sh, owner = _shared(token)
+        m = db.get_match(sh["matchId"])
+        if m is None:
+            raise HTTPException(404, "This link has expired or was removed.")
+        me = _visitor(request)
+        for p in m["players"]:
+            sid = int(p["steamId"])
+            p["visible"] = owner.can_see_player(sid)
+            if not p["visible"]:
+                p["assessment"] = None
+            p["linkable"] = me is not None and me.can_see_player(sid)
+        m["valveDemo"] = None   # the demo download and share code stay with the people in the match
+        m["clips"] = db.clip_status(sh["matchId"], float(config.get("evidence.eta_default_clip_s", 120)),
+                                    float(config.get("evidence.eta_default_prep_s", 90)), worker_alive)
+        m["share"] = {"expiresAt": sh["expiresAt"], "matchVisible": me is not None and me.can_see_match(sh["matchId"])}
+        return m
+
+    @app.get("/share/{token}/evidence")
+    def get_shared_evidence(token: str, request: Request):
+        sh, owner = _shared(token)
+        me = _visitor(request)
+        events = _for_viewer([e for e in db.match_evidence(sh["matchId"]) if _may_see_event(e, owner)], owner)
+        for e in events:
+            for key in ("clipUrl", "posterUrl", "plotUrl"):
+                if e.get(key):
+                    e[key] = f"/share/{token}{e[key]}"
+            target = e.get("targetSteamId")
+            if target and (me is None or not me.can_see_player(int(target))):
+                e["targetSteamId"] = None
+            e["matchVisible"] = False   # no "watch in CS2" help: the visitor may not have this match
+        return events
+
+    @app.get("/share/{token}/evidence/{event_id}/{kind}")
+    def get_shared_evidence_file(token: str, event_id: str, kind: str):
+        files = {"clip": ("_videoPath", "video/mp4"), "poster": ("_posterPath", "image/jpeg"),
+                 "plot": ("_plotPath", "image/png")}
+        if kind not in files:
+            raise HTTPException(404)
+        sh, owner = _shared(token)
+        return _evidence_file(event_id, owner, *files[kind], match_id=sh["matchId"])
 
     def _player_or_404(steam_id: str, v: Viewer) -> int:
         sid = _sid(steam_id)

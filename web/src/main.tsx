@@ -1,10 +1,10 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type MatchAccess, type User } from "./api";
 import { Admin } from "./pages/Admin";
 import { LinkApp, pendingLink, rememberPendingLink } from "./pages/Link";
-import { MatchPage } from "./pages/Match";
+import { MatchPage, SharedMatchPage } from "./pages/Match";
 import { MyMatches } from "./pages/MyMatches";
 import { Onboarding } from "./pages/Onboarding";
 import { PlayerPage } from "./pages/Player";
@@ -23,10 +23,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
   const onPrivacy = location.pathname === "/privacy";
+  // A shared match (/share/<token>) opens without an account.
+  const shareToken = /^\/share\/([\w-]{20,128})$/.exec(location.pathname)?.[1];
   // Privacy, How it works and Credits are readable before signing in and during onboarding.
   const publicPage = onPrivacy ? <Privacy signedIn={false} />
     : location.pathname === "/how-it-works" ? <DocPage doc="howItWorks" signedIn={false} />
     : location.pathname === "/credits" ? <DocPage doc="credits" signedIn={false} />
+    : shareToken ? <SharedMatchPage token={shareToken} />
     : null;
   // The Cheatscanner app sends people to /link?code=...; keep the code through sign-in and onboarding.
   if (location.pathname === "/link") rememberPendingLink(new URLSearchParams(location.search).get("code"));
@@ -46,7 +49,21 @@ function App() {
   }, []);
 
   if (error) return <main className="page"><p className="error">{error}</p></main>;
-  if (user === null) return publicPage ? <main className="page">{publicPage}</main> : <SignIn linkingApp={!!pendingLink()} />;
+  if (user === null)
+    return publicPage ? (
+      <>
+        {shareToken && (
+          <header className="topbar">
+            <Link to="/" className="brand" aria-label="Cheatscanner front page"><Logo /><Wordmark /></Link>
+            <nav />
+            <Link to="/" className="button small-button">Sign in</Link>
+          </header>
+        )}
+        <main className="page">{publicPage}</main>
+      </>
+    ) : (
+      <SignIn linkingApp={!!pendingLink()} />
+    );
   if (user === undefined || access === undefined) return <main className="page"><p className="muted">Loading…</p></main>;
   // Connecting the Steam match history is part of signing up (plan section 4.2).
   if (access.required && access.status !== "ACTIVE")
@@ -74,6 +91,7 @@ function App() {
           <Route path="/about" element={<SignIn signedIn />} />
           <Route path="/" element={<MyMatches />} />
           <Route path="/matches/:id" element={<MatchPage />} />
+          <Route path="/share/:token" element={<SharedMatch />} />
           <Route path="/players/:sid" element={<PlayerPage />} />
           <Route path="/upload" element={<Upload />} />
           <Route path="/settings" element={<Settings />} />
@@ -90,6 +108,11 @@ function App() {
       </footer>
     </UserContext.Provider>
   );
+}
+
+function SharedMatch() {
+  const { token = "" } = useParams();
+  return <SharedMatchPage token={token} />;
 }
 
 /** After signing in (or finishing onboarding), go back to linking the app if that's where the user came from. */

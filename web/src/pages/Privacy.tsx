@@ -64,6 +64,7 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
           new matches. You can remove the code in Settings at any time, or reset it on Steam.
         </li>
         <li>Which demos you uploaded, so you can open those matches.</li>
+        <li>Share links you make: which match, when, and until when the link works. Only a one-way hash of the link is kept.</li>
         <li>
           If you switch on Steam chat messages: that choice, and the messages our Steam bot sent you (which match, what was found, and
           whether it was delivered).
@@ -82,7 +83,39 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
           In the Cheatscanner app, you see the evidence class and number of analyzed matches of each player in your current
           match, also players you haven't met before. The app never shows their evidence, clips or match history.
         </li>
+        <li>
+          If you share a match, anyone with the link can see that match page (scoreboard, evidence classes, events and
+          clips, as you see them) for 48 hours, without signing in. You can stop sharing sooner on the match page. The link
+          never opens player pages or other matches.
+        </li>
         <li>There is no public search, and nothing is posted in the game or in chat.</li>
+      </ul>
+
+      <h2>Cookies and browser storage</h2>
+      <p>
+        Cheatscanner uses no analytics, no advertising and no tracking, and loads no third-party scripts or fonts. It
+        stores only what signing in needs, so there is no cookie banner:
+      </p>
+      <ul>
+        <li>
+          <strong>cs2a_session</strong> (cookie): keeps you signed in. It lasts 30 days, so you stay signed in on this
+          device. Signing out removes it.
+        </li>
+        <li>
+          <strong>cs2a_openid_state</strong> (cookie, 10 minutes): checks that the Steam sign-in that comes back is the one
+          your browser started. Removed when the sign-in finishes.
+        </li>
+        <li>
+          <strong>cs2a_pending_app_link</strong> (session storage in this tab): keeps the code of the Cheatscanner app
+          you are linking while you sign in. Gone when the tab closes.
+        </li>
+        <li>
+          The Cheatscanner app keeps its sign-in token on your PC, encrypted by Windows, so it stays linked to your account.
+        </li>
+        <li>
+          Signing in happens on Steam's own website, which sets Steam's cookies under Valve's privacy policy. Your
+          Steam avatar is shown from Steam's image servers.
+        </li>
       </ul>
 
       <h2>Evidence is not a verdict</h2>

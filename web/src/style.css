@@ -371,3 +371,11 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 @media (max-width: 720px) {
   .pattern-row { grid-template-columns: 1fr; gap: 8px; }
 }
+
+/* Share a match */
+.share { margin: 14px 0; padding: 12px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.share summary { cursor: pointer; font-weight: 600; }
+.share-link { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.share-link input { flex: 1; min-width: 0; }
+.share-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+.share-list .button { margin-left: 6px; }

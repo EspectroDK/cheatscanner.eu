@@ -125,7 +125,8 @@ class Database:
 
     def delete_match(self, match_id: str):
         with self.session() as s:
-            for model in (M.EvidenceEvent, M.PlayerMatchAssessment, M.MatchPlayer, M.Round, M.PlayerMatchFeatures):
+            for model in (M.EvidenceEvent, M.PlayerMatchAssessment, M.MatchPlayer, M.Round, M.PlayerMatchFeatures,
+                          M.MatchShare):
                 s.execute(delete(model).where(model.match_id == match_id))
             s.execute(delete(M.Match).where(M.Match.match_id == match_id))
 
@@ -542,6 +543,52 @@ class Database:
             rows = s.scalars(select(M.AuthToken).where(M.AuthToken.user_id == user_id, M.AuthToken.kind == kind,
                                                        M.AuthToken.revoked_at.is_(None)).order_by(M.AuthToken.id))
             return [_token(t) for t in rows]
+
+    # ------------------------------------------------------- match share links
+
+    def create_share(self, match_id: str, user_id: int, ttl_hours: float, max_active: int) -> tuple[str, dict] | None:
+        """A new share link for a match. Returns (raw token, info), or None when the user has too many active links."""
+        now = datetime.now(timezone.utc)
+        raw = secrets.token_urlsafe(32)
+        with self.session() as s:
+            s.execute(delete(M.MatchShare).where(M.MatchShare.expires_at < now - timedelta(days=7)))
+            active = s.scalar(select(func.count(M.MatchShare.id)).where(
+                M.MatchShare.user_id == user_id, M.MatchShare.revoked_at.is_(None), M.MatchShare.expires_at > now))
+            if active >= max_active:
+                return None
+            sh = M.MatchShare(token_hash=_token_hash(raw), match_id=match_id, user_id=user_id, created_at=now,
+                              expires_at=now + timedelta(hours=ttl_hours))
+            s.add(sh)
+            s.flush()
+            return raw, _share(sh)
+
+    def resolve_share(self, raw: str | None) -> dict | None:
+        """The match and creator behind a share token, or None if unknown, removed or expired."""
+        if not raw or len(raw) > 128:
+            return None
+        with self.session() as s:
+            sh = s.scalar(select(M.MatchShare).where(M.MatchShare.token_hash == _token_hash(raw)))
+            if sh is None or sh.revoked_at is not None or _utc(sh.expires_at) <= datetime.now(timezone.utc):
+                return None
+            user = _user(s.get(M.User, sh.user_id))
+            return None if user is None else _share(sh) | {"user": user}
+
+    def list_shares(self, user_id: int, match_id: str) -> list[dict]:
+        """The user's links for a match that still work, newest first."""
+        now = datetime.now(timezone.utc)
+        with self.session() as s:
+            rows = s.scalars(select(M.MatchShare).where(
+                M.MatchShare.user_id == user_id, M.MatchShare.match_id == match_id, M.MatchShare.revoked_at.is_(None),
+                M.MatchShare.expires_at > now).order_by(M.MatchShare.id.desc()))
+            return [_share(sh) for sh in rows]
+
+    def revoke_share(self, user_id: int, share_id: int) -> bool:
+        with self.session() as s:
+            sh = s.get(M.MatchShare, share_id)
+            if sh is None or sh.user_id != user_id or sh.revoked_at is not None:
+                return False
+            sh.revoked_at = datetime.now(timezone.utc)
+            return True
 
     # ------------------------------------------------- companion app pairing
 
@@ -1184,6 +1231,10 @@ def _user(u) -> dict | None:
 def _token(t) -> dict:
     return {"id": t.id, "kind": t.kind, "name": t.name, "createdAt": _iso(t.created_at),
             "expiresAt": _iso(t.expires_at), "lastUsedAt": _iso(t.last_used_at)}
+
+
+def _share(sh) -> dict:
+    return {"id": sh.id, "matchId": sh.match_id, "createdAt": _iso(sh.created_at), "expiresAt": _iso(sh.expires_at)}
 
 
 def _iso(dt):

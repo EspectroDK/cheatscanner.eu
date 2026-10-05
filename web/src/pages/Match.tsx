@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, type ClipStatus, type MatchDetail } from "../api";
+import { api, type ClipStatus, type EvidenceEvent, type MatchDetail, type ShareLink } from "../api";
 import { MapBanner, mapName, SIDE_NAME, SideEmblem } from "../art";
 import { EvidenceList } from "../Evidence";
 import { ClassBadge, Loading, pct, Rank, useLoad, useUser, when } from "../ui";
@@ -66,7 +66,7 @@ function TeamTable({ team, data, me, won }: { team: number | null; data: MatchDe
               <tr key={p.steamId}>
                 <td>
                   <span className="player-cell">
-                    {p.visible ? (
+                    {(p.linkable ?? p.visible) ? (
                       <Link to={`/players/${p.steamId}`}>{p.name ?? p.steamId}</Link>
                     ) : (
                       <span className="name">{p.name ?? p.steamId}</span>
@@ -168,21 +168,133 @@ function ClipsNotice({ clips }: { clips: ClipStatus }) {
   );
 }
 
-export function MatchPage() {
-  const { id = "" } = useParams();
-  const me = useUser()?.steamId ?? "";
-  // While clips are still being made, look again every half minute (keeping what is shown).
+/** Keeps the page fresh while evidence clips are still being made (every half minute, keeping what is shown). */
+function useMatchData(load: () => Promise<MatchDetail>, loadEvidence: () => Promise<EvidenceEvent[]>, key: string) {
   const [round, setRound] = useState(0);
-  const { data, error } = useLoad(() => api.match(id), [id, round], round > 0);
-  const evidence = useLoad(() => api.matchEvidence(id), [id, round], round > 0);
-  const waiting = !!data?.clips && data.clips.pending > 0 && (data.clips.state === "QUEUED" || data.clips.state === "RENDERING");
+  const match = useLoad(load, [key, round], round > 0);
+  const evidence = useLoad(loadEvidence, [key, round], round > 0);
+  const clips = match.data?.clips;
+  const waiting = !!clips && clips.pending > 0 && (clips.state === "QUEUED" || clips.state === "RENDERING");
   useEffect(() => {
     if (!waiting) return;
     const t = setTimeout(() => setRound((r) => r + 1), CLIP_REFRESH_MS);
     return () => clearTimeout(t);
   }, [waiting, round]);
-  useEffect(() => setRound(0), [id]);
-  if (!data) return <Loading error={error} />;
+  useEffect(() => setRound(0), [key]);
+  return { match, evidence };
+}
+
+export function MatchPage() {
+  const { id = "" } = useParams();
+  const { match, evidence } = useMatchData(() => api.match(id), () => api.matchEvidence(id), id);
+  if (!match.data) return <Loading error={match.error} />;
+  return (
+    <MatchView data={match.data} evidence={evidence.data} evidenceError={evidence.error}>
+      <ShareMatch matchId={id} />
+    </MatchView>
+  );
+}
+
+/** A match page opened through a share link: read-only, also for visitors without an account. */
+export function SharedMatchPage({ token }: { token: string }) {
+  const { match, evidence } = useMatchData(() => api.sharedMatch(token), () => api.sharedEvidence(token), token);
+  if (!match.data)
+    return match.error ? (
+      <div className="empty">
+        <h2>This link doesn't work anymore</h2>
+        <p className="muted">Shared match links work for 48 hours, and the person who shared it can remove it sooner.</p>
+      </div>
+    ) : (
+      <Loading error={null} />
+    );
+  const share = match.data.share;
+  return (
+    <MatchView data={match.data} evidence={evidence.data} evidenceError={evidence.error}>
+      <p className="notice small">
+        Someone shared this match analysis with you. The link works until{" "}
+        {share ? new Date(share.expiresAt).toLocaleString() : "it expires"}.
+        {share?.matchVisible && (
+          <> You were in this match: <Link to={`/matches/${encodeURIComponent(match.data.matchId)}`}>open your own match page</Link>.</>
+        )}{" "}
+        Player pages open only for players you have played with or against, after <Link to="/">signing in</Link>.
+      </p>
+    </MatchView>
+  );
+}
+
+function ShareMatch({ matchId }: { matchId: string }) {
+  const [links, setLinks] = useState<ShareLink[] | null>(null);
+  const [fresh, setFresh] = useState<ShareLink | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    setFresh(null);
+    api.shares(matchId).then(setLinks, () => setLinks([]));
+  }, [matchId]);
+
+  async function create() {
+    setError(null);
+    try {
+      const link = await api.createShare(matchId);
+      setFresh(link);
+      setLinks((l) => [link, ...(l ?? [])]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+  async function remove(id: number) {
+    await api.deleteShare(id).catch(() => undefined);
+    setLinks((l) => (l ?? []).filter((x) => x.id !== id));
+    if (fresh?.id === id) setFresh(null);
+  }
+  async function copy(url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked: the link is still shown to copy by hand */
+    }
+  }
+  const until = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <details className="share">
+      <summary>Share this match</summary>
+      <p className="small muted">
+        Anyone with the link can see this page, with classes, evidence events and clips, for 48 hours without signing
+        in. Player pages are not shared: they still need an account that has played with or against the player.
+      </p>
+      {fresh?.url ? (
+        <div className="share-link">
+          <input readOnly value={fresh.url} onFocus={(e) => e.currentTarget.select()} aria-label="Share link" />
+          <button className="button small-button" onClick={() => copy(fresh.url!)}>{copied ? "Copied" : "Copy"}</button>
+        </div>
+      ) : (
+        <button className="button small-button" onClick={create}>Create link</button>
+      )}
+      {error && <p className="error small">{error}</p>}
+      {links && links.length > 0 && (
+        <ul className="share-list small">
+          {links.map((l) => (
+            <li key={l.id}>
+              Link made {new Date(l.createdAt).toLocaleString()}, works until {until(l.expiresAt)}{" "}
+              <button className="button small-button danger" onClick={() => remove(l.id)}>Stop sharing</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </details>
+  );
+}
+
+function MatchView({ data, evidence, evidenceError, children }: {
+  data: MatchDetail;
+  evidence: EvidenceEvent[] | null;
+  evidenceError: string | null;
+  children?: ReactNode;
+}) {
+  const me = useUser()?.steamId ?? "";
   const names = Object.fromEntries(data.players.map((p) => [p.steamId, p.name ?? p.steamId]));
 
   // The viewer's team first; with no known team, the team that started CT first (CS2's own order).
@@ -227,6 +339,8 @@ export function MatchPage() {
         {data.valveDemo && <ValveDemo demo={data.valveDemo} />}
       </div>
 
+      {children}
+
       {data.processingStatus !== "COMPLETED" && (
         <p className="notice">This match is {data.processingStatus.toLowerCase()}.{data.error && ` ${data.error}`}</p>
       )}
@@ -243,7 +357,7 @@ export function MatchPage() {
 
       <h2>Evidence events</h2>
       {data.clips && <ClipsNotice clips={data.clips} />}
-      {!evidence.data ? <Loading error={evidence.error} /> : <EvidenceList events={evidence.data} names={names} />}
+      {!evidence ? <Loading error={evidenceError} /> : <EvidenceList events={evidence} names={names} />}
     </>
   );
 }
