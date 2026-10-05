@@ -98,8 +98,8 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
       </p>
       <ul>
         <li>
-          <strong>cs2a_session</strong> (cookie): keeps you signed in. It lasts until you close the browser, or 30 days if
-          you tick "Keep me signed in". Signing out removes it.
+          <strong>cs2a_session</strong> (cookie): keeps you signed in. It lasts 30 days, so you stay signed in on this
+          device. Signing out removes it.
         </li>
         <li>
           <strong>cs2a_openid_state</strong> (cookie, 10 minutes): checks that the Steam sign-in that comes back is the one

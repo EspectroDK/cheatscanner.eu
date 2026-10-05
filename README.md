@@ -130,8 +130,7 @@ default, so local use works as before. Set `CS2A_AUTH_ENABLED=1` and `CS2A_PUBLI
 the browser uses, e.g. `https://scanner.example`) to turn it on:
 
 - `GET /auth/steam/login` sends the browser to Steam; the callback is verified directly with Steam
-  before the SteamID is trusted, then a session cookie is set (kept 30 days with `?remember=1`, the
-  "Keep me signed in" box; otherwise it ends with the browser session). `GET /me` shows the signed-in user.
+  before the SteamID is trusted, then a session cookie is set. `GET /me` shows the signed-in user.
 - `POST /me/tokens` (from a signed-in browser) creates an API token for programs, sent as
   `Authorization: Bearer <token>`; `DELETE /me/tokens/{id}` revokes it. Only hashes are stored.
 - All data endpoints then need a session or token; `/health`, `/site-info` and `/site-stats` (aggregate usage counts for the front page) stay public.
