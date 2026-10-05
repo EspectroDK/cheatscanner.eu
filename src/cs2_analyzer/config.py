@@ -97,6 +97,8 @@ class Config:
                 data["api"][key] = int(os.environ[env])
         if os.environ.get("CS2A_CLIP_ALL_EVENTS"):
             data.setdefault("evidence", {})["clip_all_events"] = os.environ["CS2A_CLIP_ALL_EVENTS"].strip().lower() in ("1", "true", "yes")
+        if os.environ.get("CS2A_DEFER_CLIPS"):
+            data.setdefault("worker", {})["defer_clips"] = os.environ["CS2A_DEFER_CLIPS"].strip().lower() in ("1", "true", "yes")
         if os.environ.get("CS2A_WORKER_ROLE"):
             data.setdefault("worker", {})["role"] = os.environ["CS2A_WORKER_ROLE"].strip().lower()
         if os.environ.get("CS2A_API_WORKERS"):

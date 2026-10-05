@@ -253,7 +253,10 @@ doesn't lose queued demos. The server runs `CS2A_WORKERS` of them (default 2).
   On a CX33 with 4 workers: `CS2A_WORKERS=2` and `CS2A_CLIP_WORKERS=2` in `.env`, then
   `docker compose up -d`. The Admin page shows *Clips waiting*. To make clips only for players rated
   Elevated or High in a match (fewer clips, also for clips already waiting), set `CS2A_CLIP_ALL_EVENTS=0`;
-  remove it to go back. Kept demos take disk space while clips
+  remove it to go back.
+  To switch the separation off (no demos kept waiting for clips), set `CS2A_DEFER_CLIPS=0`; clips already
+  queued are still rendered. Workers also render clips inside the analysis by themselves while less than
+  30 GB of disk is free (`worker.defer_min_free_gb`). Kept demos take disk space while clips
   wait (about 150-250 MB each), and uploads stop below `CS2A_MIN_FREE_DISK_GB`.
 - A deploy first pauses the workers: each finishes the demo it has but takes no new one, so the restart
   (after at most 10 minutes) interrupts as little as possible; the new workers carry on with the queue.

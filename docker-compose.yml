@@ -79,6 +79,8 @@ services:
       CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
       # 0: evidence clips only for players rated Elevated or High in the match
       CS2A_CLIP_ALL_EVENTS: ${CS2A_CLIP_ALL_EVENTS:-}
+      # 0: render clips inside the analysis (no separate clips jobs, no demos kept waiting)
+      CS2A_DEFER_CLIPS: ${CS2A_DEFER_CLIPS:-}
     volumes:
       - ./data:/app/data
       - ./output:/app/output
@@ -99,6 +101,8 @@ services:
       CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
       # 0: evidence clips only for players rated Elevated or High in the match
       CS2A_CLIP_ALL_EVENTS: ${CS2A_CLIP_ALL_EVENTS:-}
+      # 0: render clips inside the analysis (no separate clips jobs, no demos kept waiting)
+      CS2A_DEFER_CLIPS: ${CS2A_DEFER_CLIPS:-}
     volumes:
       - ./data:/app/data
       - ./output:/app/output

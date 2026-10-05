@@ -36,7 +36,8 @@ def _demo(tmp_path, name="a.dem"):
 
 
 def _worker(config, db, name, role="analysis", **cfg):
-    config = config.with_overrides({"worker": {"heartbeat_s": 0.05, "poll_s": 0.02, **cfg}})
+    # defer_min_free_gb 0: the test machine's free disk must not decide whether clips are deferred
+    config = config.with_overrides({"worker": {"heartbeat_s": 0.05, "poll_s": 0.02, "defer_min_free_gb": 0, **cfg}})
     return AnalysisWorker(config, db, name=name, role=role)
 
 
@@ -397,10 +398,29 @@ def test_clips_only_for_flagged_players_also_drops_queued_normal_clips(config, d
     monkeypatch.setenv("CS2A_CLIP_ALL_EVENTS", "0")
     from cs2_analyzer.config import Config
 
-    cfg = Config.load(overrides={"output": config.section("output"), "worker": {"heartbeat_s": 0.05}})
+    cfg = Config.load(overrides={"output": config.section("output"),
+                                 "worker": {"heartbeat_s": 0.05, "defer_min_free_gb": 0}})
     assert cfg.get("evidence.clip_all_events") is False
     AnalysisWorker(cfg, db, name="w2").process(db.claim_analysis_job("w2", STALE))
     assert rendered == []
     st = db.clip_status("m1")
     assert st["state"] == "DONE" and st["pending"] == 0
     assert not any(e["clipPending"] or e["clipUrl"] for e in db.match_evidence("m1"))
+
+
+def test_separate_clips_can_be_switched_off_and_stop_when_disk_runs_low(config, db, tmp_path, monkeypatch):
+    import shutil as sh
+    from collections import namedtuple
+
+    from cs2_analyzer.config import Config
+
+    monkeypatch.setenv("CS2A_DEFER_CLIPS", "0")
+    assert Config.load().get("worker.defer_clips") is False
+    monkeypatch.delenv("CS2A_DEFER_CLIPS")
+    w = _worker(config, db, "w1", defer_min_free_gb=30)
+    usage = namedtuple("u", "total used free")
+    monkeypatch.setattr(sh, "disk_usage", lambda p: usage(100 << 30, 90 << 30, 10 << 30))
+    assert not w.should_defer(tmp_path / "a.dem")
+    monkeypatch.setattr(sh, "disk_usage", lambda p: usage(100 << 30, 50 << 30, 50 << 30))
+    assert w.should_defer(tmp_path / "a.dem")
+    assert not _worker(config, db, "w2", defer_clips=False).should_defer(tmp_path / "a.dem")

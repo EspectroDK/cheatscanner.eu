@@ -50,7 +50,9 @@ busy_retry_s = 60                # the same match is being analyzed elsewhere: l
 role = "analysis"
 # Save a match's results as soon as it is scored and render its evidence clips in a separate clips job, so the
 # match page shows the results right away. The demo is kept until its clips are rendered.
+# env CS2A_DEFER_CLIPS=0: render the clips inside the analysis, as before (demo deleted right after).
 defer_clips = true
+defer_min_free_gb = 30           # below this much free disk, clips are rendered inside the analysis anyway
 
 [site]
 name = "Cheatscanner"

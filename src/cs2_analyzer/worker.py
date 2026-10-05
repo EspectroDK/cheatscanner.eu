@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import signal
 import socket
 import threading
@@ -81,6 +82,8 @@ class AnalysisWorker:
         # The job kinds this worker takes, its own first.
         self.kinds = [CLIP_KINDS, ANALYSIS_KINDS] if self.role == "clips" else [ANALYSIS_KINDS, CLIP_KINDS]
         self.defer_clips = bool(config.get("worker.defer_clips", True))
+        # Below this much free disk, clips are rendered inside the analysis again (no demos kept waiting).
+        self.defer_min_free = float(config.get("worker.defer_min_free_gb", 30)) * 2**30
         self.name = (name or f"{socket.gethostname()}-{os.getpid()}")[:128]
         self.download = demo_downloader or download_demo
         self.wake = wake or threading.Event()
@@ -256,7 +259,7 @@ class AnalysisWorker:
             res = pipeline.analyze_demo(path, self.config, db=self.db, keep_demo=job["keepDemo"], force=job["force"],
                                         match_id=job["requestedMatchId"], generate_evidence=job["generateEvidence"],
                                         played_at=job["playedAt"], on_parsed=on_parsed,
-                                        filter_modes=True, defer_clips=self.defer_clips)
+                                        filter_modes=True, defer_clips=self.should_defer(path))
         except MatchBusy as exc:
             log.info("%s: match %s is being analyzed by another worker; trying again later", path.name, exc)
             self.db.requeue_analysis_job(jid, None, delay=self.busy_retry)
@@ -312,6 +315,20 @@ class AnalysisWorker:
             log.warning("could not queue Steam chat messages for %s", mid, exc_info=True)
         self.db.finish_analysis_job(jid, "COMPLETED", match_id=mid, demo_deleted=bool(res.demo_deleted), error=None)
         self._share_code_done(job, "DONE", mid, None)
+
+    def should_defer(self, path: Path) -> bool:
+        """Leave the clips to a clips job (keeping the demo until then), unless switched off or disk runs low."""
+        if not self.defer_clips:
+            return False
+        try:
+            free = shutil.disk_usage(path.parent).free
+        except OSError:
+            return True
+        if free < self.defer_min_free:
+            log.info("%s: only %.0f GB disk free, so its clips are rendered now (no demo kept for later)",
+                     path.name, free / 2**30)
+            return False
+        return True
 
     def _clips(self, job: dict) -> None:
         """Render the evidence clips an analysis left for later, then let the demo go."""
