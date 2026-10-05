@@ -188,13 +188,14 @@ def test_download_demo_checks_url_and_unpacks(tmp_path, monkeypatch):
                "http://replay.valve.net/730/003845372578323497175_0723140305.dem.bz2",
                "http://replay183.valve.net:80/730/003845372578323497175_0723140305.dem.bz2",
                "http://REPLAY183.Valve.net/730/003845372578323497175_0723140305_273.dem.bz2",
-               "http://replay129.wmsj.cn/730/003845372578323497175_0723140305.dem.bz2"):
+               "http://replay129.wmsj.cn/730/003845372578323497175_0723140305.dem.bz2",
+               "http://replay308.csgo.com.cn/730/003846579163485962624_0597676167.dem.bz2"):
         assert is_replay_url(ok), ok
     for bad in ("http://replay1.valve.net.evil.com/730/1_2.dem.bz2", "http://evil.com/730/1_2.dem.bz2",
                 "http://user@replay1.valve.net/730/1_2.dem.bz2", "http://replay1.valve.net:8080/730/1_2.dem.bz2",
                 "http://replay1.valve.net/730/../x.dem.bz2", "http://replay1.valve.net/740/1_2.dem.bz2",
                 "http://replay1.valve.net/730/1_2.dem.bz2?x=1", "ftp://replay1.valve.net/730/1_2.dem.bz2",
-                "http://evilvalve.net/730/1_2.dem.bz2", "not a url"):
+                "http://evilvalve.net/730/1_2.dem.bz2", "http://replay1.csgo.com.cn.evil.com/730/1_2.dem.bz2", "not a url"):
         assert not is_replay_url(bad), bad
     with pytest.raises(ValueError):
         download_demo("http://example.com/x.dem.bz2", tmp_path / "x.dem", 10, 10)
