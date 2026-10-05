@@ -379,6 +379,26 @@ min_shots_on_target = 12           # first shots only add severity, never raise 
 min_shot_share = 0.3
 first_shot_bonus = 0.1
 
+[detectors.hidden_fire]
+# Bursts fired with no enemy in view that land within on_target_deg of a hidden enemy
+# whose legitimate position estimate is >= min_gap_deg off, compared with "ghost"
+# enemies (the enemy team at the same time of other rounds), plus hits on hidden
+# enemies. CS2CD Mirage+Nuke (174 matches): excess >= 3 and >= 10 hidden hits for
+# 1 of 714 clean players and 32 of 420 labelled cheaters.
+enabled = true
+reliability = 0.6
+on_target_deg = 1.5
+min_gap_deg = 5.0                  # legitimate estimate at least this far off (sound alone gives 6)
+first_shots = 3                    # blind shots per burst that are checked
+burst_gap_ms = 500
+visible_lookback_ms = 250          # no enemy visible now or this long before the shot
+max_distance_u = 3000
+ghost_rounds = 6
+min_excess = 3.0
+full_excess = 8.0
+min_hidden_hits = 10
+full_hidden_hits = 25
+
 [detectors.smoke_kills]
 # Kills the game itself marks as through smoke (player_death.thrusmoke). Calibrated
 # on 795 CS2CD matches: clean p99 is 4; >=10 and >=35% of kills: 2 of 4,598 clean
