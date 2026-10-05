@@ -165,7 +165,7 @@ def cmd_worker(args) -> int:
 
     cfg = _load_cfg(args)
     logging.getLogger("cs2_analyzer").setLevel(logging.INFO)  # `docker compose logs -f worker`
-    AnalysisWorker(cfg, _db(cfg, args)).run_process()
+    AnalysisWorker(cfg, _db(cfg, args), role=args.role).run_process()
     return 0
 
 
@@ -436,6 +436,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_serve)
 
     w = sub.add_parser("worker", help="analysis worker: analyze queued demos (uploads, fetched matches) until stopped")
+    w.add_argument("--role", choices=["analysis", "clips"],
+                   help="what this worker does first: analyze demos, or render evidence clips "
+                        "(default: worker.role, env CS2A_WORKER_ROLE, else analysis)")
     w.set_defaults(func=cmd_worker)
 
     pz = sub.add_parser("pause", help="pause the analysis workers: they finish their demo but take no new one")
@@ -443,7 +446,8 @@ def build_parser() -> argparse.ArgumentParser:
     pz.set_defaults(func=cmd_pause)
 
     q = sub.add_parser("queue", help="show the analysis queue (JSON)")
-    q.add_argument("--field", choices=["queued", "processing", "uploads", "oldestWaitingSeconds", "workers"],
+    q.add_argument("--field", choices=["queued", "processing", "uploads", "oldestWaitingSeconds", "clipsQueued",
+                                       "clipsProcessing", "busy", "workers", "clipWorkers"],
                    help="print only this number")
     q.set_defaults(func=cmd_queue)
 

@@ -27,6 +27,9 @@ def _utc(dt):
 
 
 ACTIVE_JOB = ("QUEUED", "PROCESSING")
+# Job kinds: demos to analyze, and evidence clips to render for an analyzed match (worker.py).
+ANALYSIS_KINDS = ("upload", "import", "fetch")
+CLIP_KINDS = ("clips",)
 
 
 class AlreadyProcessedError(Exception):
@@ -53,12 +56,15 @@ class Database:
 
     def init_schema(self):
         if self.engine.dialect.name != "postgresql":
-            M.Base.metadata.create_all(self.engine)
+            with self.engine.begin() as conn:
+                M.Base.metadata.create_all(conn)
+                _add_missing_columns(conn)
             return
         # The API, the poller and every worker start together: one creates missing tables at a time.
         with self.engine.begin() as conn:
             conn.execute(text("SELECT pg_advisory_xact_lock(4242001)"))
             M.Base.metadata.create_all(conn)
+            _add_missing_columns(conn)
 
     def _insert_missing(self, model, rows: list[dict]) -> None:
         """Insert rows whose primary key doesn't exist yet; existing rows stay as they are (safe under concurrency)."""
@@ -372,7 +378,9 @@ class Database:
         with self.session() as s:
             rows = s.scalars(select(M.EvidenceEvent).where(M.EvidenceEvent.match_id == match_id)
                              .order_by(M.EvidenceEvent.confidence.desc()).limit(limit)).all()
-            return [_event(e) for e in rows]
+            m = s.get(M.Match, match_id)
+            pending = _clips_pending({match_id: m} if m else {})
+            return [_event(e, pending) for e in rows]
 
     def player_evidence(self, steam_id: int, limit: int = 200, only_match_ids: set[str] | None = None) -> list[dict]:
         with self.session() as s:
@@ -381,7 +389,8 @@ class Database:
                 q = q.where(M.EvidenceEvent.match_id.in_(only_match_ids))
             rows = s.scalars(q.order_by(M.EvidenceEvent.confidence.desc()).limit(limit)).all()
             matches = {m.match_id: m for m in s.scalars(select(M.Match).where(M.Match.match_id.in_({e.match_id for e in rows})))}
-            return [_event(e) | {"map": getattr(matches.get(e.match_id), "map", None),
+            pending = _clips_pending(matches)
+            return [_event(e, pending) | {"map": getattr(matches.get(e.match_id), "map", None),
                                  "playedAt": _iso(getattr(matches.get(e.match_id), "played_at", None))} for e in rows]
 
     def risk(self, steam_id: int) -> dict | None:
@@ -709,7 +718,7 @@ class Database:
     def enqueue_analysis(self, kind: str, path: str | Path, *, user_id: int | None = None, share_code: str | None = None,
                          demo_url: str | None = None, force: bool = False, keep_demo: bool = False,
                          generate_evidence: bool = False, requested_match_id: str | None = None,
-                         played_at=None) -> dict:
+                         played_at=None, match_id: str | None = None) -> dict:
         """Put a demo in the analysis queue; any worker picks it up. Returns the job as the API shows it."""
         p = Path(path)
         with self.session() as s:
@@ -717,7 +726,7 @@ class Database:
                               file_name=p.name[:255], share_code=share_code, demo_url=demo_url, force=force,
                               keep_demo=keep_demo, generate_evidence=generate_evidence,
                               requested_match_id=requested_match_id, played_at=_utc(played_at), attempts=0,
-                              created_at=datetime.now(timezone.utc))
+                              match_id=match_id, created_at=datetime.now(timezone.utc))
             s.add(j)
             s.flush()
             return _analysis_job(j)
@@ -727,18 +736,21 @@ class Database:
             return s.scalar(select(M.AnalysisJob.id).where(M.AnalysisJob.share_code == share_code,
                                                            M.AnalysisJob.status.in_(ACTIVE_JOB)).limit(1)) is not None
 
-    def claim_analysis_job(self, worker: str, stale_after: timedelta) -> dict | None:
+    def claim_analysis_job(self, worker: str, stale_after: timedelta, kinds: tuple[str, ...] | None = None) -> dict | None:
         """The oldest queued job (or one whose worker stopped sending heartbeats), now PROCESSING for ``worker``.
 
-        ``FOR UPDATE SKIP LOCKED`` keeps two PostgreSQL workers from even looking at the same row; the
-        conditional UPDATE does the same where there are no row locks (SQLite).
+        ``kinds`` limits it to those job kinds (``ANALYSIS_KINDS``, ``CLIP_KINDS``). ``FOR UPDATE SKIP LOCKED``
+        keeps two PostgreSQL workers from even looking at the same row; the conditional UPDATE does the same
+        where there are no row locks (SQLite).
         """
         now = datetime.now(timezone.utc)
         J = M.AnalysisJob
         with self.session() as s:
-            q = (select(J).where(((J.status == "QUEUED") & (J.run_after.is_(None) | (J.run_after <= now)))
-                                 | ((J.status == "PROCESSING") & (J.heartbeat_at < now - stale_after)))
-                 .order_by(J.created_at).limit(1).with_for_update(skip_locked=True))
+            q = select(J).where(((J.status == "QUEUED") & (J.run_after.is_(None) | (J.run_after <= now)))
+                                | ((J.status == "PROCESSING") & (J.heartbeat_at < now - stale_after)))
+            if kinds is not None:
+                q = q.where(J.kind.in_(kinds))
+            q = q.order_by(J.created_at).limit(1).with_for_update(skip_locked=True)
             j = s.scalar(q)
             if j is None:
                 return None
@@ -754,6 +766,14 @@ class Database:
             s.flush()
             s.refresh(j)
             return _analysis_job(j, internal=True) | {"takenOver": taken_over}
+
+    def jobs_waiting(self, kinds: tuple[str, ...]) -> bool:
+        """A job of these kinds is queued and may start now (an analysis worker rendering clips steps aside)."""
+        now = datetime.now(timezone.utc)
+        J = M.AnalysisJob
+        with self.session() as s:
+            return s.scalar(select(J.id).where(J.kind.in_(kinds), J.status == "QUEUED",
+                                               J.run_after.is_(None) | (J.run_after <= now)).limit(1)) is not None
 
     def heartbeat_analysis_job(self, job_id: str, worker: str) -> bool:
         """Still working on it. False if the job is no longer this worker's (another worker took it over)."""
@@ -811,6 +831,123 @@ class Database:
             j = s.get(M.AnalysisJob, job_id)
             return None if j is None else _analysis_job(j, internal=True)
 
+    # ------------------------------------------------------ evidence clips rendered after the analysis
+
+    def set_clip_plan(self, match_id: str, event_ids: list[str]) -> None:
+        """The analysis left these events' clips to a clips job: the match page shows them as on their way."""
+        with self.session() as s:
+            m = s.get(M.Match, match_id, with_for_update=True)
+            if m is not None:
+                m.meta = dict(m.meta or {}) | {"clips": {"pending": list(event_ids), "total": len(event_ids), "done": 0,
+                                                         "state": "QUEUED" if event_ids else "DONE"}}
+
+    def clip_plan(self, match_id: str) -> dict | None:
+        with self.session() as s:
+            m = s.get(M.Match, match_id)
+            return dict((m.meta or {}).get("clips") or {}) if m is not None else None
+
+    def has_active_clips_job(self, match_id: str) -> bool:
+        J = M.AnalysisJob
+        with self.session() as s:
+            return s.scalar(select(J.id).where(J.kind.in_(CLIP_KINDS), J.match_id == match_id,
+                                               J.status.in_(ACTIVE_JOB)).limit(1)) is not None
+
+    def clip_events(self, match_id: str, event_ids: list[str]) -> list[M.EvidenceEvent]:
+        with self.session() as s:
+            rows = {e.id: e for e in s.scalars(select(M.EvidenceEvent).where(M.EvidenceEvent.match_id == match_id,
+                                                                            M.EvidenceEvent.id.in_(event_ids)))}
+            return [rows[i] for i in event_ids if i in rows]
+
+    def update_clip_plan(self, match_id: str, *, done_event: str | None = None, video_path: str | None = None,
+                         render_s: float | None = None, prep_s: float | None = None, state: str | None = None,
+                         demo_deleted: bool | None = None) -> dict | None:
+        """Progress of a clips job: one clip rendered (``done_event``), time spent preparing, or its end state.
+
+        ``render_s`` and ``prep_s`` add up per match, for the estimate of when clips arrive.
+        """
+        with self.session() as s:
+            m = s.get(M.Match, match_id, with_for_update=True)
+            if m is None:
+                return None
+            c = dict((m.meta or {}).get("clips") or {})
+            if done_event is not None:
+                if video_path is not None:
+                    e = s.get(M.EvidenceEvent, done_event)
+                    if e is not None:
+                        e.video_path = video_path
+                c["pending"] = [i for i in c.get("pending", []) if i != done_event]
+                c["done"] = int(c.get("done", 0)) + 1
+            if render_s is not None:
+                c["renderSeconds"] = round(float(c.get("renderSeconds", 0.0)) + render_s, 2)
+                c["rendered"] = int(c.get("rendered", 0)) + 1
+            if prep_s is not None:
+                c["prepSeconds"] = round(float(c.get("prepSeconds", 0.0)) + prep_s, 2)
+                c["preps"] = int(c.get("preps", 0)) + 1
+            if state is not None:
+                c["state"] = state
+                if state in ("DONE", "FAILED"):
+                    c["pending"] = []
+                    c["finishedAt"] = _iso(datetime.now(timezone.utc))
+            if demo_deleted is not None:
+                m.demo_deleted = demo_deleted
+            m.meta = dict(m.meta or {}) | {"clips": c}
+            return c
+
+    def clip_status(self, match_id: str, default_clip_s: float = 120.0, default_prep_s: float = 90.0,
+                    alive_after: timedelta = timedelta(minutes=2)) -> dict | None:
+        """Clips of a match still being rendered, and roughly when they will all be there (match page).
+
+        The estimate: the clips waiting ahead of this match in the queue, shared by the workers that render
+        clips, plus this match's own, at the average time per clip of recently finished clips jobs.
+        """
+        now = datetime.now(timezone.utc)
+        J, W = M.AnalysisJob, M.AnalysisWorkerSeen
+        with self.session() as s:
+            m = s.get(M.Match, match_id)
+            c = ((m.meta or {}).get("clips") if m is not None else None) or None
+            if not c:
+                return None
+            pending = list(c.get("pending") or [])
+            out = {"state": c.get("state", "DONE"), "total": int(c.get("total", 0)), "pending": len(pending),
+                   "ready": max(0, int(c.get("total", 0)) - len(pending)), "etaSeconds": None}
+            if not pending or out["state"] in ("DONE", "FAILED"):
+                return out
+            # Average time per clip and per demo preparation, from the last 20 finished clips jobs.
+            recent = s.scalars(select(J.match_id).where(J.kind.in_(CLIP_KINDS), J.status == "COMPLETED",
+                                                        J.match_id.is_not(None))
+                               .order_by(J.finished_at.desc()).limit(20)).all()
+            render = rendered = prep = preps = 0.0
+            for mm in s.scalars(select(M.Match).where(M.Match.match_id.in_(set(recent)))) if recent else []:
+                cc = (mm.meta or {}).get("clips") or {}
+                render += float(cc.get("renderSeconds", 0.0))
+                rendered += int(cc.get("rendered", 0))
+                prep += float(cc.get("prepSeconds", 0.0))
+                preps += int(cc.get("preps", 0))
+            per_clip = render / rendered if rendered else default_clip_s
+            per_prep = prep / preps if preps else default_prep_s
+
+            own = s.scalars(select(J).where(J.kind.in_(CLIP_KINDS), J.match_id == match_id, J.status.in_(ACTIVE_JOB))
+                            .order_by(J.created_at).limit(1)).first()
+            if own is None:
+                return out
+            # Clips jobs ahead of this one (queued earlier, or being rendered right now).
+            ahead = s.execute(select(J.match_id, J.status).where(
+                J.kind.in_(CLIP_KINDS), J.status.in_(ACTIVE_JOB), J.id != own.id,
+                (J.status == "PROCESSING") | (J.created_at < own.created_at))).all()
+            ahead_s = 0.0
+            ahead_meta = {mm.match_id: (mm.meta or {}).get("clips") or {}
+                          for mm in s.scalars(select(M.Match).where(M.Match.match_id.in_({a for a, _ in ahead})))} if ahead else {}
+            for mid, status in ahead:
+                n = len((ahead_meta.get(mid) or {}).get("pending") or [])
+                ahead_s += n * per_clip + (0.0 if status == "PROCESSING" else per_prep)
+            roles = dict(s.execute(select(W.role, func.count()).where(W.last_seen_at >= now - alive_after)
+                                   .group_by(W.role)).all())
+            renderers = max(1, int(roles.get("clips", 0)) or sum(int(v) for v in roles.values()))
+            own_s = len(pending) * per_clip + (0.0 if own.status == "PROCESSING" else per_prep)
+            out["etaSeconds"] = round(ahead_s / renderers + own_s)
+            out["state"] = "RENDERING" if own.status == "PROCESSING" else "QUEUED"
+            return out
+
     def queued_uploads(self, user_id: int) -> int:
         """The user's uploaded demos still waiting for or in analysis (per-user queue limit)."""
         J = M.AnalysisJob
@@ -823,24 +960,38 @@ class Database:
         now = datetime.now(timezone.utc)
         J, W = M.AnalysisJob, M.AnalysisWorkerSeen
         with self.session() as s:
-            counts = dict(s.execute(select(J.status, func.count()).where(J.status.in_(ACTIVE_JOB))
-                                    .group_by(J.status)).all())
+            counts = {(clip, st): 0 for clip in (False, True) for st in ACTIVE_JOB}   # (clips job?, status)
+            for kind, st, n in s.execute(select(J.kind, J.status, func.count()).where(J.status.in_(ACTIVE_JOB))
+                                         .group_by(J.kind, J.status)).all():
+                counts[(kind in CLIP_KINDS, st)] += int(n)
             uploads = s.scalar(select(func.count()).select_from(J).where(J.kind == "upload", J.status.in_(ACTIVE_JOB)))
-            oldest = s.scalar(select(func.min(J.created_at)).where(J.status == "QUEUED"))
-            workers = s.scalar(select(func.count()).select_from(W).where(W.last_seen_at >= now - alive_after))
-            return {"queued": int(counts.get("QUEUED", 0)), "processing": int(counts.get("PROCESSING", 0)),
-                    "uploads": int(uploads or 0),
-                    "oldestWaitingSeconds": round(max(0.0, (now - _utc(oldest)).total_seconds()), 1) if oldest else 0,
-                    "workers": int(workers or 0)}
+            oldest = s.scalar(select(func.min(J.created_at)).where(J.status == "QUEUED", J.kind.not_in(CLIP_KINDS)))
+            oldest_clips = s.scalar(select(func.min(J.created_at)).where(J.status == "QUEUED", J.kind.in_(CLIP_KINDS)))
+            roles = dict(s.execute(select(W.role, func.count()).where(W.last_seen_at >= now - alive_after)
+                                   .group_by(W.role)).all())
 
-    def worker_seen(self, name: str, job_id: str | None) -> None:
+            def waited(t):
+                return round(max(0.0, (now - _utc(t)).total_seconds()), 1) if t else 0
+
+            return {"queued": counts[(False, "QUEUED")], "processing": counts[(False, "PROCESSING")],
+                    "uploads": int(uploads or 0), "oldestWaitingSeconds": waited(oldest),
+                    "clipsQueued": counts[(True, "QUEUED")], "clipsProcessing": counts[(True, "PROCESSING")],
+                    "clipsOldestWaitingSeconds": waited(oldest_clips),
+                    # every running job, analyses and clips (deploy/server-deploy.sh waits for these)
+                    "busy": counts[(False, "PROCESSING")] + counts[(True, "PROCESSING")],
+                    "workers": int(sum(roles.values())),
+                    "clipWorkers": int(roles.get("clips", 0))}
+
+    def worker_seen(self, name: str, job_id: str | None, role: str | None = None) -> None:
         now = datetime.now(timezone.utc)
         with self.session() as s:
             w = s.get(M.AnalysisWorkerSeen, name[:128])
             if w is None:
-                s.add(M.AnalysisWorkerSeen(name=name[:128], started_at=now, last_seen_at=now, job_id=job_id))
+                s.add(M.AnalysisWorkerSeen(name=name[:128], role=role, started_at=now, last_seen_at=now, job_id=job_id))
             else:
                 w.last_seen_at, w.job_id = now, job_id
+                if role is not None:
+                    w.role = role
 
     def worker_gone(self, name: str) -> None:
         with self.session() as s:
@@ -937,6 +1088,25 @@ class Database:
 
 # No 0/O, 1/I/L: the code is read off one screen and typed on another.
 _CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+
+def _add_missing_columns(conn) -> None:
+    """``create_all`` only creates missing tables: add columns that newer versions added to existing ones.
+
+    Only nullable columns without a server default are added this way (all a new column may be).
+    """
+    from sqlalchemy import inspect
+
+    insp = inspect(conn)
+    tables = set(insp.get_table_names())
+    for table in M.Base.metadata.sorted_tables:
+        if table.name not in tables:
+            continue
+        have = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name not in have and col.nullable and not col.primary_key:
+                ddl = col.type.compile(dialect=conn.dialect)
+                conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN "{col.name}" {ddl}'))
 
 
 def _user_code() -> str:
@@ -1074,7 +1244,12 @@ def _why(pa, per_match_details: list) -> dict:
     }
 
 
-def _event(e) -> dict:
+def _clips_pending(matches: dict) -> set[str]:
+    """Events whose clip is still to be rendered (a clips job is queued for their match)."""
+    return {i for m in matches.values() for i in ((m.meta or {}).get("clips") or {}).get("pending", [])}
+
+
+def _event(e, clips_pending: set[str] = frozenset()) -> dict:
     return {"id": e.id, "matchId": e.match_id, "steamId": str(e.steam_id), "round": e.round_number,
             "tickStart": e.tick_start, "tickPeak": e.tick_peak, "tickEnd": e.tick_end, "detector": e.detector_type,
             "detectorVersion": e.detector_version, "severity": e.severity, "reliability": e.reliability,
@@ -1085,6 +1260,7 @@ def _event(e) -> dict:
             "clipUrl": f"/evidence/{e.id}/clip" if _is_file(e.video_path) else None,
             "posterUrl": f"/evidence/{e.id}/poster" if _is_file(e.video_path) and _is_file(_poster(e.video_path)) else None,
             "plotUrl": f"/evidence/{e.id}/plot" if _is_file(e.debug_plot_path) else None,
+            "clipPending": e.id in clips_pending and not _is_file(e.video_path),
             "createdAt": _iso(e.created_at)}
 
 

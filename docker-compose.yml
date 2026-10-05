@@ -84,6 +84,23 @@ services:
     stop_grace_period: 30s
     profiles: ["workers"]
 
+  # Workers that render evidence clips first (and analyze demos while no clips wait). Without them the analysis
+  # workers render the clips whenever no demo is waiting. The public server sets how many with CS2A_CLIP_WORKERS.
+  clip-worker:
+    build: .
+    command: ["worker", "--role", "clips"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
+      CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    stop_grace_period: 30s
+    profiles: ["workers"]
+
   # Automatic demo fetching: docker compose --profile fetch up -d
   poller:
     build: .

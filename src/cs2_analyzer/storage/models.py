@@ -405,8 +405,9 @@ class AnalysisJob(Base):
     __tablename__ = "analysis_jobs"
     __table_args__ = (Index("ix_analysis_jobs_queue", "status", "created_at"),)
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
-    kind: Mapped[str] = mapped_column(String(16))                 # upload | import | fetch
-    # QUEUED -> PROCESSING -> COMPLETED | DUPLICATE | FAILED
+    # upload | import | fetch: analyze a demo; clips: render the evidence clips of an analyzed match (match_id)
+    kind: Mapped[str] = mapped_column(String(16))
+    # QUEUED -> PROCESSING -> COMPLETED | DUPLICATE | SKIPPED | FAILED
     status: Mapped[str] = mapped_column(String(16), default="QUEUED")
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     path: Mapped[str] = mapped_column(Text)                       # the .dem (for fetch: where the download goes)
@@ -449,6 +450,7 @@ class AnalysisWorkerSeen(Base):
 
     __tablename__ = "analysis_workers"
     name: Mapped[str] = mapped_column(String(128), primary_key=True)
+    role: Mapped[str | None] = mapped_column(String(16))          # analysis | clips (worker.role)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     job_id: Mapped[str | None] = mapped_column(String(32))

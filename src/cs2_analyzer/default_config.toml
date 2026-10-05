@@ -44,6 +44,13 @@ heartbeat_s = 20                 # a running analysis tells the database it is a
 stale_after_s = 120              # no heartbeat for this long: the worker is gone, another one takes the demo
 max_attempts = 3                 # a demo whose worker keeps dying (e.g. out of memory) fails after this many
 busy_retry_s = 60                # the same match is being analyzed elsewhere: look again after this long
+# What a worker does first (env CS2A_WORKER_ROLE, or `cs2-analyzer worker --role`): "analysis" analyzes demos and
+# renders clips only while no demo waits (stepping aside between two clips when one arrives); "clips" renders
+# evidence clips and analyzes demos only while no clips wait.
+role = "analysis"
+# Save a match's results as soon as it is scored and render its evidence clips in a separate clips job, so the
+# match page shows the results right away. The demo is kept until its clips are rendered.
+defer_clips = true
 
 [site]
 name = "Cheatscanner"
@@ -456,3 +463,6 @@ clip_pov_width = 640             # resolution of the 3D view: the size it fills 
 # tools/geometry/build_tris.py --out data/maps/render), clips use it; line of sight keeps geometry.maps_dir.
 render_maps_dir = "./data/maps/render"
 debug_plot_min_confidence = 0.0
+# Estimate of when deferred clips arrive (match page), until finished clips jobs give real averages.
+eta_default_clip_s = 120
+eta_default_prep_s = 90

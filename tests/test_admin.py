@@ -70,7 +70,8 @@ def test_overview_counts(config, tmp_path):
     assert o["companion"]["linkedApps"] == 1 and o["companion"]["activeLast15m"] == 1
     assert o["companion"]["lookups24h"] == 1 and o["companion"]["lookupUsers24h"] == 1
     assert o["live"] == {"queued": 0, "processing": 0, "uploads": 0, "oldestWaitingSeconds": 0,
-                         "receivingUploads": 0, "workers": 1}
+                         "receivingUploads": 0, "clipsQueued": 0, "clipsProcessing": 0,
+                         "clipsOldestWaitingSeconds": 0, "workers": 1, "clipWorkers": 0}
     assert o["system"]["fetcherLastSeenAt"] is None
     # The lookup is only counted: no Steam IDs are kept.
     with db.session() as s:

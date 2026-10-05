@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, type MatchDetail } from "../api";
+import { api, type ClipStatus, type MatchDetail } from "../api";
 import { MapBanner, mapName, SIDE_NAME, SideEmblem } from "../art";
 import { EvidenceList } from "../Evidence";
 import { ClassBadge, Loading, pct, Rank, useLoad, useUser, when } from "../ui";
@@ -142,11 +143,45 @@ function ValveDemo({ demo }: { demo: NonNullable<MatchDetail["valveDemo"]> }) {
   );
 }
 
+const CLIP_REFRESH_MS = 30_000;
+
+function aboutMinutes(seconds: number): string {
+  const min = Math.max(1, Math.round(seconds / 60));
+  if (min < 60) return `about ${min} min`;
+  const h = Math.floor(min / 60);
+  const m = Math.round((min % 60) / 5) * 5;
+  return `about ${h} h${m ? ` ${m} min` : ""}`;
+}
+
+/** Results come first; the evidence clips are rendered afterwards, and this says when to expect them. */
+function ClipsNotice({ clips }: { clips: ClipStatus }) {
+  if (clips.state === "DONE" || clips.pending === 0) return null;
+  if (clips.state === "FAILED")
+    return <p className="notice">Some evidence clips of this match could not be made. The results above are complete.</p>;
+  const eta = clips.etaSeconds != null ? `, the rest in ${aboutMinutes(clips.etaSeconds)}` : "";
+  return (
+    <p className="notice">
+      Evidence clips: {clips.ready} of {clips.total} ready{eta}.{" "}
+      {clips.state === "RENDERING" ? "They are being made now" : "They are waiting their turn"}; the results are final
+      and this page adds the clips as they arrive.
+    </p>
+  );
+}
+
 export function MatchPage() {
   const { id = "" } = useParams();
   const me = useUser()?.steamId ?? "";
-  const { data, error } = useLoad(() => api.match(id), [id]);
-  const evidence = useLoad(() => api.matchEvidence(id), [id]);
+  // While clips are still being made, look again every half minute (keeping what is shown).
+  const [round, setRound] = useState(0);
+  const { data, error } = useLoad(() => api.match(id), [id, round], round > 0);
+  const evidence = useLoad(() => api.matchEvidence(id), [id, round], round > 0);
+  const waiting = !!data?.clips && data.clips.pending > 0 && (data.clips.state === "QUEUED" || data.clips.state === "RENDERING");
+  useEffect(() => {
+    if (!waiting) return;
+    const t = setTimeout(() => setRound((r) => r + 1), CLIP_REFRESH_MS);
+    return () => clearTimeout(t);
+  }, [waiting, round]);
+  useEffect(() => setRound(0), [id]);
   if (!data) return <Loading error={error} />;
   const names = Object.fromEntries(data.players.map((p) => [p.steamId, p.name ?? p.steamId]));
 
@@ -207,6 +242,7 @@ export function MatchPage() {
       </p>
 
       <h2>Evidence events</h2>
+      {data.clips && <ClipsNotice clips={data.clips} />}
       {!evidence.data ? <Loading error={evidence.error} /> : <EvidenceList events={evidence.data} names={names} />}
     </>
   );

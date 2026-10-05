@@ -60,6 +60,7 @@ class AnalysisResult:
     history: dict[int, dict] = field(default_factory=dict)
     demo_deleted: bool = False
     warnings: list[str] = field(default_factory=list)
+    pending_clips: list[str] = field(default_factory=list)   # events whose clip a clips job renders later
 
 
 class Timer:
@@ -79,14 +80,9 @@ class Timer:
         return _T()
 
 
-def build_analysis(demo: ParsedDemo, config: Config, detector_names: list[str] | None = None,
-                   player_filter: set[int] | None = None, baselines=None, timer: Timer | None = None,
-                   geometry: MapGeometry | None = None, release_ticks: bool = False):
-    """Run everything between parsing and scoring. Separated for tests and tools.
-
-    ``release_ticks`` empties ``demo.ticks`` once the world is built from it: nothing after
-    that reads the tick table, and it is the largest object of an analysis.
-    """
+def build_scene(demo: ParsedDemo, config: Config, timer: Timer | None = None, geometry: MapGeometry | None = None,
+                release_ticks: bool = False):
+    """World, map geometry, smokes, line of sight and knowledge: what both scoring and the clips are drawn from."""
     timer = timer or Timer()
     with timer("world"):
         world = build_world(demo)
@@ -108,6 +104,19 @@ def build_analysis(demo: ParsedDemo, config: Config, detector_names: list[str] |
         vis = VisibilityEngine(world, geometry, smoke, VisibilityParams.from_config(config.section("geometry.visibility"))).compute()
     with timer("knowledge"):
         knowledge = KnowledgeModel(world, vis, demo.events, KnowledgeParams.from_config(config.section("knowledge"))).compute()
+    return world, geometry, smoke, vis, knowledge
+
+
+def build_analysis(demo: ParsedDemo, config: Config, detector_names: list[str] | None = None,
+                   player_filter: set[int] | None = None, baselines=None, timer: Timer | None = None,
+                   geometry: MapGeometry | None = None, release_ticks: bool = False):
+    """Run everything between parsing and scoring. Separated for tests and tools.
+
+    ``release_ticks`` empties ``demo.ticks`` once the world is built from it: nothing after
+    that reads the tick table, and it is the largest object of an analysis.
+    """
+    timer = timer or Timer()
+    world, geometry, smoke, vis, knowledge = build_scene(demo, config, timer, geometry, release_ticks)
     with timer("encounters"):
         encounters = segment_encounters(world, vis, knowledge, demo.events, config.section("encounters"))
     ctx = AnalysisContext(
@@ -156,7 +165,10 @@ def analyze_demo(
     progress=None,
     on_parsed=None,
     filter_modes: bool = False,
+    defer_clips: bool = False,
 ) -> AnalysisResult:
+    """Analyze one demo. With ``defer_clips`` the evidence clips are left to a clips job (``render_clips``):
+    the demo is then kept until that job has rendered them, and ``result.pending_clips`` lists the events."""
     path = Path(path)
     say = progress or (lambda msg: log.info(msg))
     timer = Timer()
@@ -247,13 +259,15 @@ def analyze_demo(
 
         with timer("outputs"):
             _write_outputs(result, config, export_parquet=export_parquet, debug=debug, generate_evidence=generate_evidence,
-                           say=say)
+                           say=say, defer_clips=defer_clips and db is not None)
         if db is not None:
             with timer("persist"):
                 db.save_results(result)
+                if result.pending_clips:
+                    db.set_clip_plan(meta.match_id, result.pending_clips)
         # Everything needed to understand the result is persisted above; only now
-        # may the raw demo go.
-        if not keep:
+        # may the raw demo go (or, with clips still to render, once the clips job is done).
+        if not keep and not result.pending_clips:
             path.unlink(missing_ok=True)
             result.demo_deleted = True
         if db is not None:
@@ -273,6 +287,87 @@ def analyze_demo(
             shutil.copy2(path, dst / path.name)
             path.unlink(missing_ok=True)
         raise
+
+
+@dataclass
+class ClipScene:
+    """What ``evidence.clips.render_clip`` draws from, rebuilt from the demo by a clips job."""
+    world: World
+    geometry: MapGeometry
+    smoke: SmokeModel
+    vis: VisibilityEngine
+    knowledge: KnowledgeModel
+
+
+def load_clip_scene(path: Path, match_id: str, config: Config) -> ClipScene:
+    """Parse the demo again and rebuild what the clips show (no detectors, no scoring)."""
+    backend = backend_for_path(path, config.get("parser.backend", "demoparser2"))
+    demo = get_parser(backend).parse(path, match_id=match_id)
+    world, geometry, smoke, vis, knowledge = build_scene(demo, config, release_ticks=True)
+    return ClipScene(world, geometry, smoke, vis, knowledge)
+
+
+def stored_event(row) -> EvidenceEvent:
+    """An evidence event as saved in the database (storage.models.EvidenceEvent), for drawing its clip."""
+    return EvidenceEvent(
+        match_id=row.match_id, steam_id=int(row.steam_id), round_number=row.round_number, tick_start=row.tick_start,
+        tick_peak=row.tick_peak, tick_end=row.tick_end, detector_type=row.detector_type, severity=row.severity,
+        reliability=row.reliability, information_confidence=row.information_confidence,
+        evidence_axis=row.evidence_axis, evidence_group=row.evidence_group,
+        target_steam_id=int(row.target_steam_id) if row.target_steam_id is not None else None,
+        metrics=dict(row.metrics or {}), context=dict(row.context or {}), explanation=row.explanation or "",
+        detector_version=row.detector_version, id=row.id)
+
+
+class ClipsInterrupted(Exception):
+    """A clips job stepped aside between two clips (``should_stop``); the clips rendered so far are saved."""
+
+
+def render_clips(path: str | Path, match_id: str, config: Config, db, *, should_stop=None, say=None) -> int:
+    """Render the evidence clips an analysis left for later (``analyze_demo(defer_clips=True)``).
+
+    Each clip is saved to its event as soon as it is rendered, so a job that is stopped or steps aside
+    (``should_stop()`` checked between clips) loses at most the clip it was drawing. Returns how many
+    clips were rendered; raises ``ClipsInterrupted`` when it stopped early.
+    """
+    from cs2_analyzer.evidence.clips import render_clip
+
+    say = say or (lambda msg: log.info(msg))
+    should_stop = should_stop or (lambda: False)
+    pending = list((db.clip_plan(match_id) or {}).get("pending") or [])
+    rows = db.clip_events(match_id, pending)
+    if not rows:
+        return 0
+    started = time.perf_counter()
+    scene = load_clip_scene(Path(path), match_id, config)
+    db.update_clip_plan(match_id, prep_s=time.perf_counter() - started)
+    cfg = config.section("evidence")
+    out = Path(config.get("output.dir")) / _safe(match_id)
+    done = 0
+    try:
+        for row in rows:
+            if should_stop():
+                raise ClipsInterrupted(match_id)
+            ev = stored_event(row)
+            if ev.steam_id not in scene.world.index_of:
+                db.update_clip_plan(match_id, done_event=ev.id)
+                continue
+            say(f"Rendering evidence clip {ev.id} ({ev.detector_type}) for "
+                f"{scene.world.names[scene.world.index_of[ev.steam_id]]} ...")
+            t0 = time.perf_counter()
+            video = None
+            if scene.geometry.available:
+                try:
+                    video = str(render_clip(scene, ev, out / str(ev.steam_id) / "clips" / f"{ev.id}.mp4", cfg))
+                except Exception as exc:  # one broken clip must not cost the others
+                    log.warning("clip failed for %s: %s", ev.id, exc)
+            db.update_clip_plan(match_id, done_event=ev.id, video_path=video,
+                                render_s=time.perf_counter() - t0 if video else None)
+            done += 1
+    finally:
+        del scene
+        release_memory()
+    return done
 
 
 def _player_evidence(ctx, config: Config) -> dict[int, dict]:
@@ -320,7 +415,8 @@ def _safe(s: str) -> str:
     return "".join(c if c.isalnum() or c in "-_." else "_" for c in s)
 
 
-def _write_outputs(result: AnalysisResult, config: Config, *, export_parquet: bool, debug: bool, generate_evidence: bool, say):
+def _write_outputs(result: AnalysisResult, config: Config, *, export_parquet: bool, debug: bool, generate_evidence: bool, say,
+                   defer_clips: bool = False):
     from cs2_analyzer.evidence.writer import write_evidence
 
     out = result.output_dir
@@ -343,7 +439,8 @@ def _write_outputs(result: AnalysisResult, config: Config, *, export_parquet: bo
         if frames:
             pd.concat(frames, ignore_index=True).to_parquet(out / "encounter_channels.parquet", index=False)
         pd.DataFrame([e.to_dict(result.world) for e in result.encounters]).to_parquet(out / "encounters.parquet", index=False)
-    write_evidence(result, config, debug=debug, generate_evidence=generate_evidence, say=say)
+    result.pending_clips = write_evidence(result, config, debug=debug, generate_evidence=generate_evidence, say=say,
+                                          defer_clips=defer_clips) or []
 
 
 def _write_summary(result: AnalysisResult):

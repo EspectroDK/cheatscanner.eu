@@ -18,7 +18,10 @@ from cs2_analyzer.detectors.base import jsonable
 log = logging.getLogger("cs2_analyzer")
 
 
-def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=print):
+def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=print,
+                   defer_clips: bool = False) -> list[str]:
+    """Write the evidence files. With ``defer_clips`` the clips are not rendered here: the ids of the events
+    that should get one are returned instead, for a clips job to render later (pipeline.render_clips)."""
     cfg = config.section("evidence")
     top_n = int(cfg.get("top_events_per_player", 5))
     flagged_classes = set(cfg.get("generate_for_classes", ["HIGH", "VERY_HIGH"]))
@@ -42,6 +45,7 @@ def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=
         wanted = sorted({id(e): e for e in wanted + [e for ev in per_player.values() for e in ev[:top_n]]}.values(),
                         key=lambda e: -e.confidence)
 
+    deferred = []
     for ev in wanted:
         p = result.world.index_of[ev.steam_id]
         pdir = out / str(ev.steam_id)
@@ -51,7 +55,9 @@ def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=
             ev.debug_plot_path = str(plot_event(result, ev, pdir / "plots" / f"{ev.id}.png"))
         except Exception as exc:  # plotting must never fail an analysis
             log.warning("plot failed for %s: %s", ev.id, exc)
-        if generate_evidence and result.geometry.available:
+        if generate_evidence and result.geometry.available and defer_clips:
+            deferred.append(ev.id)
+        elif generate_evidence and result.geometry.available:
             from cs2_analyzer.evidence.clips import render_clip
 
             say(f"Rendering evidence clip {ev.id} ({ev.detector_type}) for {result.world.names[p]} ...")
@@ -81,6 +87,7 @@ def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=
         (pdir / "evidence.json").write_text(json.dumps(jsonable(doc), indent=2, ensure_ascii=False), encoding="utf-8")
         report_rows.append((sid, result.world.names[p], ass, top))
     write_report(result, report_rows)
+    return deferred
 
 
 def write_report(result, rows):

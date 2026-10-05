@@ -245,7 +245,9 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             receiving_now = sum(receiving.values())
         return {"queued": q["queued"], "processing": q["processing"], "uploads": q["uploads"],
                 "oldestWaitingSeconds": q["oldestWaitingSeconds"], "receivingUploads": receiving_now,
-                "workers": q["workers"] + local_workers.count}
+                "clipsQueued": q["clipsQueued"], "clipsProcessing": q["clipsProcessing"],
+                "clipsOldestWaitingSeconds": q["clipsOldestWaitingSeconds"],
+                "workers": q["workers"] + local_workers.count, "clipWorkers": q["clipWorkers"]}
 
     app.include_router(admin.router(db, auth, live_jobs, work_dir,
                                     lambda: ingest.fetcher_last_seen,
@@ -262,7 +264,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         return job
 
     # Work left in the queue by the last run (if this process analyzes at all).
-    if any(db.analysis_queue(worker_alive)[k] for k in ("queued", "processing")):
+    if any(db.analysis_queue(worker_alive)[k] for k in ("queued", "processing", "clipsQueued", "clipsProcessing")):
         local_workers.kick()
 
     @app.get("/health")
@@ -383,6 +385,9 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             p["visible"] = v.can_see_player(int(p["steamId"]))
             if not p["visible"]:
                 p["assessment"] = None
+        # Evidence clips still being rendered after the analysis, and roughly when they will be there.
+        m["clips"] = db.clip_status(match_id, float(config.get("evidence.eta_default_clip_s", 120)),
+                                    float(config.get("evidence.eta_default_prep_s", 90)), worker_alive)
         return m
 
     @app.get("/matches/{match_id}/evidence")
