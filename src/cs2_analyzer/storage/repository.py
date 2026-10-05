@@ -47,7 +47,9 @@ class Database:
         if u.drivername == "postgresql":
             url = u.set(drivername="postgresql+psycopg").render_as_string(hide_password=False)
         self.url = url
-        self.engine = create_engine(url, future=True, pool_pre_ping=True)
+        # SQLite (local use, tests) has one writer at a time: wait for it rather than fail after 5 s.
+        args = {"connect_args": {"timeout": 30}} if u.drivername.startswith("sqlite") else {}
+        self.engine = create_engine(url, future=True, pool_pre_ping=True, **args)
         self.Session = sessionmaker(self.engine, expire_on_commit=False)
 
     def safe_url(self) -> str:

@@ -339,7 +339,9 @@ def test_workers_with_both_roles_share_a_busy_queue(config, db, tmp_path, monkey
     _fake_render(monkeypatch, rendered, delay=0.01)
     for i in range(5):
         db.enqueue_analysis("upload", _demo(tmp_path, f"m{i}.dem"))
-    workers = [_worker(config, db, f"a{i}") for i in range(2)] + [_worker(config, db, f"c{i}", role="clips") for i in range(2)]
+    slow = {"heartbeat_s": 0.5, "poll_s": 0.05}                    # SQLite has one writer at a time
+    workers = ([_worker(config, db, f"a{i}", **slow) for i in range(2)]
+               + [_worker(config, db, f"c{i}", role="clips", **slow) for i in range(2)])
     wake = workers[0].wake
     threads = []
     for w in workers:
@@ -347,7 +349,7 @@ def test_workers_with_both_roles_share_a_busy_queue(config, db, tmp_path, monkey
         t = threading.Thread(target=w.run, daemon=True)
         t.start()
         threads.append(t)
-    end = time.monotonic() + 20
+    end = time.monotonic() + 60
     while time.monotonic() < end and not all((db.clip_status(f"m{i}") or {}).get("state") == "DONE" for i in range(5)):
         time.sleep(0.05)
     for w in workers:
