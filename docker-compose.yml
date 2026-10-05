@@ -77,6 +77,8 @@ services:
     environment:
       CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
       CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
+      # 0: evidence clips only for players rated Elevated or High in the match
+      CS2A_CLIP_ALL_EVENTS: ${CS2A_CLIP_ALL_EVENTS:-}
     volumes:
       - ./data:/app/data
       - ./output:/app/output
@@ -95,6 +97,8 @@ services:
     environment:
       CS2A_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cs2}:${POSTGRES_PASSWORD:-cs2-local-only}@db:5432/${POSTGRES_DB:-cs2}
       CS2A_PUBLIC_URL: ${CS2A_PUBLIC_URL:-http://localhost:8000}
+      # 0: evidence clips only for players rated Elevated or High in the match
+      CS2A_CLIP_ALL_EVENTS: ${CS2A_CLIP_ALL_EVENTS:-}
     volumes:
       - ./data:/app/data
       - ./output:/app/output

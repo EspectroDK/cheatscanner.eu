@@ -383,3 +383,24 @@ def test_a_clips_job_lost_between_analysis_and_queueing_is_queued_again(config, 
     assert db.get_analysis_job(jid)["status"] == "DUPLICATE" and demo.exists()
     (clip_job,) = _job(db, "clips")
     assert clip_job.match_id == "m1" and clip_job.path == str(demo)
+
+
+def test_clips_only_for_flagged_players_also_drops_queued_normal_clips(config, db, tmp_path, monkeypatch):
+    """CS2A_CLIP_ALL_EVENTS=0 after clips were queued: the clips job skips players rated NORMAL in the match."""
+    _fake_analysis(monkeypatch)
+    db.enqueue_analysis("upload", _demo(tmp_path, "m1.dem"))
+    w = _worker(config, db, "w1")
+    w.process(w.claim())
+    assert db.match_classes("m1")[SID] not in ("ELEVATED", "HIGH", "VERY_HIGH")
+    rendered = []
+    _fake_render(monkeypatch, rendered)
+    monkeypatch.setenv("CS2A_CLIP_ALL_EVENTS", "0")
+    from cs2_analyzer.config import Config
+
+    cfg = Config.load(overrides={"output": config.section("output"), "worker": {"heartbeat_s": 0.05}})
+    assert cfg.get("evidence.clip_all_events") is False
+    AnalysisWorker(cfg, db, name="w2").process(db.claim_analysis_job("w2", STALE))
+    assert rendered == []
+    st = db.clip_status("m1")
+    assert st["state"] == "DONE" and st["pending"] == 0
+    assert not any(e["clipPending"] or e["clipUrl"] for e in db.match_evidence("m1"))

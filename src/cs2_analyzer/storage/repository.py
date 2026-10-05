@@ -848,6 +848,12 @@ class Database:
             m = s.get(M.Match, match_id)
             return dict((m.meta or {}).get("clips") or {}) if m is not None else None
 
+    def match_classes(self, match_id: str) -> dict[int, str]:
+        """Each player's class in this match."""
+        with self.session() as s:
+            return {int(a.steam_id): a.classification for a in s.scalars(
+                select(M.PlayerMatchAssessment).where(M.PlayerMatchAssessment.match_id == match_id))}
+
     def has_active_clips_job(self, match_id: str) -> bool:
         J = M.AnalysisJob
         with self.session() as s:

@@ -336,12 +336,19 @@ def render_clips(path: str | Path, match_id: str, config: Config, db, *, should_
     should_stop = should_stop or (lambda: False)
     pending = list((db.clip_plan(match_id) or {}).get("pending") or [])
     rows = db.clip_events(match_id, pending)
+    cfg = config.section("evidence")
+    if not cfg.get("clip_all_events", True):
+        # Clips only for flagged players (switched on after these clips were queued): drop the others.
+        flagged = set(cfg.get("generate_for_classes", ["ELEVATED", "HIGH", "VERY_HIGH"]))
+        classes = db.match_classes(match_id)
+        for row in [r for r in rows if classes.get(int(r.steam_id)) not in flagged]:
+            db.update_clip_plan(match_id, done_event=row.id)
+            rows.remove(row)
     if not rows:
         return 0
     started = time.perf_counter()
     scene = load_clip_scene(Path(path), match_id, config)
     db.update_clip_plan(match_id, prep_s=time.perf_counter() - started)
-    cfg = config.section("evidence")
     out = Path(config.get("output.dir")) / _safe(match_id)
     done = 0
     try:

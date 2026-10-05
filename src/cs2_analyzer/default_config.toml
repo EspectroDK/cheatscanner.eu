@@ -452,6 +452,7 @@ thresholds = [0.25, 0.5, 0.75]
 generate_for_classes = ["ELEVATED", "HIGH", "VERY_HIGH"]   # clips/plots for players in these classes
 top_events_per_player = 5
 clip_all_events = true           # also clip the top events of players whose class stays below generate_for_classes
+                                 # (env CS2A_CLIP_ALL_EVENTS=0: clips only for those classes, also for clips already queued)
 max_clips_per_match = 30         # rendering takes a few seconds per clip; strongest events first
 clip_seconds_before = 6.0
 clip_seconds_after = 4.0
