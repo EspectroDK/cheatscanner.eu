@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 export const GSI_PORT = 37215;
@@ -60,6 +61,15 @@ export function libraryPaths(vdf: string): string[] {
 }
 
 function steamPath(): string | null {
+  if (process.platform === "linux") {
+    // Native Steam: ~/.steam/debian-installation (Debian, Ubuntu, Linux Mint, Pop!_OS, Zorin) or
+    // ~/.local/share/Steam (everything else); on the Debian family one is normally a symlink to the other.
+    for (const rel of [".steam/debian-installation", ".local/share/Steam"]) {
+      const dir = join(homedir(), rel);
+      if (existsSync(join(dir, "steamapps"))) return dir;
+    }
+    return null;
+  }
   try {
     const out = execFileSync("reg", ["query", "HKCU\\Software\\Valve\\Steam", "/v", "SteamPath"],
       { encoding: "utf8", windowsHide: true, timeout: 5000 });
@@ -71,7 +81,7 @@ function steamPath(): string | null {
 
 /** CS2's cfg folder, found through Steam's library list. */
 export function findCs2CfgDir(): string | null {
-  if (process.platform !== "win32") return null;
+  if (process.platform !== "win32" && process.platform !== "linux") return null;
   const steam = steamPath();
   if (!steam) return null;
   const libs = [steam];
