@@ -62,6 +62,9 @@ def player_table(work: Path, cheaters: set[int], exclude: set[int]) -> pd.DataFr
             rows.append({"match": tag, "map": meta["map"], "steam_id": sid, "group": group,
                          "excess": float(o["excess"]) if o is not None else 0.0,
                          "hidden_hits": int(o["hidden_hits"]) if o is not None else 0,
+                         "all_hits": int(o["all_hits"]) if o is not None and "all_hits" in o else 0,
+                         "hidden_noinfo_hits": int(o["hidden_noinfo_hits"]) if o is not None and "hidden_noinfo_hits" in o else 0,
+                         "hidden_share": float(o["hidden_share"]) if o is not None and "hidden_share" in o else 0.0,
                          "hidden_fire": ("hidden_fire", sid) in fired,
                          "information_gap": ("information_gap", sid) in fired})
     return pd.DataFrame(rows)
@@ -82,6 +85,15 @@ def report(df: pd.DataFrame) -> str:
         cells = [f"{df[df.group == g]['excess'].quantile(v):.2f} / {df[df.group == g]['hidden_hits'].quantile(v):.0f}"
                  for g in groups]
         lines.append(f"| {v} | " + " | ".join(cells) + " |")
+    lines += ["", "Share rule (hidden hits / all gun hits):", "",
+              "| min share | min hits | min hidden hits without information | " + " | ".join(groups)
+              + " | cheaters not caught by information_gap or the burst rule |", "|---|---|---|---|---|---|---|"]
+    bursts = (df["excess"] >= 3) & (df["hidden_hits"] >= 10)
+    for sh, mh, mn in itertools.product([0.25, 0.3, 0.35, 0.4], [20, 30, 40], [0, 2, 4]):
+        fire = (df["hidden_share"] >= sh) & (df["all_hits"] >= mh) & (df["hidden_noinfo_hits"] >= mn)
+        cells = [f"{int(fire[df.group == g].sum())} / {int((df.group == g).sum())}" for g in groups]
+        new = int((fire & (df.group == "cheater") & ~df["information_gap"] & ~bursts).sum())
+        lines.append(f"| {sh} | {mh} | {mn} | " + " | ".join(cells) + f" | {new} |")
     ch = df[df.group == "cheater"]
     lines += ["", f"Labelled cheaters with an event: information_gap {int(ch['information_gap'].sum())}, "
                   f"hidden_fire {int(ch['hidden_fire'].sum())}, either {int((ch['information_gap'] | ch['hidden_fire']).sum())} "

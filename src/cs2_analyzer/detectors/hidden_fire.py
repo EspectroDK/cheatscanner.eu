@@ -25,7 +25,19 @@ Two counts per player, both at match scope:
   how often this player's shots hit enemy positions by habit (common
   wallbang spots, pre-fires). ``excess`` = real count - expected ghost count.
 * **hidden hits**: hits (player_hurt with a gun) on an enemy who was behind a
-  wall or a stable smoke core from the shooter's eye the tick before.
+  wall or a stable smoke core from the shooter's eye the tick before. Those with
+  the legitimate estimate at least ``share_min_gap_deg`` off are **hidden hits
+  without information**.
+
+Two rules fire the event, either on its own:
+
+* **precise bursts**: ``excess >= min_excess`` and ``hidden hits >= min_hidden_hits``.
+* **hidden damage share**: ``hidden hits / all gun hits >= share_min`` with at least
+  ``share_min_hits`` gun hits in the match and at least ``share_min_noinfo_hits``
+  hidden hits without information. A wallhacker who does his damage through
+  walls and smokes but takes the kills in the open gets few precise bursts
+  (he is not pre-firing the first shot of a burst) and still lands a large part
+  of his hits on enemies he cannot see.
 
 False-positive controls
 -----------------------
@@ -37,13 +49,29 @@ False-positive controls
 * Both counts must be high in the same match: a player who sprays common
   wallbang spots gets hidden hits but no excess, and a few lucky precise
   bursts do not come with many hidden hits.
+* The share rule needs many hits, so a short match or a player with a few
+  lucky smoke hits does not reach it, and at least two of the hidden hits
+  must have landed with no legitimate information at all.
+* Hits are ignored while the recorded pose (position and view angles) of the
+  shooter or the victim has not changed for ``stale_pose_ms``: that is a gap in
+  the demo data, which makes a hit in the open look like one through a wall.
+* A hit that did at least ``full_damage_share`` of the weapon's undamaged
+  damage for that hit group did not go through anything (penetration always
+  costs damage), so a "hidden" hit at full damage is a mesh error (a clip
+  brush or a missing prop) and is not counted.
 
 Calibration (CS2CD, 174 de_mirage and de_nuke matches with map meshes,
 ``excess >= 3`` and ``hidden hits >= 10``): 1 of 714 clean players (6 of his 16
 kills went through walls, in a Gold Nova match; possibly an unlabelled
 cheater), 0 of 600 unlabelled players in cheater matches and 32 of 420 labelled
 cheaters. Clean players' 99th percentiles are an excess of 2.8 and 10 hidden
-hits. Raw observations: ``hidden_fire`` (one row per player).
+hits. Share rule (434 CS2CD matches on five maps, ``share >= 0.3``, ``>= 30``
+hits, ``>= 2`` hidden hits without information): 3 of 1823 clean players (two
+of them on one clean-split match with 656 and 1873 damage through walls, most
+likely unlabelled cheaters), 0 of 1448 unlabelled and 80 of 1022 labelled
+cheaters, 40 of them caught by neither rule nor ``information_gap`` before
+(docs/validation/cs2cd/hidden_fire.md). Raw observations: ``hidden_fire`` (one
+row per player).
 """
 
 from __future__ import annotations
@@ -51,7 +79,7 @@ from __future__ import annotations
 import numpy as np
 
 from cs2_analyzer.detectors.base import AnalysisContext, Detector, EvidenceAxis, EvidenceEvent, EvidenceGroup, ramp
-from cs2_analyzer.features.weapons import is_gun
+from cs2_analyzer.features.weapons import is_gun, max_unpenetrated_damage
 from cs2_analyzer.geometry.angles import angular_distance, bearing
 from cs2_analyzer.geometry.visibility import LOS
 from cs2_analyzer.knowledge.estimates import EstimateParams, InformationSources, information_gap
@@ -100,50 +128,89 @@ class HiddenFireDetector(Detector):
         rounds = sorted(self._starts)
         self._ends = {r: (self._starts[rounds[i + 1]] if i + 1 < len(rounds) else w.T) for i, r in enumerate(rounds)}
         self._rounds = rounds
-        hidden_hits = self._hidden_hits(ctx)
+        hidden_hits, all_hits = self._hidden_hits(ctx)
         events = []
         for o in range(w.P):
             if not ctx.analyze_player(o):
                 continue
             bursts, real, expected, moments = self._bursts(ctx, o, geom)
             hits = hidden_hits.get(o, [])
+            n_all = all_hits.get(o, 0)
             excess = real - expected
-            dmg = float(sum(d for _, d in hits))
+            dmg = float(sum(d for _, d, _ in hits))
+            noinfo = [(t, d) for t, d, blind in hits if blind]
+            share = len(hits) / n_all if n_all else 0.0
             ctx.observe(self.name, o, blind_bursts=bursts, precise_bursts=real, expected_precise_bursts=expected,
-                        excess=excess, hidden_hits=len(hits), hidden_damage=dmg)
+                        excess=excess, hidden_hits=len(hits), hidden_damage=dmg, all_hits=n_all,
+                        hidden_noinfo_hits=len(noinfo), hidden_noinfo_damage=float(sum(d for _, d in noinfo)),
+                        hidden_share=share)
             min_excess = float(cfg.get("min_excess", 3.0))
             min_hits = int(cfg.get("min_hidden_hits", 10))
-            if excess < min_excess or len(hits) < min_hits:
+            share_min = float(cfg.get("share_min", 0.3))
+            share_min_hits = int(cfg.get("share_min_hits", 30))
+            share_min_noinfo = int(cfg.get("share_min_noinfo_hits", 2))
+            by_bursts = excess >= min_excess and len(hits) >= min_hits
+            by_share = share >= share_min and n_all >= share_min_hits and len(noinfo) >= share_min_noinfo
+            if not by_bursts and not by_share:
                 continue
-            sev = min(1.0, 0.35 + 0.35 * ramp(excess, min_excess, float(cfg.get("full_excess", 8.0)))
-                      + 0.3 * ramp(len(hits), min_hits, int(cfg.get("full_hidden_hits", 25))))
-            ticks = sorted(t for _, t in moments) or sorted(t for t, _ in hits)
+            sev = 0.0
+            if by_bursts:
+                sev = 0.35 + 0.35 * ramp(excess, min_excess, float(cfg.get("full_excess", 8.0))) \
+                    + 0.3 * ramp(len(hits), min_hits, int(cfg.get("full_hidden_hits", 25)))
+            if by_share:
+                sev = max(sev, 0.35 + 0.4 * ramp(share, share_min, float(cfg.get("share_full", 0.6)))
+                          + 0.25 * ramp(len(noinfo), share_min_noinfo, int(cfg.get("share_full_noinfo_hits", 15))))
+            sev = min(1.0, sev)
+            ticks = sorted(t for _, t in moments) or sorted(t for t, _, _ in hits)
             metrics = {"blind_bursts": bursts, "precise_bursts": real, "expected_precise_bursts": round(expected, 2),
-                       "excess": round(excess, 2), "hidden_hits": len(hits), "hidden_damage": dmg}
-            expl = (
+                       "excess": round(excess, 2), "hidden_hits": len(hits), "hidden_damage": dmg, "all_hits": n_all,
+                       "hidden_noinfo_hits": len(noinfo), "hidden_share": round(share, 3)}
+            parts = [
                 f"{self.label}: {real} times this player fired, with no enemy in view, within "
                 f"{cfg.get('on_target_deg', 1.5):g} deg of an enemy hidden behind a wall or smoke while the best legitimate "
                 f"information (sight, teammates, radar, sound, damage) was at least {cfg.get('min_gap_deg', 5.0):g} deg off. "
-                f"Shooting at the same moments of other rounds explains {expected:.1f} of them. {len(hits)} hits "
-                f"({dmg:.0f} damage) landed on enemies hidden from him. Of 714 clean players, one reached both "
-                f"{min_excess:g} more than expected and {min_hits} hidden hits."
-            )
+                f"Shooting at the same moments of other rounds explains {expected:.1f} of them. {len(hits)} of his "
+                f"{n_all} hits ({dmg:.0f} damage) landed on enemies hidden from him, {len(noinfo)} of them with no "
+                f"legitimate information at all."
+            ]
+            if by_bursts:
+                parts.append(f"Of 714 clean players, one reached both {min_excess:g} more than expected and {min_hits} "
+                             f"hidden hits.")
+            if by_share:
+                parts.append(f"{share:.0%} of his hits were on hidden enemies; of 1823 clean players, three reached "
+                             f"{share_min:.0%} with at least {share_min_hits} hits.")
             events.append(self.event(
                 ctx, o, int(ticks[0]), int(ticks[len(ticks) // 2]), int(ticks[-1]), sev, 1.0, None, metrics,
-                {"scope": "match",
+                {"scope": "match", "rule": "share" if by_share and not by_bursts else "bursts",
                  "precise_bursts": [{"target_steam_id": ctx.sid(e), "tick": w.tick(t)} for e, t in moments[:20]],
-                 "hidden_hits": [{"tick": w.tick(t), "damage": d} for t, d in hits[:30]]},
-                expl))
+                 "hidden_hits": [{"tick": w.tick(t), "damage": d, "no_information": blind} for t, d, blind in hits[:30]]},
+                " ".join(parts)))
         return events
 
     # ------------------------------------------------------------------ hidden hits
 
-    def _hidden_hits(self, ctx) -> dict[int, list[tuple[int, float]]]:
+    def _hidden_hits(self, ctx) -> tuple[dict[int, list[tuple[int, float, bool]]], dict[int, int]]:
+        """Per attacker: (tick, damage, no information) of each hit on a hidden enemy, and the count of all gun hits."""
         w = ctx.world
         hurts = ctx.demo.event("hurts")
-        out: dict[int, list[tuple[int, float]]] = {}
+        out: dict[int, list[tuple[int, float, bool]]] = {}
+        total: dict[int, int] = {}
         if hurts is None or not len(hurts):
-            return out
+            return out, total
+        min_gap = float(self._cfg.get("share_min_gap_deg", 10.0))
+        stale = w.ticks_for_ms(self._cfg.get("stale_pose_ms", 2000))
+        full_share = float(self._cfg.get("full_damage_share", 0.85))
+        lasts: dict[tuple[int, int], object] = {}
+
+        def frozen(i: int, t: int) -> bool:
+            """The recorded pose of player i has not changed at all for ``stale`` ticks: a gap in the data,
+            not a player (even a motionless camper's view angles drift), so the hit's geometry is unknown."""
+            if t - stale < 0:
+                return False
+            for j in (t - stale, t - stale // 2):
+                if not (np.array_equal(w.pos[i, j], w.pos[i, t]) and w.pitch[i, j] == w.pitch[i, t] and w.yaw[i, j] == w.yaw[i, t]):
+                    return False
+            return True
         for r in hurts.itertuples():
             a, v = w.index_of.get(int(r.attacker_steam_id)), w.index_of.get(int(r.victim_steam_id))
             t = int(r.tick) - w.tick0
@@ -151,9 +218,22 @@ class HiddenFireDetector(Detector):
                 continue
             if not w.live[t] or not w.is_enemy(a, v, t):
                 continue
+            if frozen(a, t - 1) or frozen(v, t - 1):
+                continue
+            total[a] = total.get(a, 0) + 1
             if int(ctx.vis.los[a, v, t - 1]) in HIDDEN:
-                out.setdefault(a, []).append((t, float(r.dmg_health)))
-        return out
+                # A bullet that went through something loses damage. A hit at (nearly) the full undamaged
+                # value cannot have gone through a wall: the mesh is wrong there (a clip brush, a prop
+                # that is not in the physics mesh), so the hit is not counted as hidden.
+                full = max_unpenetrated_damage(str(r.weapon), getattr(r, "hitgroup", None))
+                dealt = float(r.dmg_health) + float(getattr(r, "dmg_armor", 0.0) or 0.0)
+                if full is not None and dealt >= full_share * full:
+                    continue
+                if (a, v) not in lasts:
+                    lasts[(a, v)] = self._sources.last(a, v)
+                gap, _ = information_gap(w, lasts[(a, v)], a, v, np.array([t - 1]), self._params)
+                out.setdefault(a, []).append((t, float(r.dmg_health), bool(float(gap[0]) >= min_gap)))
+        return out, total
 
     # ------------------------------------------------------------------ blind bursts
 
