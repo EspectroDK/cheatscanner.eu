@@ -216,6 +216,11 @@ tbody tr:hover td { background: color-mix(in srgb, var(--panel-2) 60%, transpare
 .evidence header strong { text-transform: capitalize; }
 .evidence p { margin: 6px 0; }
 .clip { width: 100%; max-width: 960px; border-radius: 10px; background: #000; display: block; margin: 10px 0; }
+.clip-player { max-width: 960px; margin: 10px 0; }
+.clip-player .clip { margin: 0 0 8px; }
+.clip-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.clip-controls .button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.clip-controls-gap { flex: 0 0 8px; }
 .plot { max-width: 100%; border-radius: 10px; background: #fff; }
 .watch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 

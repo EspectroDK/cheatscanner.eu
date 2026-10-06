@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { EvidenceEvent } from "./api";
 import { mapName } from "./art";
@@ -8,6 +8,65 @@ const TICK_RATE = 64;
 
 // Jump a few seconds before the flagged moment so the lead-up is visible.
 const gotoCommand = (tick: number) => `demo_gototick ${Math.max(0, tick - 5 * TICK_RATE)}`;
+
+// Clips are rendered at clip_fps (config/default_config.toml), so one step moves exactly one frame.
+const CLIP_FPS = 32;
+const SPEEDS = [0.25, 0.5, 1];
+
+// The chosen speed carries over to every clip while the page is open.
+let rememberedSpeed = 1;
+
+function ClipPlayer({ src, poster }: { src: string; poster?: string }) {
+  const video = useRef<HTMLVideoElement>(null);
+  const [speed, setSpeedState] = useState(rememberedSpeed);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    // defaultPlaybackRate survives the browser resetting playbackRate when the video loads.
+    v.defaultPlaybackRate = speed;
+    v.playbackRate = speed;
+  }, [speed]);
+
+  function setSpeed(s: number) {
+    rememberedSpeed = s;
+    setSpeedState(s);
+  }
+
+  function step(frames: number) {
+    const v = video.current;
+    if (!v) return;
+    v.pause();
+    const end = Number.isFinite(v.duration) ? v.duration : Infinity;
+    v.currentTime = Math.min(end, Math.max(0, v.currentTime + frames / CLIP_FPS));
+  }
+
+  return (
+    <div className="clip-player">
+      <video ref={video} src={src} poster={poster} controls preload="metadata" playsInline className="clip" />
+      <div className="clip-controls">
+        <span className="muted small">Speed</span>
+        {SPEEDS.map((s) => (
+          <button
+            key={s}
+            className={`button small-button${s === speed ? " on" : ""}`}
+            aria-pressed={s === speed}
+            onClick={() => setSpeed(s)}
+          >
+            {s}×
+          </button>
+        ))}
+        <span className="clip-controls-gap" />
+        <button className="button small-button" onClick={() => step(-1)} title="Pause and go back one frame">
+          ◀ Frame
+        </button>
+        <button className="button small-button" onClick={() => step(1)} title="Pause and go forward one frame">
+          Frame ▶
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function WatchInGame({ tick }: { tick: number }) {
   const [copied, setCopied] = useState(false);
@@ -56,7 +115,7 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
       )}
       {e.clipUrl ? (
         // Reconstruction from demo data, not game footage: the outlines are reviewer annotations.
-        <video src={e.clipUrl} poster={e.posterUrl ?? undefined} controls preload="metadata" playsInline className="clip" />
+        <ClipPlayer src={e.clipUrl} poster={e.posterUrl ?? undefined} />
       ) : e.clipPending ? (
         <div className="clip-missing small muted">The clip for this event is being made and appears here when it is ready.</div>
       ) : (
