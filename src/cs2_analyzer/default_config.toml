@@ -386,7 +386,10 @@ first_shot_bonus = 0.1
 # whose legitimate position estimate is >= min_gap_deg off, compared with "ghost"
 # enemies (the enemy team at the same time of other rounds), plus hits on hidden
 # enemies. CS2CD Mirage+Nuke (174 matches): excess >= 3 and >= 10 hidden hits for
-# 1 of 714 clean players and 32 of 420 labelled cheaters.
+# 1 of 714 clean players and 32 of 420 labelled cheaters. Second rule: share of all
+# gun hits that land on hidden enemies (434 CS2CD matches, 5 maps): share >= 0.3 with
+# >= 30 hits and >= 2 hidden hits without information for 3 of 1823 clean players
+# (two most likely unlabelled cheaters) and 80 of 1022 labelled cheaters.
 enabled = true
 reliability = 0.6
 on_target_deg = 1.5
@@ -400,6 +403,14 @@ min_excess = 3.0
 full_excess = 8.0
 min_hidden_hits = 10
 full_hidden_hits = 25
+share_min = 0.3                    # hidden hits / all gun hits (clean 99.5th percentile 0.37)
+share_full = 0.6
+share_min_hits = 30                # gun hits in the match before the share counts
+share_min_gap_deg = 10.0           # a hidden hit "without information": estimate at least this far off
+share_min_noinfo_hits = 2
+share_full_noinfo_hits = 15
+stale_pose_ms = 2000               # hits are ignored while a pose has not changed at all this long (data gap)
+full_damage_share = 0.85           # a "hidden" hit at this share of the weapon's full damage is a mesh error
 
 [detectors.smoke_kills]
 # Kills the game itself marks as through smoke (player_death.thrusmoke). Calibrated

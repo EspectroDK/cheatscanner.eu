@@ -34,6 +34,7 @@ def run(config, enemy_round2, shoot_round2, n_hits=12):
     eye[:, 2] += 64
     enemy = static(T, SPOT)
     enemy[half:] = enemy_round2
+    enemy[:, 1] += 2.0 * np.sin(np.arange(T) / 16.0)  # a motionless pose for seconds reads as a data gap
     head = enemy.copy()
     head[:, 2] += 64
     pitch, yaw = aim_at(eye, head)  # the crosshair is on him through the wall, wherever he is
@@ -73,4 +74,20 @@ def test_shooting_a_spot_the_enemy_always_holds_is_habit(config):
 def test_precise_bursts_without_hidden_hits_are_not_enough(config):
     events, obs = run(config, OTHER, shoot_round2=True, n_hits=2)
     assert obs["excess"] >= 3 and obs["hidden_hits"] == 2
+    assert events == []
+
+
+def test_most_hits_through_the_wall_fires_without_precise_bursts(config):
+    """The enemy always holds the same spot (no excess), but 36 of 40 hits land on him while hidden."""
+    events, obs = run(config, SPOT, shoot_round2=True, n_hits=40)
+    assert obs["excess"] < 1
+    assert obs["all_hits"] == 40 and obs["hidden_hits"] == 40 and obs["hidden_noinfo_hits"] == 40
+    assert len(events) == 1 and events[0].context["rule"] == "share"
+    assert events[0].metrics["hidden_share"] == 1.0
+
+
+def test_a_few_hidden_hits_are_not_a_share(config):
+    """Twelve hits in the match, all hidden: too few to judge a share."""
+    events, obs = run(config, SPOT, shoot_round2=True, n_hits=12)
+    assert obs["hidden_share"] == 1.0 and obs["all_hits"] == 12
     assert events == []
