@@ -412,6 +412,24 @@ share_full_noinfo_hits = 15
 stale_pose_ms = 2000               # hits are ignored while a pose has not changed at all this long (data gap)
 full_damage_share = 0.85           # a "hidden" hit at this share of the weapon's full damage is a mesh error
 
+[detectors.bunnyhop]
+# Scripted bunnyhopping: jumps that take off again within perfect_max_ticks of landing
+# ("perfect rehops") and chains of them. Quick check on 59 CS2CD matches (2026-10-07):
+# clean median 1 perfect rehop and a 7% share; the rule below fires for 0 of 300 clean,
+# 1 of 186 unlabelled and 18 of 104 labelled cheaters (docs/validation/cs2cd/bunnyhop.md).
+enabled = true
+reliability = 0.7
+arc_min_ms = 300                   # airborne stretch that counts as a jump
+arc_max_ms = 1100
+rehop_max_ms = 500                 # next take-off within this time of landing is a rehop
+perfect_max_ticks = 2              # ground ticks between landing and take-off for a perfect rehop
+chain_min_hops = 3                 # perfect rehops in a row that make a chain
+min_perfect_rehops = 50
+full_perfect_rehops = 150
+min_perfect_share = 0.8            # of all rehops
+min_chains = 20
+full_chains = 40
+
 [detectors.smoke_kills]
 # Kills the game itself marks as through smoke (player_death.thrusmoke). Calibrated
 # on 795 CS2CD matches: clean p99 is 4; >=10 and >=35% of kills: 2 of 4,598 clean
