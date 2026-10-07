@@ -37,6 +37,7 @@ class SynthPlayer:
     alive: np.ndarray | None = None
     weapon: str = "ak47"
     punch: np.ndarray | None = None  # [T, 2]
+    airborne: np.ndarray | None = None  # [T] bool
 
 
 @dataclass
@@ -100,7 +101,7 @@ class Scenario:
                     "is_scoped": False,
                     "duck_amount": 0.0,
                     "is_walking": p.walking,
-                    "is_airborne": False,
+                    "is_airborne": p.airborne.astype(bool) if p.airborne is not None else False,
                     "flash_duration_prop": 0.0,
                     "flash_alpha": 0.0,
                     "shots_fired": 0,
