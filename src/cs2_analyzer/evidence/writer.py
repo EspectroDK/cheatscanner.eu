@@ -45,7 +45,6 @@ def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=
         wanted = sorted({id(e): e for e in wanted + [e for ev in per_player.values() for e in ev[:top_n]]}.values(),
                         key=lambda e: -e.confidence)
 
-    clip_cfg = {**cfg, "clip_debug_overlay": True} if debug else cfg  # --debug clips show the analysis internals
     deferred = []
     for ev in wanted:
         p = result.world.index_of[ev.steam_id]
@@ -63,7 +62,7 @@ def write_evidence(result, config, *, debug: bool, generate_evidence: bool, say=
 
             say(f"Rendering evidence clip {ev.id} ({ev.detector_type}) for {result.world.names[p]} ...")
             try:
-                ev.video_path = str(render_clip(result, ev, pdir / "clips" / f"{ev.id}.mp4", clip_cfg))
+                ev.video_path = str(render_clip(result, ev, pdir / "clips" / f"{ev.id}.mp4", cfg))
             except Exception as exc:
                 log.warning("clip failed for %s: %s", ev.id, exc)
 
