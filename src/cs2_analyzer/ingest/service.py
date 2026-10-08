@@ -39,12 +39,12 @@ log = logging.getLogger(__name__)
 # Only Valve's replay servers: the fetcher is trusted, but a URL from it must never make us fetch arbitrary hosts.
 # The host is what matters; the exact host and file name forms vary (e.g. no number after "replay", a port,
 # a different file name), so those are checked loosely.
-REPLAY_HOST = re.compile(r"^replay[a-z0-9-]{0,20}\.(valve\.net|wmsj\.cn)$")
+REPLAY_HOST = re.compile(r"^replay[a-z0-9-]{0,20}\.(valve\.net|wmsj\.cn|csgo\.com\.cn)$")
 REPLAY_PATH = re.compile(r"^/730/[A-Za-z0-9_.-]{1,120}\.dem\.bz2$")
 
 
 def is_replay_url(url: str) -> bool:
-    """True for a ``.dem.bz2`` on one of Valve's (or Perfect World's) replay servers."""
+    """True for a ``.dem.bz2`` on one of Valve's (or Perfect World's, in China) replay servers."""
     try:
         u = urlsplit(url.strip())
         port = u.port
