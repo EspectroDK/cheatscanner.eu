@@ -168,6 +168,7 @@ export interface Player {
     recoilScore: number;
     mechanicalImpossibilityScore?: number;
     eventEvidenceScore?: number;
+    elevatedThreshold?: number;
     profile?: PlayPattern | null;
   } | null;
 }
@@ -363,6 +364,10 @@ export class ApiError extends Error {
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  return (await callWithResponse<T>(path, init)).data;
+}
+
+async function callWithResponse<T>(path: string, init?: RequestInit): Promise<{ data: T; res: Response }> {
   const res = await fetch(path, { credentials: "same-origin", ...init });
   if (!res.ok) {
     let detail = res.statusText;
@@ -373,7 +378,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(res.status, typeof detail === "string" ? detail : JSON.stringify(detail));
   }
-  return res.status === 204 ? (undefined as T) : res.json();
+  return { data: res.status === 204 ? (undefined as T) : await res.json(), res };
 }
 
 const json = (method: string, body: unknown): RequestInit => ({
@@ -384,7 +389,11 @@ const json = (method: string, body: unknown): RequestInit => ({
 
 export const api = {
   me: () => call<User>("/me"),
-  myMatches: () => call<MatchSummary[]>("/me/matches"),
+  /** The newest ``limit`` matches, and how many there are in all. */
+  myMatches: async (limit: number) => {
+    const { data, res } = await callWithResponse<MatchSummary[]>(`/me/matches?limit=${limit}`);
+    return { matches: data, total: Number(res.headers.get("X-Total-Count") ?? data.length) };
+  },
   match: (id: string) => call<MatchDetail>(`/matches/${encodeURIComponent(id)}`),
   player: (sid: string) => call<Player>(`/players/${sid}`),
   playerMatches: (sid: string) => call<({ matchId: string; map: string | null; playedAt: string | null; processedAt: string | null } & Assessment)[]>(`/players/${sid}/matches`),
@@ -403,11 +412,24 @@ export const api = {
   tokens: () => call<ApiToken[]>("/me/tokens"),
   createToken: (name: string) => call<ApiToken & { token: string }>("/me/tokens", json("POST", { name })),
   revokeToken: (id: number) => call<void>(`/me/tokens/${id}`, { method: "DELETE" }),
-  upload: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return call<Job>("/matches", { method: "POST", body: form });
-  },
+  /** XMLHttpRequest rather than fetch, because only it reports upload progress (``onProgress`` gets 0 to 1). */
+  upload: (file: File, onProgress?: (share: number) => void) =>
+    new Promise<Job>((resolve, reject) => {
+      const form = new FormData();
+      form.append("file", file);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/matches");
+      xhr.withCredentials = true;
+      xhr.responseType = "json";
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(xhr.response as Job);
+        const detail = (xhr.response as { detail?: unknown } | null)?.detail ?? xhr.statusText;
+        reject(new ApiError(xhr.status, typeof detail === "string" ? detail : JSON.stringify(detail)));
+      };
+      xhr.onerror = () => reject(new ApiError(0, "The upload was interrupted. Check your connection and try again."));
+      xhr.send(form);
+    }),
   matchAccess: () => call<MatchAccess>("/me/steam-match-access"),
   setMatchAccess: (authCode: string, knownCode: string) =>
     call<MatchAccess>("/me/steam-match-access", json("PUT", { authCode, knownCode })),

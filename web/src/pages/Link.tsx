@@ -1,4 +1,4 @@
-// Linking the Cheatscanner app (Overwolf) to this account: the app opens this page with the code it
+// Linking the Cheatscanner app (companion/) to this account: the app opens this page with the code it
 // shows; the user checks that the codes match and confirms (api/companion.py).
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";

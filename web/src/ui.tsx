@@ -116,6 +116,27 @@ export function Loading({ error }: { error: string | null }) {
 
 export const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "unknown date");
 
+/** Game mode as shown on cards and headers ("premier" -> "Premier"). */
+export const modeName = (mode: string | null | undefined) =>
+  mode ? mode.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : null;
+
+/** A match's processing state as a sentence, for matches that aren't analyzed (yet). */
+export function matchStatusText(status: string): string {
+  switch (status) {
+    case "PENDING":
+    case "QUEUED":
+      return "This match is waiting in line to be analyzed.";
+    case "PROCESSING":
+      return "This match is being analyzed right now.";
+    case "FAILED":
+      return "The analysis of this demo failed.";
+    case "SKIPPED":
+      return "This match was not analyzed.";
+    default:
+      return "This match hasn't been analyzed.";
+  }
+}
+
 export function ago(iso: string | null): string {
   if (!iso) return "unknown date";
   const s = (Date.now() - new Date(iso).getTime()) / 1000;

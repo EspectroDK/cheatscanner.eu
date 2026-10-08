@@ -354,3 +354,39 @@ def test_failed_match_hides_the_traceback(config, tmp_path):
     assert shown == "The analysis of this demo failed." and "/app/" not in shown
     token = c.post("/matches/m1/shares").json()["url"].rsplit("/", 1)[-1]
     assert TestClient(c.app).get(f"/share/{token}").json()["error"] == "The analysis of this demo failed."
+
+
+def test_my_matches_limit_returns_the_newest_and_the_total(config, tmp_path):
+    from datetime import datetime, timezone
+
+    c, db = _signed_in(config, tmp_path)
+    user_id = c.get("/me").json()["id"]
+    db.record_upload("m3", user_id)
+    with db.session() as s:
+        s.get(M.Match, "m1").played_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        s.get(M.Match, "m3").played_at = datetime(2026, 2, 1, tzinfo=timezone.utc)
+    r = c.get("/me/matches", params={"limit": 1})
+    assert [m["matchId"] for m in r.json()] == ["m3"] and r.headers["X-Total-Count"] == "2"
+    assert len(c.get("/me/matches").json()) == 2  # no limit: every match, as before
+
+
+def test_token_last_used_is_written_at_most_every_few_minutes(tmp_path):
+    from datetime import datetime, timedelta, timezone
+
+    db = Database(f"sqlite:///{tmp_path}/tok.sqlite")
+    db.init_schema()
+    raw, _ = db.create_token(db.upsert_user(ME)["id"], "session", ttl_days=30)
+
+    def last_used():
+        with db.session() as s:
+            return s.query(M.AuthToken).one().last_used_at
+
+    db.resolve_token(raw)
+    stamp = last_used()
+    assert stamp is not None
+    db.resolve_token(raw)
+    assert last_used() == stamp  # a request right after doesn't write again
+    with db.session() as s:
+        s.query(M.AuthToken).update({"last_used_at": datetime.now(timezone.utc) - timedelta(minutes=10)})
+    db.resolve_token(raw)
+    assert datetime.now(timezone.utc) - last_used().replace(tzinfo=timezone.utc) < timedelta(minutes=1)

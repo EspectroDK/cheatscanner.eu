@@ -29,6 +29,21 @@ function ClipPlayer({ src, poster }: { src: string; poster?: string }) {
     v.playbackRate = speed;
   }, [speed]);
 
+  // Without a poster the first frame is the thumbnail, so the clip's start is fetched, but only once it is near
+  // the screen: a match page can hold many clips.
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const v = video.current;
+    if (poster || !v || typeof IntersectionObserver === "undefined") return setNear(true);
+    const io = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: "600px" });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [poster]);
+  useEffect(() => {
+    // Raising preload from none doesn't make every browser start fetching; load() does.
+    if (near && !poster && video.current?.paused && video.current.readyState === 0) video.current.load();
+  }, [near, poster]);
+
   function setSpeed(s: number) {
     rememberedSpeed = s;
     setSpeedState(s);
@@ -44,8 +59,8 @@ function ClipPlayer({ src, poster }: { src: string; poster?: string }) {
 
   return (
     <div className="clip-player">
-      {/* With a poster nothing is downloaded until play: a match page can hold many clips. */}
-      <video ref={video} src={src} poster={poster} controls preload={poster ? "none" : "metadata"} playsInline className="clip" />
+      {/* With a poster nothing is downloaded until play. */}
+      <video ref={video} src={src} poster={poster} controls preload={!poster && near ? "metadata" : "none"} playsInline className="clip" />
       <div className="clip-controls">
         <span className="muted small">Speed</span>
         {SPEEDS.map((s) => (
