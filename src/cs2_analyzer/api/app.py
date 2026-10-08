@@ -46,6 +46,7 @@ from cs2_analyzer.api import admin, companion
 from cs2_analyzer.api.auth import Auth
 from cs2_analyzer.api.steam_openid import HttpPost
 from cs2_analyzer.config import Config
+from cs2_analyzer.ingest import steam_bans
 from cs2_analyzer.ingest.chat import SteamChat
 from cs2_analyzer.ingest.service import Ingest
 from cs2_analyzer.ingest.steam_history import HttpGet
@@ -165,7 +166,8 @@ class Viewer:
 
 def create_app(config: Config | None = None, db_url: str | None = None, steam_http_post: HttpPost | None = None,
                profile_fetcher=None, web_dir: str | Path | None = None,
-               steam_history_get: HttpGet | None = None, demo_downloader=None) -> FastAPI:
+               steam_history_get: HttpGet | None = None, demo_downloader=None,
+               steam_bans_get: HttpGet | None = None) -> FastAPI:
     config = config or Config.load()
     db = Database(db_url or config.get("storage.database_url"))
     db.init_schema()
@@ -220,6 +222,15 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     app.add_middleware(_UploadLimit, limit=max_upload + (1 << 20), message=too_large, admit=admit_upload)
 
     ingest = Ingest(config, db, http_get=steam_history_get)
+    # Steam bans are public on every Steam profile, so they are shown for every player a page names, outside the
+    # "only players you met" rule, and never touch the evidence classes.
+    bans = steam_bans.from_config(config, db, http_get=steam_bans_get)
+
+    def add_bans(players: list[dict]) -> None:
+        found = bans.get(int(p["steamId"]) for p in players if str(p.get("steamId") or "").isdigit())
+        for p in players:
+            sid = str(p.get("steamId") or "")
+            p["bans"] = found.get(int(sid)) if sid.isdigit() else None
     chat = SteamChat(db, auth.public_url)
     if n := db.requeue_interrupted_share_codes():
         log.warning("%d fetched match(es) were interrupted by the last shutdown and are queued again", n)
@@ -240,7 +251,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
                             generate_evidence=generate_evidence, played_at=job.get("playedAt"))
         local_workers.kick()
 
-    app.include_router(companion.router(config, db, auth.public_url, auth.require_user, viewer))
+    app.include_router(companion.router(config, db, auth.public_url, auth.require_user, viewer, bans))
     def live_jobs() -> dict:
         """Demos in the analysis queue right now (uploads and fetched matches), and the workers taking them."""
         q = db.analysis_queue(worker_alive)
@@ -388,6 +399,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             p["visible"] = v.can_see_player(int(p["steamId"]))
             if not p["visible"]:
                 p["assessment"] = None
+        add_bans(m["players"])
         # Evidence clips still being rendered after the analysis, and roughly when they will be there.
         m["clips"] = db.clip_status(match_id, float(config.get("evidence.eta_default_clip_s", 120)),
                                     float(config.get("evidence.eta_default_prep_s", 90)), worker_alive)
@@ -507,6 +519,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             if not p["visible"]:
                 p["assessment"] = None
             p["linkable"] = me is not None and me.can_see_player(sid)
+        add_bans(m["players"])
         m["valveDemo"] = None   # the demo download and share code stay with the people in the match
         m["clips"] = db.clip_status(sh["matchId"], float(config.get("evidence.eta_default_clip_s", 120)),
                                     float(config.get("evidence.eta_default_prep_s", 90)), worker_alive)
@@ -548,6 +561,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         p = db.get_player(_player_or_404(steam_id, v))
         if p is None:
             raise HTTPException(404, "player not found")
+        add_bans([p])
         return p
 
     @app.get("/players/{steam_id}/matches")
@@ -610,11 +624,14 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         r = _risk(steam_id, v)
         if r.get("visible") is False:
             raise HTTPException(404, r["note"])
+        add_bans([r])
         return r
 
     @app.post("/risk/batch")
     def risk_batch(req: RiskBatchRequest, v: Viewer = Depends(viewer)):
-        return {"results": [_risk(s, v) for s in req.steamIds]}
+        results = [_risk(s, v) for s in req.steamIds]
+        add_bans(results)   # also for players whose class is hidden: bans are public at Steam
+        return {"results": results}
 
     web = _find_web_dir(web_dir or config.get("api.web_dir", "web/dist"))
     map_images = images_dir(config.get("geometry.maps_dir"))

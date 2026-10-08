@@ -195,6 +195,19 @@ A player's overall class combines all their analyzed matches:
 
 The score behind a class is an evidence score from 0 to 1, not a percentage and not a probability.
 
+## Steam bans (a separate layer)
+
+Next to the class, the site and the app show a square **VAC ban** or **Game ban** tag when Steam has a ban on
+record for the account, with the number of bans, the approximate date of the last one, and a link to the Steam
+profile. It comes from Steam's public Web API (`ISteamUser/GetPlayerBans`), checked about once a day.
+
+It is not evidence and never enters scoring, incidents, the classes or the app's siren:
+
+- a ban is account-level and can come from any game; Steam's public API doesn't say which;
+- bans usually arrive long after the match (ban waves), so a ban today says nothing specific about one demo. On a
+  match page the tag says "after match" when the last ban came after that match was played;
+- an account without a ban can still be a new or borrowed one, so no ban is never shown as "clean".
+
 ## Evidence you can check
 
 Each evidence event stores the round, the exact ticks, the target, the visibility and knowledge context,

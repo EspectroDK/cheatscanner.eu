@@ -41,11 +41,22 @@ export interface PlayerDetail {
   recent: { map: string | null; evidenceScore: number; playedAt: string | null }[];
 }
 
+/** VAC/game bans on record at Steam: account-level, separate from the evidence class, never an alert.
+ * Only sent when there is a VAC or game ban. */
+export interface SteamBans {
+  vacBans: number;
+  gameBans: number;
+  daysSinceLastBan: number;
+  lastBanOn: string;
+  profileUrl: string;
+}
+
 export interface LobbyRow extends RosterPlayer {
   classification: EvidenceClass | null;
   matchesAnalyzed: number;
   status: RowStatus;
   detail: PlayerDetail | null;
+  bans: SteamBans | null;
 }
 
 export interface Account {

@@ -53,6 +53,11 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
           chart. Clips are drawn from positions and view angles on a simplified map. They are not game footage.
         </li>
         <li>An evidence class per match and across matches (Normal, Elevated, High, or not enough data).</li>
+        <li>
+          Steam ban records: the number of VAC and game bans and the days since the last one, as Steam's public API reports
+          them (Steam shows the same on every profile). Checked about once a day for players the site shows, also players in
+          your current match in the app. Kept apart from the evidence and never used for the evidence class.
+        </li>
       </ul>
 
       <h2>What we store about you as a user</h2>
@@ -79,6 +84,11 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
           weren't in, you see the map, date and events, but you can't open the match.
         </li>
         <li>Players you have never shared a match with are shown by name only, without their evidence.</li>
+        <li>
+          A VAC or game ban on record at Steam is shown next to any player the site or app names, because Steam already shows
+          it publicly. It is account-level, can come from any game, and says nothing about a particular match. Having no ban
+          is never shown.
+        </li>
         <li>
           In the Cheatscanner app, you see the evidence class and number of analyzed matches of each player in your current
           match, also players you haven't met before. The app never shows their evidence, clips or match history.

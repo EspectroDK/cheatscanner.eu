@@ -13,6 +13,8 @@ class and the number of analyzed matches, from all users' matches. ``VERY_HIGH``
 ``HIGH``. For ELEVATED and HIGH players it adds the overlay's extended card (F7):
 history score (0-100), high-evidence match count, a LOW/MEDIUM/HIGH level for wall tracking, aim and
 reaction, and the latest flagged matches as map + score + date. Never events, clips or match ids.
+Players with a VAC or game ban on record at Steam get ``bans`` (ingest/steam_bans.py), a separate layer that
+never changes the class or raises an alert.
 """
 
 from __future__ import annotations
@@ -99,7 +101,7 @@ def detail_card(d: dict, thresholds: list[float]) -> dict:
                        for r in d["recent"]]}
 
 
-def router(config: Config, db: Database, public_url: str, require_user, viewer) -> APIRouter:
+def router(config: Config, db: Database, public_url: str, require_user, viewer, bans=None) -> APIRouter:
     r = APIRouter(tags=["companion"])
     ttl = float(config.get("companion.pairing_ttl_s", 900))
     poll_interval = float(config.get("companion.poll_interval_s", 3))
@@ -155,6 +157,7 @@ def router(config: Config, db: Database, public_url: str, require_user, viewer) 
         record_lobby_lookup(db, v.user["id"] if v.user else None, len(ids))  # a count for the admin page, no IDs
         flagged = [sid for sid, k in known.items() if lobby_class(k["classification"]) in ("ELEVATED", "HIGH")]
         details = db.lobby_details(flagged)
+        banned = bans.get(ids) if bans is not None else {}
         out = []
         for p in req.players:
             sid = int(p.steamId) if p.steamId and p.steamId.isdigit() and int(p.steamId) in ids else None
@@ -170,6 +173,8 @@ def router(config: Config, db: Database, public_url: str, require_user, viewer) 
                 row["name"] = k["name"]
             if sid in details:
                 row["detail"] = detail_card(details[sid], thresholds)
+            if banned.get(sid):
+                row["bans"] = banned[sid]
             out.append(row)
         return {"players": out, "disclaimer": DISCLAIMER}
 

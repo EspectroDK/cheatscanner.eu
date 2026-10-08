@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, type ClipStatus, type EvidenceEvent, type MatchDetail, type ShareLink } from "../api";
 import { MapBanner, mapName, SIDE_NAME, SideEmblem } from "../art";
 import { EvidenceList } from "../Evidence";
-import { ClassBadge, Loading, pct, Rank, useLoad, useUser, when } from "../ui";
+import { BanBadge, ClassBadge, Loading, pct, Rank, useLoad, useUser, when } from "../ui";
 
 type Team = 2 | 3;
 const other = (t: Team): Team => (t === 2 ? 3 : 2);
@@ -72,6 +72,7 @@ function TeamTable({ team, data, me, won }: { team: number | null; data: MatchDe
                       <span className="name">{p.name ?? p.steamId}</span>
                     )}
                     {p.steamId === me && <span className="you">YOU</span>}
+                    <BanBadge bans={p.bans} playedAt={data.playedAt} />
                   </span>
                 </td>
                 <td><Rank type={p.rankType} value={p.rankNew} /></td>

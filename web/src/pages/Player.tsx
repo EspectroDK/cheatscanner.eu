@@ -5,7 +5,7 @@ import { EvidenceList } from "../Evidence";
 import { Timeline } from "../Timeline";
 import { Pattern } from "../Pattern";
 import { Why } from "../Why";
-import { ClassBadge, Loading, pct, useLoad, useUser, when } from "../ui";
+import { BanBadge, ClassBadge, Loading, pct, useLoad, useUser, when } from "../ui";
 
 export function PlayerPage() {
   const { sid = "" } = useParams();
@@ -39,6 +39,12 @@ export function PlayerPage() {
               Steam profile
             </a>
           </p>
+          {p.bans && (
+            <p className="muted small ban-note">
+              <BanBadge bans={p.bans} size="lg" /> Account-level ban on record at Steam, last one about{" "}
+              {p.bans.lastBanOn}. It can come from any game and is not part of the evidence class.
+            </p>
+          )}
         </div>
         <ClassBadge value={a?.classification} size="lg" />
       </div>

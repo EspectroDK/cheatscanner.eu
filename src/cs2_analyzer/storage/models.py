@@ -399,6 +399,23 @@ class CompanionPairing(Base):
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class SteamBan(Base):
+    """VAC and game bans on record at Steam for an account (ingest/steam_bans.py), refreshed about daily.
+
+    Any SteamID the site shows can have a row, also players who were never analyzed (strangers in a lobby).
+    Never used by scoring: a separate, factual layer.
+    """
+
+    __tablename__ = "steam_bans"
+    steam_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    vac_bans: Mapped[int] = mapped_column(Integer, default=0)
+    game_bans: Mapped[int] = mapped_column(Integer, default=0)
+    days_since_last_ban: Mapped[int] = mapped_column(Integer, default=0)   # as Steam said at checked_at
+    community_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+    economy_ban: Mapped[str] = mapped_column(String(32), default="none")
+    checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
 class LobbyLookup(Base):
     """One overlay lookup (``POST /lobby/risk``), for the admin page's usage numbers. No Steam IDs are kept."""
 

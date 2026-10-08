@@ -1058,6 +1058,41 @@ class Database:
         with self.session() as s:
             s.execute(delete(M.AnalysisWorkerSeen).where(M.AnalysisWorkerSeen.last_seen_at < cutoff))
 
+    # ------------------------------------------------------ Steam bans (ingest/steam_bans.py)
+
+    def fresh_ban_ids(self, steam_ids: list[int], since: datetime) -> set[int]:
+        """The SteamIDs among these whose ban record was checked at or after ``since``."""
+        if not steam_ids:
+            return set()
+        with self.session() as s:
+            q = select(M.SteamBan.steam_id, M.SteamBan.checked_at).where(M.SteamBan.steam_id.in_(steam_ids))
+            return {sid for sid, at in s.execute(q) if _utc(at) >= since}
+
+    def save_bans(self, records: dict[int, dict], checked_at: datetime) -> None:
+        for attempt in (1, 2):  # a second try when another request inserted one of these players meanwhile
+            try:
+                with self.session() as s:
+                    for sid, r in records.items():
+                        row = s.get(M.SteamBan, sid) or M.SteamBan(steam_id=sid)
+                        row.vac_bans, row.game_bans = r["vac_bans"], r["game_bans"]
+                        row.days_since_last_ban, row.community_banned = r["days_since_last_ban"], r["community_banned"]
+                        row.economy_ban, row.checked_at = r["economy_ban"], checked_at
+                        s.add(row)
+                return
+            except IntegrityError:
+                if attempt == 2:
+                    raise
+
+    def bans(self, steam_ids: list[int]) -> dict[int, dict]:
+        if not steam_ids:
+            return {}
+        with self.session() as s:
+            rows = s.scalars(select(M.SteamBan).where(M.SteamBan.steam_id.in_(steam_ids)))
+            return {r.steam_id: {"vac_bans": r.vac_bans or 0, "game_bans": r.game_bans or 0,
+                                 "days_since_last_ban": r.days_since_last_ban or 0,
+                                 "community_banned": bool(r.community_banned), "economy_ban": r.economy_ban or "none",
+                                 "checked_at": _utc(r.checked_at)} for r in rows}
+
     # ------------------------------------------------------ Steam chat messages (bot)
 
     def chat_enabled(self, user_id: int) -> bool:

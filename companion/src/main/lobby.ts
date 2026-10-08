@@ -1,7 +1,7 @@
 // Keeps the lobby rows (roster + evidence class) up to date. Looks up only Steam IDs it hasn't
 // seen recently, so a roster update (kills, team switch) doesn't cause a new request.
 
-import type { EvidenceClass, LobbyRow, MatchState, PlayerDetail } from "../shared/types";
+import type { EvidenceClass, LobbyRow, MatchState, PlayerDetail, SteamBans } from "../shared/types";
 import type { LobbyAnswer } from "./backend";
 
 export type Lookup = (steamIds: string[]) => Promise<LobbyAnswer[]>;
@@ -11,6 +11,7 @@ interface Cached {
   matchesAnalyzed: number;
   name: string | null;
   detail: PlayerDetail | null;
+  bans: SteamBans | null;
   at: number;
 }
 
@@ -59,16 +60,16 @@ export class LobbyService {
 
   rows(): LobbyRow[] {
     return (this.match?.players ?? []).map((p) => {
-      if (!p.steamId) return { ...p, classification: null, matchesAnalyzed: 0, status: "no-steam-id", detail: null };
+      if (!p.steamId) return { ...p, classification: null, matchesAnalyzed: 0, status: "no-steam-id", detail: null, bans: null };
       const c = this.cache.get(p.steamId);
       if (c)
         return {
           ...p,
           // Steam sometimes doesn't know a stranger's name yet; the server's last known name fills in.
           name: p.name === UNKNOWN_NAME && c.name ? c.name : p.name,
-          classification: c.classification, matchesAnalyzed: c.matchesAnalyzed, status: "ok", detail: c.detail,
+          classification: c.classification, matchesAnalyzed: c.matchesAnalyzed, status: "ok", detail: c.detail, bans: c.bans,
         };
-      return { ...p, classification: null, matchesAnalyzed: 0, status: this.failed.has(p.steamId) ? "error" : "loading", detail: null };
+      return { ...p, classification: null, matchesAnalyzed: 0, status: this.failed.has(p.steamId) ? "error" : "loading", detail: null, bans: null };
     });
   }
 
@@ -102,7 +103,7 @@ export class LobbyService {
       for (const a of answers)
         if (a.steamId) {
           this.cache.set(a.steamId, { classification: a.classification, matchesAnalyzed: a.matchesAnalyzed,
-                                      name: a.name ?? null, detail: a.detail ?? null, at });
+                                      name: a.name ?? null, detail: a.detail ?? null, bans: a.bans ?? null, at });
           this.failed.delete(a.steamId);
         }
       this.error = null;

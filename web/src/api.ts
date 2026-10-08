@@ -82,6 +82,21 @@ export interface PatternBreakdown {
   reference: { source: string | null; cleanPlayers: number | null; cleanMatches: number | null } | null;
 }
 
+/** VAC/game bans on record at Steam. Account-level and separate from the evidence classes; only sent when
+ * there is a VAC or game ban (no ban is never shown as "clean"). */
+export interface SteamBans {
+  vacBans: number;
+  gameBans: number;
+  daysSinceLastBan: number;
+  /** Approximate date of the latest VAC or game ban (Steam gives a day count). */
+  lastBanOn: string;
+  communityBanned: boolean;
+  economyBan: string;
+  checkedAt: string;
+  profileUrl: string;
+  note: string;
+}
+
 export interface MatchDetail {
   matchId: string;
   map: string | null;
@@ -111,6 +126,7 @@ export interface MatchDetail {
     visible: boolean;
     /** Shared page only: the visitor may open this player's page (signed in and has met them). */
     linkable?: boolean;
+    bans?: SteamBans | null;
   }[];
   /** Present when the page was opened through a share link. */
   share?: { expiresAt: string; matchVisible: boolean } | null;
@@ -139,6 +155,7 @@ export interface Player {
   steamId: string;
   lastKnownName: string | null;
   matchesAnalyzed: number;
+  bans?: SteamBans | null;
   assessment: {
     classification: Classification;
     historicalEvidenceScore: number;
