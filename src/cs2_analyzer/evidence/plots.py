@@ -14,12 +14,15 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+from matplotlib import patheffects  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
 
 from cs2_analyzer.detectors.base import EvidenceEvent  # noqa: E402
 from cs2_analyzer.detectors.common import error_to_point, last_known_positions  # noqa: E402
 from cs2_analyzer.evidence.render import project, render_pov, render_topdown  # noqa: E402
 from cs2_analyzer.features.pair import pair_series  # noqa: E402
+from cs2_analyzer.features.weapons import is_gun  # noqa: E402
 from cs2_analyzer.geometry.angles import bearing, unwrap_yaw, view_vector  # noqa: E402
 from cs2_analyzer.geometry.visibility import LOS  # noqa: E402
 from cs2_analyzer.knowledge.model import Knowledge  # noqa: E402
@@ -72,6 +75,39 @@ def event_window(result, ev: EvidenceEvent, max_s: float = 12.0) -> tuple[int, i
     a = max(a, peak - half, 0)
     b = min(b, peak + half, w.T - 1)
     return a, peak, b
+# Shot markers, drawn through every timeline panel. The white halo keeps them visible on the coloured strips.
+SHOT_STYLES = {
+    "target": dict(color="#d62728", lw=1.6, ls="-", marker="v", fill=True, label="hit on target"),
+    "other": dict(color="#ff7f0e", lw=1.6, ls="-", marker="v", fill=True, label="hit on another player"),
+    "miss": dict(color="#d62728", lw=1.0, ls=(0, (3, 2)), marker="v", fill=False, label="miss"),
+}
+HIT_WINDOW_TICKS = 4  # player_hurt lands on the shot's tick or a few ticks after
+
+
+def classify_shots(result, o: int, e: int | None, a: int, b: int) -> list[tuple[int, str]]:
+    """Gun shots of player ``o`` in ticks [a, b] as (tick index, "target" | "other" | "miss").
+
+    A shot counts as a hit when one of ``o``'s gun damage events (player_hurt) follows it within a few ticks;
+    "target" when that damage went to the event's target ``e``."""
+    w = result.world
+    shots = np.nonzero(w.shot_mask[o, a:b + 1])[0] + a
+    kinds = ["miss"] * len(shots)
+    demo = getattr(result, "demo", None)
+    hurts = demo.event("hurts") if demo is not None else None
+    if shots.size and hurts is not None and len(hurts):
+        sid = w.steam_ids[o]
+        h = hurts[(hurts["attacker_steam_id"].astype("int64") == int(sid)) & hurts["weapon"].astype(str).map(is_gun)]
+        for r in h.itertuples():
+            t = int(r.tick) - w.tick0
+            i = int(np.searchsorted(shots, t, side="right")) - 1   # the last shot at or before the damage
+            if i < 0 or t - shots[i] > HIT_WINDOW_TICKS:
+                continue
+            v = w.index_of.get(int(r.victim_steam_id))
+            if e is not None and v == e:
+                kinds[i] = "target"
+            elif kinds[i] == "miss" and v is not None and v != o:
+                kinds[i] = "other"
+    return list(zip(shots.tolist(), kinds))
 
 
 def _strip(ax, x, codes, colors, label):
@@ -91,15 +127,16 @@ def plot_event(result, ev: EvidenceEvent, path: str | Path) -> Path:
     x = (np.arange(a, b + 1) - peak) * 1000.0 / w.tickrate
 
     fig = plt.figure(figsize=(18, 12))
-    gs = fig.add_gridspec(6, 3, height_ratios=[3.2, 1, 1, 1, 0.35, 0.35], hspace=0.35, wspace=0.18)
+    gs = fig.add_gridspec(7, 3, height_ratios=[3.2, 1, 1, 1, 0.35, 0.35, 0.35], hspace=0.35, wspace=0.18)
     ax_map = fig.add_subplot(gs[0, 0])
     ax_pov = fig.add_subplot(gs[0, 1])
     ax_txt = fig.add_subplot(gs[0, 2])
     ax_err = fig.add_subplot(gs[1, :])
     ax_brg = fig.add_subplot(gs[2, :], sharex=ax_err)
     ax_kin = fig.add_subplot(gs[3, :], sharex=ax_err)
-    ax_los = fig.add_subplot(gs[4, :], sharex=ax_err)
-    ax_kn = fig.add_subplot(gs[5, :], sharex=ax_err)
+    ax_shot = fig.add_subplot(gs[4, :], sharex=ax_err)
+    ax_los = fig.add_subplot(gs[5, :], sharex=ax_err)
+    ax_kn = fig.add_subplot(gs[6, :], sharex=ax_err)
 
     # --- top-down map
     if result.geometry.available:
@@ -212,13 +249,32 @@ def plot_event(result, ev: EvidenceEvent, path: str | Path) -> Path:
     k2.plot(x, jerk / 100000, color="tab:gray", lw=0.6, label="jerk (100k deg/s³)")
     k2.legend(fontsize=6, loc="upper left")
     ax_kin.legend(fontsize=7, loc="upper right")
+    shots = classify_shots(result, o, e, a, b)
+    for axx in (ax_err, ax_brg, ax_kin, ax_shot, ax_los, ax_kn):
+        strip = axx in (ax_los, ax_kn)  # thicker with a white halo so they show on the coloured strips
+        for t, kind in shots:
+            st = SHOT_STYLES[kind]
+            lw = st["lw"] + (0.6 if strip else 0)
+            axx.axvline(x[t - a], color=st["color"], lw=lw, ls=st["ls"], alpha=0.9, zorder=5,
+                        path_effects=[patheffects.withStroke(linewidth=lw + 2.5, foreground="white")] if strip else None)
+        axx.axvline(0, color="k", lw=0.8, ls="--", zorder=6)
     for axx in (ax_err, ax_brg, ax_kin):
-        for t in np.nonzero(w.shot_mask[o, a:b + 1])[0]:
-            axx.axvline(x[t], color="red", lw=0.6, alpha=0.6)
-        axx.axvline(0, color="k", lw=0.8, ls="--")
         axx.axvspan((w.t(ev.tick_start) - peak) * 1000 / w.tickrate, (w.t(ev.tick_end) - peak) * 1000 / w.tickrate,
                     color="yellow", alpha=0.08)
-    ax_kn.set_xlabel("ms relative to peak (red lines = shots, yellow = evidence window)")
+    ax_shot.set_ylim(0, 1)
+    ax_shot.set_yticks([])
+    ax_shot.set_ylabel("shots", rotation=0, ha="right", va="center", fontsize=8)
+    for t, kind in shots:
+        st = SHOT_STYLES[kind]
+        ax_shot.plot(x[t - a], 0.5, st["marker"], ms=9, mew=1.5, mec=st["color"],
+                     mfc=st["color"] if st["fill"] else "white", zorder=7)
+    counts = {k: sum(1 for _, kind in shots if kind == k) for k in SHOT_STYLES}
+    ax_shot.legend(handles=[Line2D([], [], color=st["color"], lw=st["lw"], ls=st["ls"], marker=st["marker"],
+                                   mfc=st["color"] if st["fill"] else "white", label=f"{st['label']} ({counts[k]})")
+                            for k, st in SHOT_STYLES.items()]
+                   if shots else [Line2D([], [], color="none", label="no shots in this window")],
+                   fontsize=6.5, loc="center left", bbox_to_anchor=(1.005, 0.5), frameon=False, borderaxespad=0)
+    ax_kn.set_xlabel("ms relative to peak (vertical lines = shots, yellow = evidence window)")
     ax_kn.legend(handles=[Patch(color=KN_COLORS[s], label=s.name) for s in
                           (Knowledge.KNOWN, Knowledge.LIKELY_KNOWN, Knowledge.POSSIBLY_KNOWN, Knowledge.UNKNOWN)],
                  fontsize=6, ncol=4, loc="lower right", bbox_to_anchor=(1, -2.2))
