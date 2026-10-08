@@ -51,12 +51,12 @@ function TeamTable({ team, data, me, won }: { team: number | null; data: MatchDe
           <thead>
             <tr>
               <th>Player</th>
-              <th>Premier</th>
+              <th className="opt">Premier</th>
               <th className="num-col">K</th>
               <th className="num-col">D</th>
-              <th className="num-col">A</th>
-              <th className="num-col">ADR</th>
-              <th className="num-col">HS%</th>
+              <th className="num-col opt">A</th>
+              <th className="num-col opt">ADR</th>
+              <th className="num-col opt">HS%</th>
               <th>Evidence</th>
               <th className="num-col">Events</th>
             </tr>
@@ -75,12 +75,12 @@ function TeamTable({ team, data, me, won }: { team: number | null; data: MatchDe
                     <BanBadge bans={p.bans} playedAt={data.playedAt} />
                   </span>
                 </td>
-                <td><Rank type={p.rankType} value={p.rankNew} /></td>
+                <td className="opt"><Rank type={p.rankType} value={p.rankNew} /></td>
                 <td className="num-col">{p.kills}</td>
                 <td className="num-col">{p.deaths}</td>
-                <td className="num-col">{p.assists}</td>
-                <td className="num-col">{Math.round(p.damage / rounds)}</td>
-                <td className="num-col">{p.kills ? `${Math.round((100 * p.headshots) / p.kills)}%` : "–"}</td>
+                <td className="num-col opt">{p.assists}</td>
+                <td className="num-col opt">{Math.round(p.damage / rounds)}</td>
+                <td className="num-col opt">{p.kills ? `${Math.round((100 * p.headshots) / p.kills)}%` : "–"}</td>
                 {p.visible ? (
                   <>
                     <td>
@@ -297,6 +297,7 @@ function MatchView({ data, evidence, evidenceError, children }: {
 }) {
   const me = useUser()?.steamId ?? "";
   const names = Object.fromEntries(data.players.map((p) => [p.steamId, p.name ?? p.steamId]));
+  const classes = Object.fromEntries(data.players.map((p) => [p.steamId, p.assessment?.classification]));
 
   // The viewer's team first; with no known team, the team that started CT first (CS2's own order).
   const mine = data.players.find((p) => p.steamId === me)?.team;
@@ -362,7 +363,7 @@ function MatchView({ data, evidence, evidenceError, children }: {
 
       <h2>Evidence events</h2>
       {data.clips && <ClipsNotice clips={data.clips} />}
-      {!evidence ? <Loading error={evidenceError} /> : <EvidenceList events={evidence} names={names} />}
+      {!evidence ? <Loading error={evidenceError} /> : <EvidenceList events={evidence} names={names} classes={classes} />}
     </>
   );
 }

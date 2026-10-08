@@ -289,7 +289,7 @@ def assess_history(match_rows: list[dict], cfg: dict) -> dict:
         return r["overall"] if s <= 0 else max(0.0, 1.0 - (1.0 - r["overall"]) / (1.0 - s))
 
     def shrunk(key):
-        return float(sum(r[key] for r in valid) / (nv + prior)) if nv else 0.0
+        return float(sum(r.get(key, 0.0) for r in valid) / (nv + prior)) if nv else 0.0
 
     high = sum(1 for r in valid if r["overall"] >= high_label_min)
     hist = float(sum(events_only(r) for r in valid) / (nv + prior)) if nv else 0.0
@@ -314,6 +314,7 @@ def assess_history(match_rows: list[dict], cfg: dict) -> dict:
         "information_score": max(shrunk("hidden_information_score"), shrunk("decision_information_score")),
         "trigger_score": shrunk("shot_timing_score"),
         "recoil_score": shrunk("recoil_score"),
+        "mechanical_impossibility_score": shrunk("mechanical_impossibility_score"),
         "high_severity_matches": high,
         "player_evidence_history": prof,
         "model_version": SCORING_MODEL_VERSION,

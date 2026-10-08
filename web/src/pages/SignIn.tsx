@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LinuxIcon, Logo, Wordmark } from "../art";
+import { LinuxIcon, Logo, WindowsIcon, Wordmark } from "../art";
 import { api } from "../api";
 import { ClassBadge, SOURCE_URL, useLoad } from "../ui";
 
@@ -16,10 +16,12 @@ const STEPS: [string, string][] = [
 ];
 
 const SIGNALS: [string, string][] = [
-  ["Hidden information", "Aim that follows an enemy through walls, or settles on them before they can be seen or heard."],
+  ["Hidden information", "Aim that follows enemies through walls or smoke, settles on them before they can be seen, or hits them there more often than chance explains."],
+  ["Knowing when it is safe", "Knife out when no enemy is near, put away when one is, while the player couldn't know where they were."],
   ["Aim mechanics", "Turns onto a target that are faster or cleaner than people move a mouse."],
   ["Shot timing", "Shots fired the instant an enemy enters the crosshair, again and again."],
   ["Recoil", "Spray control that cancels recoil more precisely than a hand can."],
+  ["Impossible input", "View movement a mouse doesn't make, like silent aim, and scripted bunnyhops."],
 ];
 
 const CLASSES: [string, string][] = [
@@ -147,9 +149,12 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
             <li>Link the app to this website with the same Steam account.</li>
           </ul>
           <div className="intro-app-download">
-            <a href={STORE_URL} target="_blank" rel="noopener noreferrer" className="store-badge">
-              {/* Microsoft's own "Get it from Microsoft" badge, linked as their badge guidelines describe. */}
-              <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" width={200} height={72} />
+            <a href={STORE_URL} target="_blank" rel="noopener noreferrer" className="linux-badge">
+              <WindowsIcon size={26} />
+              <span>
+                <small>Get it from the</small>
+                <strong>Microsoft Store</strong>
+              </span>
             </a>
             <span className="muted small">For Windows 10 and 11. Installs and updates through the Microsoft Store.</span>
           </div>
@@ -185,7 +190,7 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
         </ul>
         <p className="muted small">
           <Link to="/how-it-works">How the analysis works</Link> explains every measurement behind a class. Demos are deleted
-          after analysis and chat is never read. See <Link to="/privacy">Privacy</Link> for what is kept. The
+          after analysis and chat is never read. See <Link to="/privacy">Privacy</Link> for what is kept. The{" "}
           <a href={SOURCE_URL}>source code</a> is open (AGPL-3.0).
         </p>
       </section>

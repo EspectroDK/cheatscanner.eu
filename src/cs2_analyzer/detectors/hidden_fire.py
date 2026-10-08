@@ -169,15 +169,15 @@ class HiddenFireDetector(Detector):
                 f"{self.label}: {real} times this player fired, with no enemy in view, within "
                 f"{cfg.get('on_target_deg', 1.5):g} deg of an enemy hidden behind a wall or smoke while the best legitimate "
                 f"information (sight, teammates, radar, sound, damage) was at least {cfg.get('min_gap_deg', 5.0):g} deg off. "
-                f"Shooting at the same moments of other rounds explains {expected:.1f} of them. {len(hits)} of his "
-                f"{n_all} hits ({dmg:.0f} damage) landed on enemies hidden from him, {len(noinfo)} of them with no "
+                f"Shooting at the same moments of other rounds explains {expected:.1f} of them. {len(hits)} of their "
+                f"{n_all} hits ({dmg:.0f} damage) landed on enemies hidden from them, {len(noinfo)} of them with no "
                 f"legitimate information at all."
             ]
             if by_bursts:
                 parts.append(f"Of 714 clean players, one reached both {min_excess:g} more than expected and {min_hits} "
                              f"hidden hits.")
             if by_share:
-                parts.append(f"{share:.0%} of his hits were on hidden enemies; of 1823 clean players, three reached "
+                parts.append(f"{share:.0%} of their hits were on hidden enemies; of 1823 clean players, three reached "
                              f"{share_min:.0%} with at least {share_min_hits} hits.")
             events.append(self.event(
                 ctx, o, int(ticks[0]), int(ticks[len(ticks) // 2]), int(ticks[-1]), sev, 1.0, None, metrics,

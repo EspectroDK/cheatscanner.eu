@@ -34,7 +34,7 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
         <li><strong>Your Steam password</strong> or Steam session. Signing in through Steam only tells us your Steam ID.</li>
         <li>
           <strong>Anything on your PC or in the game.</strong> Cheatscanner's code never reads or changes CS2's memory. The
-          optional Cheatscanner app for Windows gets the players in your match from Steam's "recently played with" list, and
+          optional Cheatscanner app for Windows and Linux gets the players in your match from Steam's "recently played with" list, and
           only sends their Steam IDs to look up their classes. Those lookups are not stored.
         </li>
       </ul>
@@ -120,7 +120,9 @@ export function Privacy({ signedIn }: { signedIn: boolean }) {
           you are linking while you sign in. Gone when the tab closes.
         </li>
         <li>
-          The Cheatscanner app keeps its sign-in token on your PC, encrypted by Windows, so it stays linked to your account.
+          The Cheatscanner app keeps its sign-in token on your PC so it stays linked to your account. On Windows it is
+          encrypted by Windows. On Linux it is encrypted with your desktop's keyring when one is running, and otherwise
+          kept in the app's settings file in your home folder.
         </li>
         <li>
           Signing in happens on Steam's own website, which sets Steam's cookies under Valve's privacy policy. Your

@@ -7,6 +7,22 @@ import { Pattern } from "../Pattern";
 import { Why } from "../Why";
 import { BanBadge, ClassBadge, Loading, pct, useLoad, useUser, when } from "../ui";
 
+const LEVEL: Record<string, number> = { NORMAL: 0, ELEVATED: 1, HIGH: 2, VERY_HIGH: 2 };
+
+/** A match rated above the player's overall class needs a word, or the two badges read as a contradiction. */
+function AboveOverall({ overall, matchClasses }: { overall: string | null | undefined; matchClasses: (string | null | undefined)[] }) {
+  if (!overall || !(overall in LEVEL)) return null;
+  const above = matchClasses.filter((c) => c && c in LEVEL && LEVEL[c] > LEVEL[overall]).length;
+  if (above === 0) return null;
+  return (
+    <p className="notice small">
+      {above === 1 ? "One of their analyzed matches is" : `${above} of their analyzed matches are`} rated above
+      their overall class. A single unusual match doesn't change the overall class: it rises only when strong signs
+      repeat across matches. <Link to="/how-it-works">How it works</Link> explains this under "Step 6: across matches".
+    </p>
+  );
+}
+
 export function PlayerPage() {
   const { sid = "" } = useParams();
   const player = useLoad(() => api.player(sid), [sid]);
@@ -27,6 +43,7 @@ export function PlayerPage() {
     ["Hidden information", a?.informationScore],
     ["Shot timing", a?.triggerScore],
     ["Recoil", a?.recoilScore],
+    ["Impossible input", a?.mechanicalImpossibilityScore],
   ];
   return (
     <>
@@ -62,6 +79,8 @@ export function PlayerPage() {
         pattern={a?.profile}
         eventCount={evidence.data ? evidence.data.length : null}
       />
+
+      <AboveOverall overall={a?.classification} matchClasses={(timeline.data ?? matches.data ?? []).map((m) => m.classification)} />
 
       {pattern.data && <Pattern data={pattern.data} />}
 

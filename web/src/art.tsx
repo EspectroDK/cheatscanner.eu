@@ -33,6 +33,15 @@ export function LinuxIcon({ size = 28 }: { size?: number }) {
   );
 }
 
+/** Four window panes, for the Microsoft Store button (drawn here, so the page loads nothing from Microsoft). */
+export function WindowsIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M2 2h9.5v9.5H2zM12.5 2H22v9.5h-9.5zM2 12.5h9.5V22H2zM12.5 12.5H22V22h-9.5z" />
+    </svg>
+  );
+}
+
 // Side emblems: T = amber diamond with a flame-like cut, CT = blue shield with a chevron.
 export function SideEmblem({ side, size = 22 }: { side: number | null | undefined; size?: number }) {
   if (side === 2)

@@ -228,7 +228,6 @@ tbody tr:hover td { background: color-mix(in srgb, var(--panel-2) 60%, transpare
 /* ---------------------------------------------------------------- evidence */
 .evidence { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; margin: 12px 0; }
 .evidence header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 6px; }
-.evidence header strong { text-transform: capitalize; }
 .evidence p { margin: 6px 0; }
 .clip { width: 100%; max-width: 960px; border-radius: 10px; background: #000; display: block; margin: 10px 0; }
 .clip-player { max-width: 960px; margin: 10px 0; }
@@ -264,7 +263,12 @@ section.panel h2 { margin-top: 16px; }
   .brand span { display: none; }
   h1 { font-size: 1.7rem; }
   .hero-team .num { font-size: 2.2rem; }
-  .scoreboard { table-layout: auto; min-width: 640px; }
+  /* Phones: name, kills, deaths and the evidence class; rank, assists, ADR and HS% only on wider screens. */
+  .scoreboard { table-layout: auto; }
+  .scoreboard .opt { display: none; }
+  .scoreboard th, .scoreboard td { padding: 10px 8px; }
+  .scoreboard th:first-child { width: auto; }
+  .player-cell { max-width: 46vw; }
   .axis-row { grid-template-columns: 120px 1fr 40px; }
   input { min-width: 0; width: 100%; }
 }
@@ -330,9 +334,7 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 .soon { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: 999px; padding: 3px 10px; }
 .intro-app p { margin: 0; }
 .intro-app-download { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
-.store-badge { display: inline-flex; line-height: 0; }
-.store-badge img { height: 56px; width: auto; }
-/* Same size and look as Microsoft's dark "Get it from Microsoft" badge next to it. */
+/* The Store and Linux download buttons: dark, store-badge style. */
 .linux-badge { display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px 0 14px; box-sizing: border-box; background: #000; color: #fff; border: 1px solid #a6a6a6; border-radius: 8px; line-height: 1.1; }
 .linux-badge:hover { text-decoration: none; filter: brightness(1.15); }
 .linux-badge span { display: grid; }
@@ -405,3 +407,12 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 .share-link input { flex: 1; min-width: 0; }
 .share-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
 .share-list .button { margin-left: 6px; }
+
+/* ---------------------------------------------------------------- evidence grouped per player (match page) */
+.evidence-group { margin: 18px 0; }
+.evidence-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 1.1rem; margin: 0 0 8px; }
+.evidence-folded { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
+.evidence-folded > summary { cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.evidence-folded[open] > summary { margin-bottom: 8px; }
+.evidence-details summary { cursor: pointer; color: var(--muted); }
+.evidence-details p { margin: 6px 0 0; }

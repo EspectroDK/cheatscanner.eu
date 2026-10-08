@@ -22,6 +22,7 @@ const TYPES: [keyof TimelinePoint["axes"], string][] = [
   ["hiddenInformation", "Hidden information"],
   ["shotTiming", "Shot timing"],
   ["recoil", "Recoil"],
+  ["mechanicalImpossibility", "Impossible input"],
 ];
 
 function useWidth<T extends HTMLElement>() {
