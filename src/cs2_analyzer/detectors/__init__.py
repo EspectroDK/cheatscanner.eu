@@ -27,6 +27,7 @@ from cs2_analyzer.detectors.shot_mechanics import (
     TriggerTimingDetector,
 )
 from cs2_analyzer.detectors.bunnyhop import BunnyhopDetector
+from cs2_analyzer.detectors.safe_carelessness import SafeCarelessnessDetector
 from cs2_analyzer.detectors.smoke_kills import SmokeKillsDetector
 from cs2_analyzer.detectors.view_integrity import ViewIntegrityDetector
 
@@ -45,6 +46,7 @@ ALL_DETECTORS: dict[str, type[Detector]] = {
         SmokeTrackingDetector,
         InformationGapDetector,
         HiddenFireDetector,
+        SafeCarelessnessDetector,
         FlashDetector,
         StrategicInformationDetector,
         MechanicalImpossibilityDetector,

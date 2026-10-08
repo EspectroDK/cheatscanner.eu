@@ -38,6 +38,7 @@ class SynthPlayer:
     weapon: str = "ak47"
     punch: np.ndarray | None = None  # [T, 2]
     airborne: np.ndarray | None = None  # [T] bool
+    weapon_class: np.ndarray | None = None  # [T] str, "rifle" when not given
 
 
 @dataclass
@@ -96,7 +97,7 @@ class Scenario:
                     "alive": alive,
                     "health": np.where(alive, 100, 0).astype(np.int16),
                     "weapon": p.weapon,
-                    "weapon_class": "rifle",
+                    "weapon_class": p.weapon_class if p.weapon_class is not None else "rifle",
                     "ammo": 30.0,
                     "is_scoped": False,
                     "duck_amount": 0.0,

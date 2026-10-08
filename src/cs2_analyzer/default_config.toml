@@ -419,6 +419,30 @@ share_full_noinfo_hits = 15
 stale_pose_ms = 2000               # hits are ignored while a pose has not changed at all this long (data gap)
 full_damage_share = 0.85           # a "hidden" hit at this share of the weapon's full damage is a mesh error
 
+[detectors.safe_carelessness]
+# Knife or bomb out when no hidden enemy is near, put away when one is, while no enemy is
+# visible or known (a clean player cannot tell those moments apart). Compared with ghost
+# enemies (the enemy team at the same time of other rounds). 434 CS2CD matches on five
+# maps (2026-10-08): fires for 2 of 854 clean players with enough moments, 1 of 231
+# unlabelled and 11 of 141 labelled cheaters (docs/validation/cs2cd/safe_carelessness.md).
+enabled = true
+reliability = 0.5
+step_ms = 500                      # one sample per half second
+skip_round_start_ms = 2000
+known_gap_deg = 15.0               # an enemy whose legitimate estimate is this close counts as known
+known_u = 2500.0                   # ... when within this distance
+radius_u = 800.0                   # a hidden, unknown enemy this close is a threat
+ghost_rounds = 6
+min_threat_moments = 20
+min_safe_moments = 50
+min_ghost_threat = 5.0             # summed ghost threat weight
+min_ghost_safe = 20.0
+deflate = 4.0                      # neighbouring half-second samples are not independent
+min_excess = 0.4                   # safe-minus-threat knife share beyond the ghost difference
+full_excess = 0.7
+min_z = 2.5
+full_z = 4.0
+
 [detectors.bunnyhop]
 # Scripted bunnyhopping: jumps that take off again within perfect_max_ticks of landing
 # ("perfect rehops") and chains of them. Quick check on 59 CS2CD matches (2026-10-07):
