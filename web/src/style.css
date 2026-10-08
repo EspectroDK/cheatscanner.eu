@@ -19,6 +19,7 @@
   --elevated: #e0a93b;
   --high: #e45a50;
   --none: #4d5663;
+  --ban: #b39bff;   /* Steam ban records: deliberately none of the evidence-class colours */
   --radius: 12px;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -42,6 +43,7 @@
     --accent-ink: #ffffff;
     --t: #b98410;
     --ct: #2a7cc0;
+    --ban: #6a4fd0;
     --shadow: 0 6px 18px rgba(20, 30, 45, 0.08);
     color-scheme: light;
   }
@@ -122,6 +124,18 @@ input:focus { border-color: var(--accent); outline: none; }
 .badge-high { --tone: var(--high); }
 .badge-insufficient_data { --tone: var(--muted); }
 
+/* Steam ban on record: a square tag, unlike the round evidence badges, so it never reads as a class */
+.ban {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--ban); border: 1px solid color-mix(in srgb, var(--ban) 55%, transparent);
+  background: color-mix(in srgb, var(--ban) 10%, transparent); text-decoration: none;
+}
+.ban:hover { background: color-mix(in srgb, var(--ban) 20%, transparent); }
+.ban-lg { font-size: 0.8rem; padding: 3px 9px; }
+.ban-after { font-weight: 600; text-transform: none; opacity: 0.8; }
+.ban-note { margin-top: 6px; }
+
 .rating { font-family: var(--display); font-weight: 700; font-size: 1.02rem; padding: 1px 8px; border-radius: 6px; background: var(--panel-2); }
 .rating-1 { color: #b0c3d9; } .rating-2 { color: #8cc6ff; } .rating-3 { color: #6a7dff; }
 .rating-4 { color: #c166ff; } .rating-5 { color: #f03cff; } .rating-6 { color: #eb4b4b; } .rating-7 { color: #fed700; }
@@ -195,6 +209,7 @@ tbody tr:hover td { background: color-mix(in srgb, var(--panel-2) 60%, transpare
 .player-cell a { color: var(--text); font-weight: 500; }
 .player-cell a:hover { color: var(--accent); }
 .player-cell a, .player-cell span.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-cell a.ban, .player-cell a.ban:hover { color: var(--ban); font-weight: 700; flex: none; }
 .you { font-size: 0.68rem; font-weight: 700; background: var(--accent); color: var(--accent-ink); border-radius: 4px; padding: 1px 5px; }
 .table-wrap { overflow-x: auto; }
 .card-table { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }

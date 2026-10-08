@@ -1,7 +1,7 @@
 // Client for the Cheatscanner server (api/companion.py and friends). Runs in the main process, so
 // the token never reaches a web page and no CORS setup is needed on the server.
 
-import type { Account, EvidenceClass, PlayerDetail } from "../shared/types";
+import type { Account, EvidenceClass, PlayerDetail, SteamBans } from "../shared/types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -37,6 +37,8 @@ export interface LobbyAnswer {
   name?: string | null;
   /** The F7 card, for ELEVATED and HIGH players only. */
   detail?: PlayerDetail | null;
+  /** VAC/game bans on record at Steam, only when there is one. */
+  bans?: SteamBans | null;
 }
 
 type Fetch = typeof fetch;

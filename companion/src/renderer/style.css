@@ -18,6 +18,7 @@
   --normal: #3fb27f;
   --elevated: #e0a93b;
   --high: #e45a50;
+  --ban: #b39bff;   /* Steam ban records: none of the evidence-class colours */
   --radius: 12px;
   --display: "Barlow Condensed", "Arial Narrow", sans-serif;
   color-scheme: dark;
@@ -166,3 +167,10 @@ html:has(.overlay-body), .overlay-body { background: transparent; color-scheme: 
 .hotkey-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .hotkey-button { min-width: 108px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: inherit; font: inherit; cursor: pointer; }
 .hotkey-button.listening { border-color: var(--accent); color: var(--accent); }
+
+/* Steam ban on record: a square tag, unlike the round evidence badges, so it never reads as a class. */
+.ban { display: inline-flex; align-items: center; white-space: nowrap; flex: none; padding: 0 5px; border-radius: 3px;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ban);
+  border: 1px solid color-mix(in srgb, var(--ban) 55%, transparent); background: color-mix(in srgb, var(--ban) 10%, transparent); }
+.ov-bans { margin-top: 6px; }
+.ov-bans .ov-recent-row { grid-template-columns: 1fr auto auto; }

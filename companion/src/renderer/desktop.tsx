@@ -4,7 +4,7 @@ import { DEFAULT_HOTKEYS, hotkeyFromEvent, type HotkeyName } from "../shared/hot
 import type { AppState, LobbyRow } from "../shared/types";
 import { bridge } from "./bridge";
 import { DISCLAIMER, Logo, mapName, SideEmblem, Wordmark } from "./brand";
-import { PlayerClass } from "./parts";
+import { BanTag, PlayerClass } from "./parts";
 import { useAppState } from "./useAppState";
 import "./style.css";
 
@@ -180,6 +180,7 @@ function LobbyLine({ r }: { r: LobbyRow }) {
         onClick={() => r.steamId && bridge.openPlayer(r.steamId)}>
         {r.name}{r.isLocal && <span className="you">you</span>}
       </button>
+      <BanTag bans={r.bans} />
       <PlayerClass r={r} />
     </div>
   );

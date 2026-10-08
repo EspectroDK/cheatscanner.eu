@@ -42,6 +42,10 @@ const DETAIL: Record<string, PlayerDetail> = {
   },
 };
 
+const BANS: Record<string, LobbyRow["bans"]> = {
+  quietfox: { vacBans: 1, gameBans: 0, daysSinceLastBan: 412, lastBanOn: daysAgo(412).slice(0, 10), profileUrl: "https://steamcommunity.com/profiles/76561198000000010" },
+};
+
 function simulated(): Bridge {
   const screen = new URLSearchParams(location.search).get("screen") ?? "lobby";
   const inGame = screen === "lobby" || screen === "detail";
@@ -65,6 +69,7 @@ function simulated(): Bridge {
     lobby: {
       rows: inGame ? ROSTER.map(([name, side, classification, matchesAnalyzed, status], slot) => ({
         slot, name, side, classification, matchesAnalyzed, status, isLocal: slot === 0, detail: DETAIL[name] ?? null,
+        bans: BANS[name] ?? null,
         steamId: status === "no-steam-id" ? null : String(76561198000000001n + BigInt(slot)),
       })) : [],
       updatedAt: inGame ? new Date().toISOString() : null,

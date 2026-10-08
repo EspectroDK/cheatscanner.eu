@@ -6,7 +6,7 @@ import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { AppState, AxisLevel, LobbyRow } from "../shared/types";
 import { ClassBadge, Logo, mapName, SideEmblem, Wordmark } from "./brand";
-import { ago, flagged, PlayerClass } from "./parts";
+import { ago, bannedOnly, BanTag, flagged, PlayerClass } from "./parts";
 import { playSiren } from "./siren";
 import { useAppState } from "./useAppState";
 import "./style.css";
@@ -70,6 +70,7 @@ function Line({ r }: { r: LobbyRow }) {
     <div className={`ov-row${r.isLocal ? " is-local" : ""}`}>
       <SideEmblem side={r.side} size={14} />
       <span className="ov-name">{r.name}</span>
+      <BanTag bans={r.bans} />
       <PlayerClass r={r} compact />
     </div>
   );
@@ -79,12 +80,28 @@ function Line({ r }: { r: LobbyRow }) {
 
 function Detail({ s }: { s: AppState }) {
   const list = flagged(s.lobby.rows);
-  if (list.length === 0)
+  const banned = bannedOnly(s.lobby.rows);
+  if (list.length === 0 && banned.length === 0)
     return <p className="ov-msg">{s.lobby.rows.length ? "No Elevated or High players in this match." : "The players appear here when the match loads."}</p>;
   return (
     <div className="ov-cards">
+      {list.length === 0 && <p className="ov-msg">No Elevated or High players in this match.</p>}
       {list.slice(0, 2).map((r) => <Card key={r.steamId} r={r} />)}
       {list.length > 2 && <p className="ov-msg">+{list.length - 2} more flagged player{list.length > 3 ? "s" : ""}</p>}
+      {banned.length > 0 && (
+        <div className="ov-bans">
+          <div className="ov-sub">Steam bans on record, account-level</div>
+          <div className="ov-recent">
+            {banned.map((r) => (
+              <div key={r.slot} className="ov-recent-row">
+                <span className="ov-name">{r.name}</span>
+                <BanTag bans={r.bans} />
+                <span className="muted">{ago(r.bans!.lastBanOn)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -105,7 +122,7 @@ function Card({ r }: { r: LobbyRow }) {
           <b>{d.evidenceScore}</b> / 100
         </span>
       </div>
-      <div className="ov-card-class"><ClassBadge value={r.classification!} compact /></div>
+      <div className="ov-card-class"><ClassBadge value={r.classification!} compact /> <BanTag bans={r.bans} /></div>
       <dl className="ov-facts">
         <dt>Matches analysed</dt><dd>{r.matchesAnalyzed}</dd>
         <dt>High-risk matches</dt><dd>{d.highEvidenceMatches}</dd>

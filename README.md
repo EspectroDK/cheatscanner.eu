@@ -143,7 +143,8 @@ the browser uses, e.g. `https://scanner.example`) to turn it on:
   speed, users, linked overlays and totals. Everyone else gets 404 there, and the menu link is hidden.
 - `CS2A_CONTACT_EMAIL` is shown on the website's Privacy page as the address for data requests.
 - `CS2A_STEAM_API_KEY` ([get one](https://steamcommunity.com/dev/apikey)) is used for names and avatars
-  and is needed for the match-history onboarding below.
+  and the Steam ban tags next to players (`[steam_bans]` in the config), and is needed for the match-history
+  onboarding below.
 
 ### Website
 

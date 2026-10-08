@@ -49,6 +49,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cs2_analyzer.config import Config
+from cs2_analyzer.ingest import steam_bans
 from cs2_analyzer.ingest.chat import SteamChat
 from cs2_analyzer.ingest.service import download_demo, download_with_retries
 from cs2_analyzer.memory import release_memory
@@ -98,6 +99,7 @@ class AnalysisWorker:
         self.max_demo = int(config.get("ingest.max_demo_mb", 1500)) << 20
         self.retry_delays = [float(d) for d in config.get("ingest.download_retry_delays_s", [10, 60, 300])]
         self.chat = SteamChat(db, str(config.get("auth.public_url", "http://localhost:8000")))
+        self.bans = steam_bans.from_config(config, db)
         self.pause_file = pause_file(config)
         self.pause_max_s = float(config.get("worker.pause_max_s", 1800))
         self._interruptible = False
@@ -313,6 +315,10 @@ class AnalysisWorker:
                 log.info("%s: %d Steam chat message(s) queued", mid, n)
         except Exception:
             log.warning("could not queue Steam chat messages for %s", mid, exc_info=True)
+        try:  # Steam ban records for the badge next to the players (not part of the analysis)
+            self.bans.refresh(self.db.match_rosters({mid}).get(mid, {}))
+        except Exception:
+            log.warning("could not check Steam bans for %s", mid, exc_info=True)
         self.db.finish_analysis_job(jid, "COMPLETED", match_id=mid, demo_deleted=bool(res.demo_deleted), error=None)
         self._share_code_done(job, "DONE", mid, None)
 

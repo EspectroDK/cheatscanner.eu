@@ -78,11 +78,18 @@ enabled = false                  # env CS2A_AUTH_ENABLED=1
 public_url = "http://localhost:8000"   # env CS2A_PUBLIC_URL; OpenID realm and return address
 post_login_redirect = "/"        # where the browser goes after signing in
 session_days = 30
-steam_api_key = ""               # env CS2A_STEAM_API_KEY; optional, only for names/avatars
+steam_api_key = ""               # env CS2A_STEAM_API_KEY; optional: names/avatars, Steam ban badges, match fetching
 admin_steam_ids = []             # env CS2A_ADMIN_STEAM_IDS (comma-separated SteamID64s); who sees the Admin page
 openid_timeout_s = 10
 share_link_hours = 48            # how long a "Share match" link works for people without an account
 max_share_links = 20             # active share links per user
+
+[steam_bans]
+# VAC/game bans on record at Steam, shown as a badge next to a player (ingest/steam_bans.py). Needs
+# auth.steam_api_key. A separate, factual layer: never part of scoring, classes or the siren.
+enabled = true
+refresh_hours = 24               # ask Steam again for a player after this long
+timeout_s = 5                    # a page waits at most this long for Steam; then the last known record is used
 
 [ingest]
 # Automatic demo fetching (README: Automatic demo fetching).

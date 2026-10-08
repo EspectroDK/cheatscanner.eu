@@ -42,4 +42,17 @@ describe("LobbyService", () => {
     expect(lobby.error).toBeNull();
     expect(lobby.rows()[0]).toMatchObject({ status: "ok", classification: "HIGH" });
   });
+
+  it("keeps the Steam ban record next to the class without changing it", async () => {
+    const bans = { vacBans: 1, gameBans: 0, daysSinceLastBan: 30, lastBanOn: "2026-09-08", profileUrl: "https://steamcommunity.com/profiles/1" };
+    const lookup = vi.fn(async () => [
+      { steamId: "76561198000000001", classification: "INSUFFICIENT_DATA" as const, matchesAnalyzed: 0, bans },
+      { steamId: "76561198000000002", classification: "NORMAL" as const, matchesAnalyzed: 2 },
+    ]);
+    const lobby = new LobbyService(lookup, () => {}, { debounceMs: 10 });
+    lobby.setMatch(match("76561198000000001", "76561198000000002"));
+    await vi.advanceTimersByTimeAsync(20);
+    expect(lobby.rows()[0]).toMatchObject({ classification: "INSUFFICIENT_DATA", bans });
+    expect(lobby.rows()[1].bans).toBeNull();
+  });
 });
