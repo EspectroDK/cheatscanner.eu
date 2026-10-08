@@ -317,6 +317,12 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 .intro-app-download { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 .store-badge { display: inline-flex; line-height: 0; }
 .store-badge img { height: 56px; width: auto; }
+/* Same size and look as Microsoft's dark "Get it from Microsoft" badge next to it. */
+.linux-badge { display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 20px 0 14px; box-sizing: border-box; background: #000; color: #fff; border: 1px solid #a6a6a6; border-radius: 8px; line-height: 1.1; }
+.linux-badge:hover { text-decoration: none; filter: brightness(1.15); }
+.linux-badge span { display: grid; }
+.linux-badge small { font-size: 0.72rem; }
+.linux-badge strong { font-size: 1.2rem; font-weight: 600; }
 .usage { margin: 28px 0 0; display: grid; gap: 10px; text-align: left; }
 .usage p { margin: 0; }
 .usage-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }

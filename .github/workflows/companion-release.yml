@@ -1,5 +1,7 @@
 name: companion-release
-# Builds a companion app release and, when the Partner Center secrets exist, submits it to the Microsoft Store.
+# Builds a companion app release (Windows installer + Store package, Linux AppImage + .deb) and, when the Partner
+# Center secrets exist, submits the Windows package to the Microsoft Store. Untick "Submit to the Microsoft Store"
+# to publish only a GitHub release. The website links to the Linux files of the latest GitHub release.
 #   Actions > companion-release > Run workflow, version e.g. 0.2.0   (creates the tag companion-v0.2.0)
 #   or push a tag: git tag companion-v0.2.0, git push origin companion-v0.2.0
 # The version is set at build time; package.json in the repo isn't changed. The Store needs every upload to
@@ -27,7 +29,47 @@ concurrency:
 permissions:
   contents: write
 jobs:
+  linux:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: companion/package-lock.json
+
+      - name: Version
+        id: version
+        env:
+          INPUT: ${{ github.event.inputs.version }}
+        run: |
+          v="${INPUT:-${GITHUB_REF_NAME#companion-v}}"
+          v="${v#v}"
+          if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 1.2.3 (got '$v')"
+            exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+      # Fixed file names (Cheatscanner-linux-x64.AppImage / .deb), so releases/latest/download/... always works.
+      - run: npm run dist:linux
+      - run: ls -l release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: companion-linux
+          path: |
+            companion/release/*.AppImage
+            companion/release/*.deb
+
   release:
+    needs: linux
     runs-on: windows-latest
     defaults:
       run:
@@ -64,6 +106,10 @@ jobs:
       - run: npm run dist
       - run: npx electron-builder --win appx --x64
       - run: ls -l release
+      - uses: actions/download-artifact@v4
+        with:
+          name: companion-linux
+          path: companion/release
 
       - uses: actions/upload-artifact@v4
         with:
@@ -81,6 +127,8 @@ jobs:
           files: |
             companion/release/*.exe
             companion/release/*.appx
+            companion/release/*.AppImage
+            companion/release/*.deb
 
       - name: Set up the Microsoft Store CLI
         if: env.HAS_STORE_SECRETS == 'true' && (github.event_name == 'push' || github.event.inputs.store == 'true')
