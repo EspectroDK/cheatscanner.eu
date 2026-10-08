@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Logo, Wordmark } from "../art";
+import { LinuxIcon, Logo, Wordmark } from "../art";
 import { api } from "../api";
 import { ClassBadge, SOURCE_URL, useLoad } from "../ui";
 
@@ -30,6 +30,8 @@ const CLASSES: [string, string][] = [
 
 /** The app's Microsoft Store page; on Windows it opens the Store app. */
 const STORE_URL = "https://apps.microsoft.com/detail/9N3R274VP3GV";
+/** Linux builds, attached to every companion release with fixed names (.github/workflows/companion-release.yml). */
+const LINUX_DOWNLOAD = `${SOURCE_URL}/releases/latest/download/Cheatscanner-linux-x64`;
 
 const n = (x: number) => x.toLocaleString("en-US");
 
@@ -126,10 +128,10 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
         <div className="intro-app">
           <div className="intro-app-head">
             <h2>In your lobby, before you play</h2>
-            <span className="soon">In the Microsoft Store</span>
+            <span className="soon">Windows and Linux</span>
           </div>
           <p>
-            The Cheatscanner app for Windows shows the evidence class of every player in your match while it loads, so
+            The Cheatscanner app for Windows and Linux shows the evidence class of every player in your match while it loads, so
             you know who has stood out in earlier analyzed matches before the first round.
           </p>
           <ul className="intro-list">
@@ -150,6 +152,19 @@ export function SignIn({ linkingApp = false, signedIn = false }: { linkingApp?: 
               <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" width={200} height={72} />
             </a>
             <span className="muted small">For Windows 10 and 11. Installs and updates through the Microsoft Store.</span>
+          </div>
+          <div className="intro-app-download">
+            <a href={`${LINUX_DOWNLOAD}.deb`} className="linux-badge">
+              <LinuxIcon size={30} />
+              <span>
+                <small>Download for</small>
+                <strong>Linux</strong>
+              </span>
+            </a>
+            <span className="muted small">
+              A .deb for Ubuntu, Debian and Linux Mint, or the <a href={`${LINUX_DOWNLOAD}.AppImage`}>AppImage</a> for
+              other distributions. Needs the native Steam (not Flatpak or Snap) and an X11 session.
+            </span>
           </div>
         </div>
 

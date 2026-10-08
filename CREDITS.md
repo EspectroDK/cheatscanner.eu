@@ -56,6 +56,7 @@ Galli et al., and the Kaggle CS:GO cheating dataset.
   package the app.
 - **Valve's [Game State Integration](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive_Game_State_Integration)**
   tells the companion when a match is in warm-up or live, without touching the game's memory.
+- **[Simple Icons](https://simpleicons.org)** (CC0) provides the Linux penguin on the Linux download button.
 
 ## Map geometry and images
 

@@ -5,8 +5,10 @@
   "version": "0.1.0",
   "description": "Cheatscanner companion app and in-game overlay for CS2. Shows the evidence class of the players in your match.",
   "author": "cheatscanner.eu",
+  "license": "AGPL-3.0-only",
   "homepage": "https://cheatscanner.eu",
   "main": "dist/main/main.js",
+  "desktopName": "cheatscanner-companion.desktop",
   "scripts": {
     "build": "tsc -p tsconfig.main.json && tsc --noEmit -p tsconfig.json && vite build",
     "start": "npm run build && electron .",
@@ -15,6 +17,7 @@
     "coplay": "tsc -p tsconfig.main.json && node dist/main/steam/coplay-cli.js",
     "dist": "npm run build && electron-builder --win nsis --x64",
     "dist:store": "npm run build && electron-builder --win appx --x64",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb --x64",
     "check:package": "electron-builder --linux dir --x64 && node tools/check-package.mjs release/linux-unpacked/resources/app.asar",
     "dev:ui": "vite",
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.json",
@@ -92,6 +95,28 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Cheatscanner",
       "runAfterFinish": true
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "category": "Game",
+      "synopsis": "Evidence classes of the players in your CS2 match",
+      "maintainer": "cheatscanner.eu",
+      "artifactName": "Cheatscanner-linux-x64.${ext}",
+      "syncDesktopName": true
     },
     "publish": null,
     "appx": {
