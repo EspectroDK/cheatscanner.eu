@@ -67,6 +67,9 @@ done
 docker compose up -d --remove-orphans
 pause off
 docker image prune -f >/dev/null
+# Every deploy builds on the server, and Docker keeps each build's cache layers: left alone this grew to 22 GB.
+# Keep the last three days (so the next deploy still builds fast) and drop the rest.
+docker builder prune -f --filter until=72h >/dev/null || echo "Note: could not prune the Docker build cache."
 
 # Map screenshots for the website: not in the repository (Valve's images), so download the missing ones.
 docker compose exec -T api cs2-analyzer map-images || echo "Note: some map screenshots could not be downloaded; the site draws those banners."
