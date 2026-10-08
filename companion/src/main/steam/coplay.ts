@@ -7,7 +7,7 @@
 // interface, attach to the logged-in user and call ISteamFriends' coplay functions.
 //
 // Hard rule: this runs in its own process (coplay-worker.ts) and only talks to the Steam client. It never
-// opens, reads or changes the CS2 process. Windows only.
+// opens, reads or changes the CS2 process. Windows and Linux (native Steam, not Flatpak or Snap).
 //
 // The Steam interfaces are C++ classes, so functions are called through their vtables. Slot numbers are
 // the declaration order in Valve's public Steamworks headers for these exact interface versions:
@@ -21,9 +21,14 @@
 // x64 Windows has one calling convention: `this` is the first argument. GetCoplayFriend returns a
 // CSteamID (a class with constructors), which MSVC returns through a hidden pointer passed right after
 // `this` (also GetFriendByIndex). A CSteamID argument is 8 bytes and trivially copyable, so it travels as a plain uint64.
+// Linux (System V / Itanium ABI): `this` is also the first argument, but a trivially copyable 8-byte class
+// is returned in RAX, so those two calls simply return a uint64 and take no hidden pointer. The vtable slot
+// numbers are the same (declaration order, no virtual destructors).
 
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export const CS2_APP_ID = 730;
 
@@ -56,8 +61,30 @@ export interface CoplayResult {
 const CLIENT_VERSION = "SteamClient021";
 const FRIENDS_VERSION = "SteamFriends017";
 
-/** steamclient64.dll of the running Steam client (HKCU\Software\Valve\Steam\ActiveProcess). */
+/** Linux: steamclient.so of native Steam. Steam's folder is ~/.steam/debian-installation on Debian, Ubuntu, Linux
+ * Mint, Pop!_OS and Zorin, and ~/.local/share/Steam everywhere else (Arch, Fedora, openSUSE, NixOS, SteamOS,
+ * Bazzite...); on the Debian family one is normally a symlink to the other. Steam writes its PID to
+ * ~/.steam/steam.pid; if that names a dead process Steam isn't running. (If the file can't be read we don't
+ * conclude anything and try the library.) */
+function linuxSteamClientPath(): string | null {
+  const home = homedir();
+  try {
+    const pid = Number(readFileSync(join(home, ".steam", "steam.pid"), "utf8").trim());
+    if (!pid || !existsSync(`/proc/${pid}`)) return null;
+  } catch {
+    /* unknown: carry on */
+  }
+  for (const rel of [".steam/debian-installation/linux64/steamclient.so", ".local/share/Steam/linux64/steamclient.so"]) {
+    const path = join(home, rel);
+    if (existsSync(path)) return path;
+  }
+  return null;
+}
+
+/** The running Steam client's own library: steamclient64.dll on Windows (HKCU\Software\Valve\Steam\ActiveProcess),
+ * steamclient.so on Linux. */
 export function steamClientDllPath(): string | null {
+  if (process.platform === "linux") return linuxSteamClientPath();
   try {
     const out = execFileSync("reg", ["query", "HKCU\\Software\\Valve\\Steam\\ActiveProcess", "/v", "SteamClientDll64"],
       { encoding: "utf8", windowsHide: true, timeout: 5000 });
@@ -76,11 +103,12 @@ const FRIEND_FLAG_IMMEDIATE = 0x04;
 
 /** `localSteamId`: our own Steam ID when known, to read our own rich presence too. */
 export function readCoplay(localSteamId?: string | null): CoplayResult {
-  if (process.platform !== "win32") throw new CoplayError("Reading Steam's players list only works on Windows.");
+  const WIN = process.platform === "win32";
+  if (!WIN && process.platform !== "linux") throw new CoplayError("Reading Steam's players list only works on Windows and Linux.");
   const dll = steamClientDllPath();
   if (!dll) throw new CoplayError("Steam isn't running (or isn't signed in). Start Steam and try again.");
 
-  // Loaded lazily: koffi is a native module and only needed on Windows.
+  // Loaded lazily: koffi is a native module and only needed for this.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const koffi = require("koffi") as typeof import("koffi");
   const lib = koffi.load(dll);
@@ -99,11 +127,14 @@ export function readCoplay(localSteamId?: string | null): CoplayResult {
     personaName: koffi.proto("const char *SF_GetPersonaName(void *self)"),
     friendName: koffi.proto("const char *SF_GetFriendPersonaName(void *self, uint64_t steamId)"),
     count: koffi.proto("int SF_GetCoplayFriendCount(void *self)"),
-    friendAt: koffi.proto("void *SF_GetCoplayFriend(void *self, _Out_ uint64_t *ret, int index)"),
+    // CSteamID results: hidden out-pointer on Windows (MSVC), plain uint64 return on Linux (see the header).
+    friendAt: WIN ? koffi.proto("void *SF_GetCoplayFriend(void *self, _Out_ uint64_t *ret, int index)")
+      : koffi.proto("uint64_t SF_GetCoplayFriend(void *self, int index)"),
     time: koffi.proto("int SF_GetFriendCoplayTime(void *self, uint64_t steamId)"),
     game: koffi.proto("uint32_t SF_GetFriendCoplayGame(void *self, uint64_t steamId)"),
     friendCount: koffi.proto("int SF_GetFriendCount(void *self, int flags)"),
-    friendByIndex: koffi.proto("void *SF_GetFriendByIndex(void *self, _Out_ uint64_t *ret, int index, int flags)"),
+    friendByIndex: WIN ? koffi.proto("void *SF_GetFriendByIndex(void *self, _Out_ uint64_t *ret, int index, int flags)")
+      : koffi.proto("uint64_t SF_GetFriendByIndex(void *self, int index, int flags)"),
     // FriendGameInfo_t: CGameID (8), game IP (4), game port (2), query port (2), lobby CSteamID (8).
     gamePlayed: koffi.proto("bool SF_GetFriendGamePlayed(void *self, uint64_t steamId, void *info)"),
     presence: koffi.proto("const char *SF_GetFriendRichPresence(void *self, uint64_t steamId, const char *key)"),
@@ -112,6 +143,15 @@ export function readCoplay(localSteamId?: string | null): CoplayResult {
   };
   const call = (iface: unknown, index: number, proto: unknown, ...args: unknown[]) =>
     koffi.call(slot(iface, index), proto as never, iface, ...args);
+  /** Calls a method that returns a CSteamID and gives the Steam ID (0n when there is none). */
+  const steamIdCall = (iface: unknown, index: number, proto: unknown, ...args: unknown[]): bigint => {
+    if (WIN) {
+      const out = [0n];
+      call(iface, index, proto, out, ...args);
+      return BigInt(out[0]);
+    }
+    return BigInt(call(iface, index, proto, ...args) as bigint | number);
+  };
 
   const pipe = call(client, 0, P.createPipe) as number;
   if (!pipe) throw new CoplayError("Couldn't connect to the Steam client.");
@@ -126,9 +166,7 @@ export function readCoplay(localSteamId?: string | null): CoplayResult {
     const n = call(friends, 50, P.count) as number;
     const entries: CoplayEntry[] = [];
     for (let i = 0; i < Math.min(n, 500); i++) {
-      const out = [0n];
-      call(friends, 51, P.friendAt, out, i);
-      const id = BigInt(out[0]);
+      const id = steamIdCall(friends, 51, P.friendAt, i);
       if (!id) continue;
       entries.push({
         steamId: id.toString(),
@@ -155,9 +193,7 @@ export function readCoplay(localSteamId?: string | null): CoplayResult {
       const total = call(friends, 3, P.friendCount, FRIEND_FLAG_IMMEDIATE) as number;
       const info = Buffer.alloc(24);
       for (let i = 0; i < Math.min(total, 2000); i++) {
-        const out = [0n];
-        call(friends, 4, P.friendByIndex, out, i, FRIEND_FLAG_IMMEDIATE);
-        const id = BigInt(out[0]);
+        const id = steamIdCall(friends, 4, P.friendByIndex, i, FRIEND_FLAG_IMMEDIATE);
         if (!id) continue;
         info.fill(0);
         if (!call(friends, 8, P.gamePlayed, id, info)) continue;

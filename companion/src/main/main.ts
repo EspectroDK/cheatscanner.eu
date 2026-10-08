@@ -325,7 +325,7 @@ if (!app.requestSingleInstanceLock()) {
       source,
       store: settingsStore(),
       serverUrl: server,
-      deviceName: hostname().slice(0, 48) || "Windows PC",
+      deviceName: hostname().slice(0, 48) || (process.platform === "linux" ? "Linux PC" : "Windows PC"),
       openExternal: (url) => {
         if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
       },
