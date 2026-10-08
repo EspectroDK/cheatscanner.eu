@@ -5,7 +5,7 @@ import urllib.parse
 from fastapi.testclient import TestClient
 
 from cs2_analyzer.api.app import create_app
-from cs2_analyzer.api.companion import RateLimiter
+from cs2_analyzer.api.companion import DailyPlayerLimit, RateLimiter
 from cs2_analyzer.storage import models as M
 from cs2_analyzer.storage.repository import Database, normalize_user_code
 from test_access import ENEMY, ME, STRANGER, _seed
@@ -118,8 +118,8 @@ def test_lobby_detail_card_for_flagged_players(config, tmp_path):
         pa.information_score, pa.aim_score, pa.trigger_score = 0.8, 0.3, 0.1
         pma = s.get(M.PlayerMatchAssessment, (ENEMY, "m1"))
         pma.classification, pma.overall_evidence_score = "HIGH", 0.94
-    _sign_in(c)
-    enemy = c.post("/lobby/risk", json={"players": [{"steamId": str(ENEMY)}]}).json()["players"][0]
+    app = TestClient(c.app, headers={"Authorization": f"Bearer {_link(c)}"})
+    enemy = app.post("/lobby/risk", json={"players": [{"steamId": str(ENEMY)}]}).json()["players"][0]
     assert enemy["detail"] == {
         "evidenceScore": 91, "highEvidenceMatches": 8,
         "axes": {"wallTracking": "HIGH", "aim": "MEDIUM", "reaction": "LOW"},
@@ -130,9 +130,35 @@ def test_lobby_detail_card_for_flagged_players(config, tmp_path):
 
 def test_lobby_rate_limit(config, tmp_path):
     c, _ = _client(config, tmp_path, lobby_lookups_per_minute=2)
-    _sign_in(c)
+    app = TestClient(c.app, headers={"Authorization": f"Bearer {_link(c)}"})
     body = {"players": [{"steamId": str(STRANGER)}]}
-    assert [c.post("/lobby/risk", json=body).status_code for _ in range(3)] == [200, 200, 429]
+    assert [app.post("/lobby/risk", json=body).status_code for _ in range(3)] == [200, 200, 429]
+
+
+def test_lobby_is_for_the_app_not_the_browser(config, tmp_path):
+    # Signed in on the website, the lookup would answer for any Steam ID typed in; only the app's token may ask.
+    c, _ = _client(config, tmp_path)
+    _sign_in(c)
+    assert c.post("/lobby/risk", json={"players": [{"steamId": str(STRANGER)}]}).status_code == 403
+
+
+def test_lobby_daily_cap_on_different_players(config, tmp_path):
+    c, _ = _client(config, tmp_path, lobby_players_per_day=3)
+    app = TestClient(c.app, headers={"Authorization": f"Bearer {_link(c)}"})
+    lobby = {"players": [{"steamId": str(STRANGER)}, {"steamId": str(ENEMY)}]}
+    assert app.post("/lobby/risk", json=lobby).status_code == 200
+    assert app.post("/lobby/risk", json=lobby).status_code == 200      # the same players again cost nothing
+    more = {"players": [{"steamId": str(UNSEEN)}, {"steamId": str(UNSEEN + 1)}]}
+    assert app.post("/lobby/risk", json=more).status_code == 429     # 4 different players > 3
+
+
+def test_daily_player_limit_resets_each_day():
+    now = [0.0]
+    lim = DailyPlayerLimit(2, clock=lambda: now[0])
+    assert lim.allow("u", [1, 2]) and lim.allow("u", [2, 1]) and not lim.allow("u", [3])
+    assert lim.allow("other", [3])
+    now[0] += 86400
+    assert lim.allow("u", [3, 4])
 
 
 def test_rate_limiter_window():

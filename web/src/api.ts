@@ -173,7 +173,8 @@ export interface Player {
 
 export interface EvidenceEvent {
   id: string;
-  matchId: string;
+  /** Null for a match the viewer wasn't in. */
+  matchId: string | null;
   round: number | null;
   tickPeak: number;
   detector: string;

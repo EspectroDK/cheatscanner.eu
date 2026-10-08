@@ -99,7 +99,7 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
         <span className="muted small">
           {" "}· round {e.round ?? "–"} · confidence {pct(e.confidence)}
           {showMatch &&
-            (e.matchVisible === false ? (
+            (e.matchVisible === false || !e.matchId ? (
               <> · {mapName(e.map)}, {ago(e.playedAt ?? null)} · a match you weren't in</>
             ) : (
               <> · <Link to={`/matches/${encodeURIComponent(e.matchId)}`}>{e.map ? mapName(e.map) : "match"}</Link></>

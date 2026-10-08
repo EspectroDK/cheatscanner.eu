@@ -185,7 +185,14 @@ def analyze_demo(
         from cs2_analyzer.storage.repository import AlreadyProcessedError
 
         m = _MATCH_FILE_RE.search(path.name)
-        existing = db.find_existing(match_id or (m.group(1) if m else ""), _sha256(path))
+        sha = _sha256(path)
+        existing = db.find_existing(match_id or (m.group(1) if m else ""), sha)
+        if existing is not None and not match_id and existing.demo_sha256 and existing.demo_sha256 != sha:
+            # The file is named after a match that was analyzed from a different demo. A file name proves
+            # nothing (anyone can rename a file), and a duplicate grants access to the match, so this demo
+            # is analyzed under its own content hash instead of claiming that match.
+            match_id = f"sha256-{sha[:24]}"
+            existing = db.find_existing(match_id, sha)
         if existing is not None and existing.processing_status == "COMPLETED":
             raise AlreadyProcessedError(existing.match_id, existing.processing_status)
     with timer("parse"):
@@ -278,7 +285,7 @@ def analyze_demo(
         return result
     except Exception as exc:
         if db is not None:
-            db.mark_failed(meta.match_id, f"{exc}\n{traceback.format_exc()}")
+            db.mark_failed(meta.match_id, f"{type(exc).__name__}: {exc}", trace=traceback.format_exc())
         if not keep and not config.get("retention.keep_failed_demos", True):
             path.unlink(missing_ok=True)
         elif not keep:
