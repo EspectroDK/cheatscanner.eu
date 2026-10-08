@@ -606,12 +606,15 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.get("/players/{steam_id}/pattern")
     def get_player_pattern(steam_id: str, v: Viewer = Depends(viewer)):
         """The numbers behind the play-pattern score: per match the pattern's standing among clean players,
-        and per measurement the player's typical value next to the clean reference (all matches, like evidence)."""
+        and per measurement the player's typical value next to the clean reference (all matches, like evidence).
+        The reference is the map's own model when every match is on one map that has one (as in the analysis),
+        else the model pooled over all dataset maps; ``reference.map`` says which."""
         from cs2_analyzer.scoring import player_evidence as pe
 
         sid = _player_or_404(steam_id, v)
         rows = db.player_pattern_matches(sid)
-        model = pe.load_model(config.get("player_evidence.model", None) or None)
+        maps = {r["map"] for r in rows}
+        model = pe.load_model(config.get("player_evidence.model", None) or None, maps.pop() if len(maps) == 1 else None)
         features = []
         if model is not None and rows:
             obs = pe.load_observations(config.get("output.observations_dir", "./data/observations"),
@@ -624,7 +627,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         return {"matches": rows, "features": features,
                 "reference": None if model is None else {"source": model.get("source"),
                                                          "cleanPlayers": model.get("clean_players"),
-                                                         "cleanMatches": model.get("clean_matches")}}
+                                                         "cleanMatches": model.get("clean_matches"),
+                                                         "map": model.get("map")}}
 
     def _risk(steam_id: str, v: Viewer) -> dict:
         sid = _sid(steam_id)

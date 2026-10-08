@@ -70,8 +70,21 @@ def flash_alpha(remaining: float) -> float:
     return 0.9 * float(np.clip(remaining, 0.0, 1.0))
 
 
+# What the enemy's line of sight means, in the words the public clip uses.
+_LOS_WORDS = {
+    LOS.DIRECT_VISIBLE: "visible",
+    LOS.VISIBLE_THROUGH_SMOKE: "visible through thin smoke",
+    LOS.SMOKE_OCCLUDED: "hidden by smoke",
+    LOS.GEOMETRY_OCCLUDED: "hidden behind a wall",
+}
+
+
 def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path | None:
+    """Render one event's clip. Public clips show who, when and whether the enemy could be seen;
+    ``clip_debug_overlay`` (on with --debug) adds the analysis internals: LOS class, knowledge, tick, severity."""
     import imageio_ffmpeg
+
+    debug = bool(cfg.get("clip_debug_overlay", False))
 
     w = result.world
     o = w.index_of[ev.steam_id]
@@ -130,8 +143,12 @@ def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path 
     ax_pov.add_patch(outline)
     ax_pov.set_xlim(0, pov_w)
     ax_pov.set_ylim(pov_h, 0)
-    ax_pov.text(6 * px, 16 * px, "REVIEWER RECONSTRUCTION - magenta outline is an annotation, NOT what the player saw",
-                color="magenta", fontsize=7, bbox=dict(fc="white", alpha=0.6, lw=0))
+    if debug:
+        ax_pov.text(6 * px, 16 * px, "REVIEWER RECONSTRUCTION - magenta outline is an annotation, NOT what the player saw",
+                    color="magenta", fontsize=7, bbox=dict(fc="white", alpha=0.6, lw=0))
+    else:
+        ax_pov.text(6 * px, 16 * px, "Reconstruction from the demo. The box marks the enemy (dashed: the player could not see them)",
+                    color="#333333", fontsize=7, bbox=dict(fc="white", alpha=0.6, lw=0))
     shot_txt = ax_pov.text(pov_w - 70 * px, 20 * px, "", color="red", fontsize=12, weight="bold")
     dead_txt = ax_pov.text(pov_w / 2, pov_h / 2, "", ha="center", color="white", fontsize=14)
     flash_txt = ax_pov.text(pov_w / 2, pov_h * 0.12, "", ha="center", va="center", color="#1a1206", fontsize=13,
@@ -187,26 +204,35 @@ def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path 
                 oth_dots.set_offsets(np.zeros((0, 2)))
                 oth_views.set_segments([])
             rel = (t - peak) / w.tickrate
-            lines = [f"{ev.detector_type.replace('_', ' ').title()}   |   {w.names[o]}   |   round {ev.round_number}   |   "
-                     f"t = {rel:+.2f}s from peak   |   tick {w.tick(t)}"
-                     + (f"   |   FLASHED {float(w.flash_remaining[o, t]):.1f}s" if w.flash_remaining[o, t] > 0.05 else "")]
+            flashed = float(w.flash_remaining[o, t])
+            if debug:
+                lines = [f"{ev.detector_type.replace('_', ' ').title()}   |   {w.names[o]}   |   round {ev.round_number}   |   "
+                         f"t = {rel:+.2f}s from peak   |   tick {w.tick(t)}"
+                         + (f"   |   FLASHED {flashed:.1f}s" if flashed > 0.05 else "")]
+            else:
+                lines = [f"{w.names[o]}   |   round {ev.round_number}   |   {rel:+.1f} s from the flagged moment"
+                         + (f"   |   flashed {flashed:.1f} s" if flashed > 0.05 else "")]
             if e is not None:
                 los = LOS(int(result.vis.los[o, e, t]))
                 tgt_path.set_data(w.pos[e, a:t + 1, 0], w.pos[e, a:t + 1, 1])
                 tgt_dot.set_data([w.pos[e, t, 0]], [w.pos[e, t, 1]])
                 tgt_dot.set_color(LOS_COLORS.get(los, "k"))
-                kd = result.knowledge.describe(o, e, t)
                 err = float(pair_series(w, o, e, t, t).err[0])
-                unseen = kd["last_seen_ms"]
-                lines.append(
-                    f"LOS: {los.name:<22} knowledge: {kd['knowledge']:<15} "
-                    f"target unseen: {'-' if unseen is None else f'{unseen / 1000:.2f}s':<7} aim error: {err:5.1f} deg"
-                )
-                lines.append(
-                    f"possible sound: {'YES' if kd['possible_sound'] else 'NO':<4} team info: "
-                    f"{'YES' if kd['teammate_los'] else 'NO':<4} tracking correlation (window): "
-                    f"{'-' if corr is None else f'{corr:.2f}'}   severity {ev.severity:.2f} / reliability {ev.reliability:.2f}"
-                )
+                if debug:
+                    kd = result.knowledge.describe(o, e, t)
+                    unseen = kd["last_seen_ms"]
+                    lines.append(
+                        f"LOS: {los.name:<22} knowledge: {kd['knowledge']:<15} "
+                        f"target unseen: {'-' if unseen is None else f'{unseen / 1000:.2f}s':<7} aim error: {err:5.1f} deg"
+                    )
+                    lines.append(
+                        f"possible sound: {'YES' if kd['possible_sound'] else 'NO':<4} team info: "
+                        f"{'YES' if kd['teammate_los'] else 'NO':<4} tracking correlation (window): "
+                        f"{'-' if corr is None else f'{corr:.2f}'}   severity {ev.severity:.2f} / reliability {ev.reliability:.2f}"
+                    )
+                elif w.alive[e, t]:
+                    lines.append(f"Enemy {w.names[e]}: {_LOS_WORDS.get(los, 'not known')}   |   "
+                                 f"crosshair {err:.0f}\N{DEGREE SIGN} from them")
             info_txt.set_text("\n".join(lines))
             fig.canvas.draw()
             frame = np.asarray(fig.canvas.buffer_rgba())[..., :3]

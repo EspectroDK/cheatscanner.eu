@@ -60,7 +60,9 @@ export function Pattern({ data }: { data: PatternBreakdown }) {
       <p className="muted small">
         The play pattern combines the measurements below over every duel of a match into one score, and compares it
         with {ref?.cleanPlayers ?? "the"} clean players
-        {ref?.cleanMatches ? ` from ${ref.cleanMatches} matches` : ""} of a labelled research dataset. The cheater
+        {ref?.cleanMatches ? ` from ${ref.cleanMatches} matches` : ""}
+        {ref?.map ? ` on ${mapName(ref.map)}` : " pooled over all maps"} of a labelled research dataset
+        {ref?.map ? "" : " (each match's own score above uses its map's reference where there is one)"}. The cheater
         ranges come from labelled cheaters in the same dataset. These are statistics, not proof.
       </p>
       <ul className="small">

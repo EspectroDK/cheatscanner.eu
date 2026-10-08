@@ -79,7 +79,7 @@ export interface PatternBreakdown {
     cleanP90: number | null;
     cleanPercentile: number | null;
   }[];
-  reference: { source: string | null; cleanPlayers: number | null; cleanMatches: number | null } | null;
+  reference: { source: string | null; cleanPlayers: number | null; cleanMatches: number | null; map?: string | null } | null;
 }
 
 /** VAC/game bans on record at Steam. Account-level and separate from the evidence classes; only sent when
@@ -166,6 +166,7 @@ export interface Player {
     informationScore: number;
     triggerScore: number;
     recoilScore: number;
+    mechanicalImpossibilityScore?: number;
     eventEvidenceScore?: number;
     profile?: PlayPattern | null;
   } | null;
@@ -208,7 +209,7 @@ export interface TimelinePoint {
   overallEvidenceScore: number;
   evidenceEventCount: number;
   profileStrength?: number | null;
-  axes: { aim: number; hiddenInformation: number; shotTiming: number; recoil: number };
+  axes: { aim: number; hiddenInformation: number; shotTiming: number; recoil: number; mechanicalImpossibility?: number };
 }
 
 export interface ApiToken {

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import type { EvidenceEvent } from "./api";
+import type { Classification, EvidenceEvent } from "./api";
 import { mapName } from "./art";
-import { ago, pct } from "./ui";
+import { detectorSummary, detectorTitle } from "./detectors";
+import { ago, ClassBadge, pct } from "./ui";
 
 const TICK_RATE = 64;
 
@@ -43,7 +44,8 @@ function ClipPlayer({ src, poster }: { src: string; poster?: string }) {
 
   return (
     <div className="clip-player">
-      <video ref={video} src={src} poster={poster} controls preload="metadata" playsInline className="clip" />
+      {/* With a poster nothing is downloaded until play: a match page can hold many clips. */}
+      <video ref={video} src={src} poster={poster} controls preload={poster ? "none" : "metadata"} playsInline className="clip" />
       <div className="clip-controls">
         <span className="muted small">Speed</span>
         {SPEEDS.map((s) => (
@@ -91,10 +93,11 @@ function WatchInGame({ tick }: { tick: number }) {
 
 export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?: Record<string, string>; showMatch?: boolean }) {
   const [showPlot, setShowPlot] = useState(false);
+  const summary = detectorSummary(e.detector);
   return (
     <article className="evidence">
       <header>
-        <strong>{e.detector.replace(/_/g, " ")}</strong>
+        <strong>{detectorTitle(e.detector)}</strong>
         {names && <span> · {names[e.steamId] ?? e.steamId}</span>}
         <span className="muted small">
           {" "}· round {e.round ?? "–"} · confidence {pct(e.confidence)}
@@ -106,7 +109,19 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
             ))}
         </span>
       </header>
-      {e.explanation && <p className="small">{e.explanation}</p>}
+      {summary ? (
+        <>
+          <p className="small">{summary}</p>
+          {e.explanation && (
+            <details className="small evidence-details">
+              <summary>Details</summary>
+              <p>{e.explanation}</p>
+            </details>
+          )}
+        </>
+      ) : (
+        e.explanation && <p className="small">{e.explanation}</p>
+      )}
       {e.targetName && (
         <p className="small muted">
           Other player:{" "}
@@ -137,17 +152,66 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
   );
 }
 
-export function EvidenceList({ events, names, showMatch }: { events: EvidenceEvent[]; names?: Record<string, string>; showMatch?: boolean }) {
+const LEVEL: Record<string, number> = { HIGH: 3, VERY_HIGH: 3, ELEVATED: 2, NORMAL: 1, INSUFFICIENT_DATA: 0 };
+const raised = (c: Classification | null | undefined) => (LEVEL[c ?? ""] ?? 0) >= 2;
+
+const CLIP_NOTE = (
+  <p className="muted small">
+    Clips are reconstructions from the demo and the map geometry, not game footage. Enemy outlines are drawn for
+    review (dashed when the enemy was hidden from the player).
+  </p>
+);
+
+/**
+ * Evidence of one or more players. With ``classes`` (a match page) the events are grouped per player, players
+ * with a raised class first; the moments of players whose class stayed Normal are folded away, so a weak moment
+ * doesn't look as heavy as the evidence behind an Elevated or High class.
+ */
+export function EvidenceList({ events, names, showMatch, classes }: {
+  events: EvidenceEvent[];
+  names?: Record<string, string>;
+  showMatch?: boolean;
+  classes?: Record<string, Classification | null | undefined>;
+}) {
   if (events.length === 0) return <p className="muted">No evidence events.</p>;
+  if (!classes)
+    return (
+      <>
+        {CLIP_NOTE}
+        {events.map((e) => <EvidenceCard key={e.id} e={e} names={names} showMatch={showMatch} />)}
+      </>
+    );
+
+  const groups = new Map<string, EvidenceEvent[]>();
+  for (const e of events) groups.set(e.steamId, [...(groups.get(e.steamId) ?? []), e]);
+  const order = [...groups.keys()].sort(
+    (a, b) => (LEVEL[classes[b] ?? ""] ?? 0) - (LEVEL[classes[a] ?? ""] ?? 0) || groups.get(b)!.length - groups.get(a)!.length,
+  );
+  const name = (sid: string) => names?.[sid] ?? sid;
   return (
     <>
-      <p className="muted small">
-        Clips are reconstructions from the demo and the map geometry, not game footage. Enemy outlines are drawn for
-        review (dashed when the enemy was hidden from the player).
-      </p>
-      {events.map((e) => (
-        <EvidenceCard key={e.id} e={e} names={names} showMatch={showMatch} />
-      ))}
+      {CLIP_NOTE}
+      {order.map((sid) => {
+        const list = groups.get(sid)!;
+        const cards = list.map((e) => <EvidenceCard key={e.id} e={e} names={names} showMatch={showMatch} />);
+        const count = `${list.length} moment${list.length === 1 ? "" : "s"}`;
+        return raised(classes[sid]) ? (
+          <section key={sid} className="evidence-group">
+            <h3 className="evidence-group-head">{name(sid)} <ClassBadge value={classes[sid]} /> <span className="muted small">{count}</span></h3>
+            {cards}
+          </section>
+        ) : (
+          <details key={sid} className="evidence-group evidence-folded">
+            <summary>
+              <strong>{name(sid)}</strong> <ClassBadge value={classes[sid]} />{" "}
+              <span className="muted small">
+                {count}, not enough on {list.length === 1 ? "its" : "their"} own for a raised class
+              </span>
+            </summary>
+            {cards}
+          </details>
+        );
+      })}
     </>
   );
 }

@@ -545,6 +545,7 @@ clip_fps = 24
 clip_width = 960
 clip_height = 544
 clip_pov_width = 640             # resolution of the 3D view: the size it fills in the 960 px clip (1 rendered pixel per shown pixel)
+clip_debug_overlay = false       # true: clips show the analysis internals (LOS class, knowledge, tick, severity); always on with --debug
 # Map shape used to draw the clips' 3D view. When <map>.tri exists here (built from your own game with
 # tools/geometry/build_tris.py --out data/maps/render), clips use it; line of sight keeps geometry.maps_dir.
 render_maps_dir = "./data/maps/render"

@@ -233,6 +233,7 @@ class Database:
             data = [{"overall": a.overall_evidence_score, "aim_score": a.aim_score,
                      "hidden_information_score": a.hidden_information_score, "shot_timing_score": a.shot_timing_score,
                      "recoil_score": a.recoil_score, "decision_information_score": a.decision_information_score,
+                     "mechanical_impossibility_score": a.mechanical_impossibility_score,
                      "classification": a.classification, "encounters_analyzed": a.encounters_analyzed,
                      "processed_at": _utc(p), "match_id": a.match_id,
                      "played_at": _utc(pl or p), "profile": (a.details or {}).get("player_evidence")}
@@ -254,7 +255,9 @@ class Database:
             pa.model_version = h["model_version"]
             pa.details = {"matches": [{"match_id": d["match_id"], "overall": d["overall"], "classification": d["classification"]}
                                       for d in data],
-                          "player_evidence_history": h["player_evidence_history"]}
+                          "player_evidence_history": h["player_evidence_history"],
+                          # no column of its own (no migrations): kept here until one is added
+                          "mechanical_impossibility_score": h["mechanical_impossibility_score"]}
             pa.updated_at = datetime.now(timezone.utc)
             s.merge(pa)
             pl = s.get(M.Player, steam_id)
@@ -412,7 +415,8 @@ class Database:
                 "matchesAnalyzed": pa.matches_analyzed,
                 "highSeverityMatches": pa.high_severity_matches,
                 "axes": {"hiddenInformation": round(pa.information_score, 4), "aimMechanics": round(pa.aim_score, 4),
-                         "shotTiming": round(pa.trigger_score, 4), "recoil": round(pa.recoil_score, 4)},
+                         "shotTiming": round(pa.trigger_score, 4), "recoil": round(pa.recoil_score, 4),
+                         "mechanicalImpossibility": round(_impossible(pa), 4)},
                 "playerEvidenceHistory": (pa.details or {}).get("player_evidence_history"),
                 "modelVersion": pa.model_version,
                 "lastAnalyzed": _iso(pa.last_analyzed),
@@ -1306,7 +1310,12 @@ def _history(pa) -> dict | None:
             "confidenceLevel": pa.confidence_level, "matchesAnalyzed": pa.matches_analyzed,
             "firstAnalyzed": _iso(pa.first_analyzed), "lastAnalyzed": _iso(pa.last_analyzed),
             "aimScore": pa.aim_score, "informationScore": pa.information_score, "triggerScore": pa.trigger_score,
-            "recoilScore": pa.recoil_score, "highSeverityMatches": pa.high_severity_matches}
+            "recoilScore": pa.recoil_score, "mechanicalImpossibilityScore": _impossible(pa),
+            "highSeverityMatches": pa.high_severity_matches}
+
+
+def _impossible(pa) -> float:
+    return float((pa.details or {}).get("mechanical_impossibility_score") or 0.0)
 
 
 def _why(pa, per_match_details: list) -> dict:
