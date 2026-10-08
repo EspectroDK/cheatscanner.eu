@@ -78,6 +78,7 @@ export function PlayerPage() {
         eventScore={a?.eventEvidenceScore}
         pattern={a?.profile}
         eventCount={evidence.data ? evidence.data.length : null}
+        elevatedThreshold={a?.elevatedThreshold}
       />
 
       <AboveOverall overall={a?.classification} matchClasses={(timeline.data ?? matches.data ?? []).map((m) => m.classification)} />
@@ -103,7 +104,7 @@ export function PlayerPage() {
       </p>
       {!timeline.data ? <Loading error={timeline.error} /> : <Timeline points={timeline.data} />}
 
-      <h2>{self ? "Your matches" : "Matches you shared"}</h2>
+      <h2>{self ? "Your matches" : "Matches you played together"}</h2>
       {!matches.data ? (
         <Loading error={matches.error} />
       ) : (

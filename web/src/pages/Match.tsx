@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, type ClipStatus, type EvidenceEvent, type MatchDetail, type ShareLink } from "../api";
 import { MapBanner, mapName, SIDE_NAME, SideEmblem } from "../art";
 import { EvidenceList } from "../Evidence";
-import { BanBadge, ClassBadge, Loading, pct, Rank, useLoad, useUser, when } from "../ui";
+import { BanBadge, ClassBadge, Loading, matchStatusText, modeName, pct, Rank, useLoad, useUser, when } from "../ui";
 
 type Team = 2 | 3;
 const other = (t: Team): Team => (t === 2 ? 3 : 2);
@@ -314,7 +314,7 @@ function MatchView({ data, evidence, evidenceError, children }: {
             <div>
               <h1 className="map-title">{mapName(data.map)}</h1>
               <div className="hero-meta">
-                {[data.mode, when(data.playedAt ?? data.processedAt)].filter(Boolean).join(" · ")}
+                {[modeName(data.mode), when(data.playedAt ?? data.processedAt)].filter(Boolean).join(" · ")}
               </div>
             </div>
             {s && (
@@ -347,7 +347,7 @@ function MatchView({ data, evidence, evidenceError, children }: {
         <p className="notice">
           {data.processingStatus === "FAILED"
             ? data.error ?? "The analysis of this demo failed."
-            : `This match is ${data.processingStatus.toLowerCase()}.`}
+            : matchStatusText(data.processingStatus)}
         </p>
       )}
 

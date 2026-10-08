@@ -329,7 +329,7 @@ class Database:
                     "lastSeenAt": _iso(p.last_seen_at), "matchesAnalyzed": p.matches_analyzed,
                     "assessment": h}
 
-    def player_matches(self, steam_id: int, only_match_ids: set[str] | None = None) -> list[dict]:
+    def player_matches(self, steam_id: int, only_match_ids: set[str] | None = None, limit: int | None = None) -> list[dict]:
         """Per-match assessments of a player; ``only_match_ids`` limits them to matches a viewer may see."""
         with self.session() as s:
             q = (select(M.PlayerMatchAssessment, M.Match)
@@ -338,6 +338,8 @@ class Database:
                  .order_by(M.Match.processed_at.desc()))
             if only_match_ids is not None:
                 q = q.where(M.Match.match_id.in_(only_match_ids))
+            if limit:
+                q = q.limit(limit)
             return [{"matchId": m.match_id, "map": m.map, "mode": m.mode, "playedAt": _iso(m.played_at),
                      "processedAt": _iso(m.processed_at), **_assessment(a)} for a, m in s.execute(q).all()]
 
@@ -459,6 +461,20 @@ class Database:
             co = set(s.scalars(select(M.MatchPlayer.steam_id).where(M.MatchPlayer.match_id.in_(seen)))) if seen else set()
             return {"played": played, "uploaded": uploaded, "co_players": co | {steam_id}}
 
+    def viewer_matches(self, steam_id: int, user_id: int) -> tuple[set[str], set[str]]:
+        """(played, uploaded) of :meth:`viewer_access`, without the co-players."""
+        with self.session() as s:
+            played = set(s.scalars(select(M.MatchPlayer.match_id).where(M.MatchPlayer.steam_id == steam_id)))
+            uploaded = set(s.scalars(select(M.MatchUpload.match_id).where(M.MatchUpload.user_id == user_id)))
+            return played, uploaded
+
+    def co_players(self, match_ids: set[str]) -> set[int]:
+        """Everyone who played in any of ``match_ids``."""
+        if not match_ids:
+            return set()
+        with self.session() as s:
+            return set(s.scalars(select(M.MatchPlayer.steam_id).where(M.MatchPlayer.match_id.in_(match_ids))))
+
     def shared_matches(self, a: int, b: int) -> set[str]:
         """Matches in which both players appear."""
         with self.session() as s:
@@ -466,11 +482,15 @@ class Database:
             return set(s.scalars(select(M.MatchPlayer.match_id).where(M.MatchPlayer.steam_id == b,
                                                                       M.MatchPlayer.match_id.in_(mine))))
 
-    def matches_overview(self, match_ids: set[str]) -> list[dict]:
-        """Newest first: match facts plus each player's class in that match."""
+    def matches_overview(self, match_ids: set[str], limit: int | None = None) -> list[dict]:
+        """Newest first: match facts plus each player's class in that match; ``limit``: only the newest."""
         if not match_ids:
             return []
         with self.session() as s:
+            if limit and len(match_ids) > limit:
+                newest = func.coalesce(M.Match.played_at, M.Match.processed_at)
+                match_ids = set(s.scalars(select(M.Match.match_id).where(M.Match.match_id.in_(match_ids))
+                                          .order_by(newest.desc().nulls_last()).limit(limit)))
             matches = s.scalars(select(M.Match).where(M.Match.match_id.in_(match_ids))).all()
             rounds: dict[str, list] = {}
             for r in s.scalars(select(M.Round).where(M.Round.match_id.in_(match_ids))):
@@ -533,7 +553,9 @@ class Database:
                 return None
             if t.expires_at is not None and _utc(t.expires_at) <= now:
                 return None
-            t.last_used_at = now
+            # Every signed-in request lands here: write the time only every few minutes, not on each request.
+            if t.last_used_at is None or now - _utc(t.last_used_at) >= timedelta(minutes=5):
+                t.last_used_at = now
             user = _user(s.get(M.User, t.user_id))
             return user | {"tokenId": t.id, "tokenKind": t.kind} if user else None
 

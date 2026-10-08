@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type MatchSummary, type ShareCodeJob } from "../api";
 import { MapBanner, mapName, SideEmblem } from "../art";
-import { ago, ClassBadge, JOB_LABELS, JOB_RUNNING, Loading, useLoad, useUser } from "../ui";
+import { ago, ClassBadge, JOB_LABELS, JOB_RUNNING, Loading, modeName, useLoad, useUser } from "../ui";
 
-const RUNNING: Record<string, string> = { QUEUED: "Waiting in line", PROCESSING: "Analyzing" };
+const PAGE = 30;
+const RUNNING: Record<string, string> = { PENDING: "Waiting in line", QUEUED: "Waiting in line", PROCESSING: "Analyzing" };
 const flaggedOf = (m: MatchSummary) =>
   m.players.filter((p) => p.classification && !["NORMAL", "INSUFFICIENT_DATA"].includes(p.classification));
 
@@ -43,7 +44,7 @@ function MatchCard({ m, me }: { m: MatchSummary; me: string }) {
       <div className="match-card-body">
         <div className="match-card-row">
           <span className="muted small">
-            {[m.mode, ago(m.playedAt ?? m.processedAt)].filter(Boolean).join(" · ")}
+            {[modeName(m.mode), ago(m.playedAt ?? m.processedAt)].filter(Boolean).join(" · ")}
           </span>
           {result && <span className={`result result-${result}`}>{result}</span>}
         </div>
@@ -51,7 +52,11 @@ function MatchCard({ m, me }: { m: MatchSummary; me: string }) {
           m.processingStatus in RUNNING ? (
             <span className="status-pill"><span className="pulse" />{RUNNING[m.processingStatus]}</span>
           ) : (
-            <span className="error small">Analysis failed</span>
+            m.processingStatus === "FAILED" ? (
+              <span className="error small">Analysis failed</span>
+            ) : (
+              <span className="muted small">Not analyzed</span>
+            )
           )
         ) : flagged.length === 0 ? (
           <span className="muted small">Nothing unusual found</span>
@@ -102,7 +107,12 @@ const shareCodes = () => api.shareCodes().catch(() => [] as ShareCodeJob[]);
 export function MyMatches() {
   const me = useUser()!;
   const [poll, setPoll] = useState(0);
-  const { data, error } = useLoad(api.myMatches, [poll], true);
+  // Only the newest matches are loaded (and re-polled while something runs); "Show older" loads more.
+  const [shown, setShown] = useState(PAGE);
+  const page = useLoad(() => api.myMatches(shown), [poll, shown], true);
+  const { error } = page;
+  const data = page.data?.matches;
+  const total = page.data?.total ?? 0;
   const jobs = useLoad(shareCodes, [poll], true);
   const busy =
     jobs.data?.some((j) => JOB_RUNNING.includes(j.status)) ||
@@ -115,11 +125,13 @@ export function MyMatches() {
     return () => clearTimeout(t);
   }, [busy, data, jobs.data]);
 
+  const [retryError, setRetryError] = useState<string | null>(null);
   async function retry(code: string) {
+    setRetryError(null);
     try {
       await api.retryShareCode(code);
     } catch (e) {
-      alert((e as Error).message);
+      setRetryError(`Retry didn't work: ${(e as Error).message}`);
     }
     setPoll((n) => n + 1);
   }
@@ -138,13 +150,14 @@ export function MyMatches() {
         <div>
           <h1>My matches</h1>
           <p className="muted">
-            {data.length} analyzed match{data.length === 1 ? "" : "es"}
-            {flagged > 0 && ` · ${flagged} with unusual behavior`}
+            {total} analyzed match{total === 1 ? "" : "es"}
+            {flagged > 0 && ` · ${flagged}${data.length < total ? ` of the latest ${data.length}` : ""} with unusual behavior`}
             {onTheWay > 0 && ` · ${onTheWay} on the way`}
           </p>
         </div>
         <Link to="/upload" className="button">Upload a demo</Link>
       </div>
+      {retryError && <p className="error">{retryError}</p>}
       {data.length === 0 && pending.length === 0 ? (
         <div className="empty">
           <h2>No matches yet</h2>
@@ -158,6 +171,13 @@ export function MyMatches() {
           {pending.map((j) => <PendingCard key={j.shareCode} j={j} onRetry={retry} />)}
           {data.map((m) => <MatchCard key={m.matchId} m={m} me={me.steamId} />)}
         </div>
+      )}
+      {data.length < total && (
+        <p>
+          <button className="button" onClick={() => setShown((n) => n + PAGE)}>
+            Show older matches ({total - data.length} more)
+          </button>
+        </p>
       )}
     </>
   );

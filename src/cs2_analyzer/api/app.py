@@ -34,12 +34,14 @@ import shutil
 import threading
 import time
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from cs2_analyzer.api import admin, companion
@@ -91,7 +93,8 @@ class _UploadLimit:
             return await JSONResponse({"detail": self.message}, status_code=413)(scope, receive, send)
         release = None
         if self.admit is not None:
-            verdict = self.admit(Request(scope))
+            # database queries and a disk check: off the event loop, so other requests don't wait on them
+            verdict = await run_in_threadpool(self.admit, Request(scope))
             if isinstance(verdict, tuple):
                 return await JSONResponse({"detail": verdict[1]}, status_code=verdict[0])(scope, receive, send)
             release = verdict
@@ -151,16 +154,39 @@ def _without_steam_ids(value):
 
 
 class Viewer:
-    """Access scope of one request. ``unrestricted`` for local use without auth."""
+    """Access scope of one request. ``unrestricted`` for local use without auth.
+
+    Loaded on first use: the matches when a check needs them, the co-players (every player of every one of
+    those matches, the large part) only when a player check needs them.
+    """
 
     def __init__(self, db: Database, user: dict | None, restricted: bool):
         self.user = user
         self.unrestricted = not restricted
-        if self.unrestricted:
-            return
-        self.steam_id = int(user["steamId"])
-        acc = db.viewer_access(self.steam_id, user["id"])
-        self.played, self.uploaded, self.co_players = acc["played"], acc["uploaded"], acc["co_players"]
+        self._db = db
+        self._matches: tuple[set[str], set[str]] | None = None
+        self._co_players: set[int] | None = None
+        if not self.unrestricted:
+            self.steam_id = int(user["steamId"])
+
+    def _load_matches(self) -> tuple[set[str], set[str]]:
+        if self._matches is None:
+            self._matches = self._db.viewer_matches(self.steam_id, self.user["id"])
+        return self._matches
+
+    @property
+    def played(self) -> set[str]:
+        return self._load_matches()[0]
+
+    @property
+    def uploaded(self) -> set[str]:
+        return self._load_matches()[1]
+
+    @property
+    def co_players(self) -> set[int]:
+        if self._co_players is None:
+            self._co_players = self._db.co_players(self.played | self.uploaded) | {self.steam_id}
+        return self._co_players
 
     def can_see_match(self, match_id: str) -> bool:
         return self.unrestricted or match_id in self.played or match_id in self.uploaded
@@ -388,8 +414,9 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         return {k: job[k] for k in ("jobId", "status", "file", "matchId", "demoDeleted", "error") if k in job}
 
     @app.get("/me/matches")
-    def my_matches(v: Viewer = Depends(viewer)):
-        """Matches the signed-in user played in or supplied, newest first."""
+    def my_matches(response: Response, v: Viewer = Depends(viewer), limit: int | None = Query(None, ge=1, le=500)):
+        """Matches the signed-in user played in or supplied, newest first; ``limit`` returns only the newest
+        ones (the X-Total-Count header has the full count)."""
         if v.user is None:
             raise HTTPException(401, "sign in with Steam")
         if v.unrestricted:
@@ -397,7 +424,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             ids = acc["played"] | acc["uploaded"]
         else:
             ids = v.played | v.uploaded
-        matches = db.matches_overview(ids)
+        response.headers["X-Total-Count"] = str(len(ids))
+        matches = db.matches_overview(ids, limit=limit)
         for m in matches:
             for p in m["players"]:
                 if not v.can_see_player(int(p["steamId"])):
@@ -580,12 +608,15 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         if p is None:
             raise HTTPException(404, "player not found")
         add_bans([p])
+        if p.get("assessment"):
+            # the history cut-off for Elevated, so the "Why this class" panel never hard-codes it
+            p["assessment"]["elevatedThreshold"] = float(config.get("history.classification.thresholds", [0.25])[0])
         return p
 
     @app.get("/players/{steam_id}/matches")
-    def get_player_matches(steam_id: str, v: Viewer = Depends(viewer)):
+    def get_player_matches(steam_id: str, v: Viewer = Depends(viewer), limit: int | None = Query(None, ge=1, le=500)):
         sid = _player_or_404(steam_id, v)
-        return db.player_matches(sid, only_match_ids=v.match_scope(db, sid))
+        return db.player_matches(sid, only_match_ids=v.match_scope(db, sid), limit=limit)
 
     @app.get("/players/{steam_id}/evidence")
     def get_player_evidence(steam_id: str, limit: int = 100, v: Viewer = Depends(viewer)):
@@ -603,6 +634,11 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
                 r["matchId"] = None
         return rows
 
+    # The pattern breakdown reads every match's observation files, so it is kept per player until a match of
+    # theirs is added or re-analyzed (the key holds each match's id and pattern result); models are kept per map.
+    pattern_models: dict[str | None, dict | None] = {}
+    pattern_cache: OrderedDict[tuple, list] = OrderedDict()
+
     @app.get("/players/{steam_id}/pattern")
     def get_player_pattern(steam_id: str, v: Viewer = Depends(viewer)):
         """The numbers behind the play-pattern score: per match the pattern's standing among clean players,
@@ -614,12 +650,25 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         sid = _player_or_404(steam_id, v)
         rows = db.player_pattern_matches(sid)
         maps = {r["map"] for r in rows}
-        model = pe.load_model(config.get("player_evidence.model", None) or None, maps.pop() if len(maps) == 1 else None)
+        map_name = maps.pop() if len(maps) == 1 else None
+        if map_name not in pattern_models:
+            pattern_models[map_name] = pe.load_model(config.get("player_evidence.model", None) or None, map_name)
+        model = pattern_models[map_name]
         features = []
         if model is not None and rows:
-            obs = pe.load_observations(config.get("output.observations_dir", "./data/observations"),
-                                       [r["matchId"] for r in rows], sid)
-            features = pe.breakdown(obs, model)
+            key = (sid, map_name, tuple((r["matchId"], r["strength"], r["cleanPercentile"]) for r in rows))
+            with lock:
+                features = pattern_cache.get(key)
+                if features is not None:
+                    pattern_cache.move_to_end(key)
+            if features is None:
+                obs = pe.load_observations(config.get("output.observations_dir", "./data/observations"),
+                                           [r["matchId"] for r in rows], sid)
+                features = pe.breakdown(obs, model)
+                with lock:
+                    pattern_cache[key] = features
+                    while len(pattern_cache) > 256:
+                        pattern_cache.popitem(last=False)
         for r in rows:
             r["matchVisible"] = v.can_see_match(r["matchId"])
             if not r["matchVisible"]:

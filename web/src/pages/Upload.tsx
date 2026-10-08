@@ -10,13 +10,21 @@ export function Upload() {
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(0);
   const limits = useLoad(api.siteInfo, []);
   const maxMb = limits.data?.maxUploadMb;
   const tooBig = !!(file && maxMb && file.size > maxMb * 1024 * 1024);
 
   useEffect(() => {
     if (!job || DONE.includes(job.status)) return;
-    const t = setTimeout(() => api.job(job.jobId).then(setJob, (e) => setError(e.message)), 3000);
+    // A failed poll (a network blip, a deploy) is retried; it never stops the status updates for good.
+    const t = setTimeout(
+      () => api.job(job.jobId).then(
+        (j) => { setError(null); setJob(j); },
+        (e) => { setError(`${e.message}. Still checking…`); setJob({ ...job }); },
+      ),
+      3000,
+    );
     return () => clearTimeout(t);
   }, [job]);
 
@@ -25,8 +33,9 @@ export function Upload() {
     setBusy(true);
     setError(null);
     setJob(null);
+    setSent(0);
     try {
-      setJob(await api.upload(file));
+      setJob(await api.upload(file, setSent));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -42,9 +51,9 @@ export function Upload() {
         is deleted from the server after it has been analyzed.{maxMb ? ` Demos up to ${maxMb} MB, one at a time, ${limits.data!.maxUploadsPerDay} per day.` : ""}
       </p>
       <div className="upload">
-        <input type="file" accept=".dem" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <input type="file" accept=".dem" aria-label="Demo file (.dem)" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         <button className="button primary" disabled={!file || busy || tooBig} onClick={send}>
-          {busy ? "Uploading…" : "Analyze"}
+          {busy ? (sent < 1 ? `Uploading… ${Math.round(100 * sent)}%` : "Checking the demo…") : "Analyze"}
         </button>
       </div>
       {tooBig && (
@@ -56,7 +65,7 @@ export function Upload() {
       {job && (
         <p>
           {job.status === "QUEUED" && "Waiting in line…"}
-          {job.status === "PROCESSING" && "Analyzing, this takes about a minute…"}
+          {job.status === "PROCESSING" && "Analyzing, this usually takes 3 to 6 minutes…"}
           {job.status === "FAILED" && <span className="error">Analysis failed: {job.error}</span>}
           {job.status === "SKIPPED" && <span className="muted">Not analyzed. {job.error}</span>}
           {(job.status === "COMPLETED" || job.status === "DUPLICATE") && job.matchId && (
