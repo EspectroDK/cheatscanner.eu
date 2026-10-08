@@ -69,6 +69,7 @@ poll_interval_s = 3              # how often the app asks whether the code was c
 pairings_per_ip_per_hour = 20
 confirms_per_user_per_hour = 20
 lobby_lookups_per_minute = 30    # per user; the app asks once per roster change
+lobby_players_per_day = 300      # different Steam IDs per user per UTC day; keeps the lookup to people's own lobbies
 
 [auth]
 # Steam sign-in for the website and API (README: Accounts and Steam sign-in).

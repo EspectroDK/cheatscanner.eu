@@ -101,9 +101,9 @@ def test_evidence_from_all_matches_of_a_known_player(config, tmp_path):
     return_to = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(loc).query))["openid.return_to"]
     params = _assertion(return_to=return_to, steam_id=ME) | dict(urllib.parse.parse_qsl(urllib.parse.urlparse(return_to).query))
     me.get("/auth/steam/callback", params=params, follow_redirects=False)
-    events = {e["matchId"]: e for e in me.get(f"/players/{MATE}/evidence").json()}
-    assert set(events) == {"m1", "m2"}
-    assert events["m1"]["matchVisible"] and not events["m2"]["matchVisible"]
+    events = {e["id"]: e for e in me.get(f"/players/{MATE}/evidence").json()}
+    assert {e["matchId"] for e in events.values()} == {"m1", None}   # no id of a match ME can't open
+    assert events[f"m1-{MATE}"]["matchVisible"] and not events["m2-mate"]["matchVisible"]
     assert me.get("/matches/m2").status_code == 404
     assert me.get("/evidence/m2-mate/plot").status_code == 200
     assert {m["matchId"] for m in me.get(f"/players/{MATE}/matches").json()} == {"m1"}
@@ -166,12 +166,15 @@ def test_other_players_in_unseen_matches_keep_names_but_link_only_if_known(confi
             s.add(M.EvidenceEvent(id=eid, match_id="m2", steam_id=MATE, tick_start=1, tick_peak=2, tick_end=3,
                                   detector_type="snap", severity=0.5, reliability=0.5, information_confidence=0.5,
                                   confidence=0.9, evidence_axis="AIM_MECHANICS", evidence_group="aim",
-                                  target_steam_id=target, context={"x": 1}))
+                                  target_steam_id=target, context={"x": 1},
+                                  metrics={"hits": [{"target_steam_id": str(target), "tick": 5}], "n": 1}))
     events = {e["id"]: e for e in c.get(f"/players/{MATE}/evidence").json()}
     a, b = events["m2-mate-a"], events["m2-mate-b"]
     assert a["targetName"] == f"p{STRANGER % 1000}" and a["targetSteamId"] is None
     assert b["targetName"] == "enemy" and b["targetSteamId"] == str(ENEMY)
-    assert not a["matchVisible"] and a["context"] is None
+    assert not a["matchVisible"] and a["context"] is None and a["matchId"] is None
+    # Metrics keep their numbers but lose every Steam ID (some detectors list the players they measured).
+    assert a["metrics"] == {"hits": [{"tick": 5}], "n": 1} and str(STRANGER) not in str(a)
 
 
 def test_player_timeline_covers_all_matches(config, tmp_path):
@@ -338,3 +341,16 @@ def test_share_link_stops_when_its_creator_loses_access(config, tmp_path):
     with db.session() as s:
         s.query(M.MatchUpload).delete()
     assert anon.get(f"/share/{token}").status_code == 404
+
+
+def test_failed_match_hides_the_traceback(config, tmp_path):
+    c, db = _signed_in(config, tmp_path)
+    db.mark_failed("m1", "ValueError: bad tick in /app/data/work/abc.dem", trace="Traceback (most recent call last):\n  File \"/app/src/x.py\"")
+    with db.session() as s:
+        m = s.get(M.Match, "m1")
+        assert m.error == "ValueError: bad tick in /app/data/work/abc.dem" and "Traceback" in m.meta["error_trace"]
+        m.error = "old\nTraceback (most recent call last):\n  File \"/app/src/x.py\""   # rows stored before the fix
+    shown = c.get("/matches/m1").json()["error"]
+    assert shown == "The analysis of this demo failed." and "/app/" not in shown
+    token = c.post("/matches/m1/shares").json()["url"].rsplit("/", 1)[-1]
+    assert TestClient(c.app).get(f"/share/{token}").json()["error"] == "The analysis of this demo failed."

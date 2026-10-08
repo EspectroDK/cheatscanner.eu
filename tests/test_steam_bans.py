@@ -139,6 +139,7 @@ def test_overlay_gets_bans_for_strangers_too(config, tmp_path):
     unseen = 76561198000000999
     steam = FakeSteamApi([_player(unseen, vac=3, days=400)])
     c, _ = _signed_in(config, tmp_path, steam)
-    rows = c.post("/lobby/risk", json={"players": [{"steamId": str(unseen)}, {"steamId": str(MATE)}]}).json()["players"]
+    app = TestClient(c.app, headers={"Authorization": f"Bearer {c.post('/me/tokens', json={'name': 'app'}).json()['token']}"})
+    rows = app.post("/lobby/risk", json={"players": [{"steamId": str(unseen)}, {"steamId": str(MATE)}]}).json()["players"]
     assert rows[0]["classification"] == "INSUFFICIENT_DATA" and rows[0]["bans"]["vacBans"] == 3
     assert "bans" not in rows[1]

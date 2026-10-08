@@ -343,7 +343,11 @@ function MatchView({ data, evidence, evidenceError, children }: {
       {children}
 
       {data.processingStatus !== "COMPLETED" && (
-        <p className="notice">This match is {data.processingStatus.toLowerCase()}.{data.error && ` ${data.error}`}</p>
+        <p className="notice">
+          {data.processingStatus === "FAILED"
+            ? data.error ?? "The analysis of this demo failed."
+            : `This match is ${data.processingStatus.toLowerCase()}.`}
+        </p>
       )}
 
       {[...teams, ...rest].map((t) =>

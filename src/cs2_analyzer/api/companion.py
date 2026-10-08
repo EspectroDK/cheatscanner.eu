@@ -8,7 +8,8 @@ Linking works like signing in a TV app:
 3. the app polls ``POST /companion/pair/token`` with its secret device code and receives an API token
    once. The token is listed (and revocable) under Settings > API tokens on the website.
 
-``POST /lobby/risk`` answers the overlay: for each Steam ID in the current match, the global evidence
+``POST /lobby/risk`` answers the overlay (app tokens only, and a daily cap of different players per user, so it
+can't be used as a public lookup): for each Steam ID in the current match, the global evidence
 class and the number of analyzed matches, from all users' matches. ``VERY_HIGH`` is shown as
 ``HIGH``. For ELEVATED and HIGH players it adds the overlay's extended card (F7):
 history score (0-100), high-evidence match count, a LOW/MEDIUM/HIGH level for wall tracking, aim and
@@ -56,6 +57,34 @@ class LobbyPlayer(BaseModel):
 class LobbyRequest(BaseModel):
     # 10 players plus coaches/spectators in the roster.
     players: list[LobbyPlayer] = Field(..., max_length=16)
+
+
+class DailyPlayerLimit:
+    """At most ``limit`` different Steam IDs looked up per user per UTC day (in memory, per server process).
+
+    The lobby lookup answers for players the user hasn't met, which is fine for the people in their match but
+    would make the site a public lookup if anyone could feed it arbitrary IDs. A real day of matches stays far
+    below the limit; looking the same lobby up again costs nothing. The IDs are kept only in memory, for the day.
+    """
+
+    def __init__(self, limit: int, clock: Callable[[], float] = time.time):
+        self.limit, self.clock = limit, clock
+        self.seen: dict[object, tuple[int, set[int]]] = {}
+        self.lock = threading.Lock()
+
+    def allow(self, key, steam_ids: list[int]) -> bool:
+        if self.limit <= 0:
+            return True
+        day = int(self.clock() // 86400)
+        with self.lock:
+            if any(d != day for d, _ in self.seen.values()):
+                self.seen = {k: v for k, v in self.seen.items() if v[0] == day}
+            seen = self.seen.setdefault(key, (day, set()))[1]
+            new = set(steam_ids) - seen
+            if len(seen) + len(new) > self.limit:
+                return False
+            seen |= new
+            return True
 
 
 class RateLimiter:
@@ -108,6 +137,7 @@ def router(config: Config, db: Database, public_url: str, require_user, viewer, 
     pair_limit = RateLimiter(int(config.get("companion.pairings_per_ip_per_hour", 20)), 3600)
     confirm_limit = RateLimiter(int(config.get("companion.confirms_per_user_per_hour", 20)), 3600)
     lobby_limit = RateLimiter(int(config.get("companion.lobby_lookups_per_minute", 30)), 60)
+    lobby_daily = DailyPlayerLimit(int(config.get("companion.lobby_players_per_day", 300)))
     thresholds = [float(x) for x in config.get("history.classification.thresholds", [0.25, 0.5, 0.75])]
 
     def client_ip(request: Request) -> str:
@@ -147,12 +177,17 @@ def router(config: Config, db: Database, public_url: str, require_user, viewer, 
     @r.post("/lobby/risk")
     def lobby_risk(req: LobbyRequest, v=Depends(viewer)):
         """Class and analyzed-match count for everyone in the current match (global knowledge)."""
+        if v.user is not None and v.user.get("tokenKind") == "session":
+            # The overlay signs in with its app token. A browser session has no lobby to look up.
+            raise HTTPException(403, "the lobby lookup is for the Cheatscanner app")
         if v.user is not None and not lobby_limit.allow(v.user["id"]):
             raise HTTPException(429, "Too many lobby lookups. Wait a moment.")
         ids = []
         for p in req.players:
             if p.steamId and p.steamId.isdigit() and 0 < int(p.steamId) < 1 << 64:
                 ids.append(int(p.steamId))
+        if v.user is not None and not lobby_daily.allow(v.user["id"], ids):
+            raise HTTPException(429, "Daily lookup limit reached for this account. It resets at midnight UTC.")
         known = db.lobby_classes(ids)
         record_lobby_lookup(db, v.user["id"] if v.user else None, len(ids))  # a count for the admin page, no IDs
         flagged = [sid for sid, k in known.items() if lobby_class(k["classification"]) in ("ELEVATED", "HIGH")]

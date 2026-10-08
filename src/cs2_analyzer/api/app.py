@@ -136,6 +136,20 @@ def _sid(s: str) -> int:
     return int(s)
 
 
+def _public_error(error: str | None) -> str | None:
+    """What users see of a failed analysis: never the exception or traceback (server paths, library frames)."""
+    return "The analysis of this demo failed." if error else None
+
+
+def _without_steam_ids(value):
+    """A copy of event metrics/context without any Steam ID in it (nested dicts and lists included)."""
+    if isinstance(value, dict):
+        return {k: _without_steam_ids(v) for k, v in value.items() if "steam_id" not in k.lower() and k != "steamId"}
+    if isinstance(value, list):
+        return [_without_steam_ids(v) for v in value]
+    return value
+
+
 class Viewer:
     """Access scope of one request. ``unrestricted`` for local use without auth."""
 
@@ -399,6 +413,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             p["visible"] = v.can_see_player(int(p["steamId"]))
             if not p["visible"]:
                 p["assessment"] = None
+        if not v.unrestricted:
+            m["error"] = _public_error(m["error"])
         add_bans(m["players"])
         # Evidence clips still being rendered after the analysis, and roughly when they will be there.
         m["clips"] = db.clip_status(match_id, float(config.get("evidence.eta_default_clip_s", 120)),
@@ -425,7 +441,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             name = rosters.get(e["matchId"], {}).get(int(target), (None, None))[0] if target else None
             e = e | {"targetName": name, "matchVisible": visible}
             if not visible:
-                e = e | {"context": None}
+                # No way back to the match (its id is the key to it) and no Steam IDs of its other players.
+                e = e | {"context": None, "matchId": None, "metrics": _without_steam_ids(e.get("metrics"))}
                 if target and not v.can_see_player(int(target)):
                     e["targetSteamId"] = None
             out.append(e)
@@ -519,6 +536,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             if not p["visible"]:
                 p["assessment"] = None
             p["linkable"] = me is not None and me.can_see_player(sid)
+        m["error"] = _public_error(m["error"])
         add_bans(m["players"])
         m["valveDemo"] = None   # the demo download and share code stay with the people in the match
         m["clips"] = db.clip_status(sh["matchId"], float(config.get("evidence.eta_default_clip_s", 120)),

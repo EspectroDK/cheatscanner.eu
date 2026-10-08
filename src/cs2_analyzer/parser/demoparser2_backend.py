@@ -457,7 +457,7 @@ class DemoParser2Backend:
     @staticmethod
     def _match_id(path: Path, override: str | None, sha: str) -> tuple[str, str]:
         if override:
-            return override, "user"
+            return override, "content_hash" if override == f"sha256-{sha[:24]}" else "user"
         m = _MATCH_FILE_RE.search(path.name)
         if m:
             return m.group(1), "valve_filename"

@@ -130,12 +130,15 @@ class Database:
                 s.execute(delete(model).where(model.match_id == match_id))
             s.execute(delete(M.Match).where(M.Match.match_id == match_id))
 
-    def mark_failed(self, match_id: str, error: str):
+    def mark_failed(self, match_id: str, error: str, trace: str | None = None):
+        """``error`` is a one-line reason; the traceback goes into the match metadata, for the logs and admins only."""
         with self.session() as s:
             m = s.get(M.Match, match_id)
             if m:
                 m.processing_status = "FAILED"
-                m.error = error[:4000]
+                m.error = error[:1000]
+                if trace:
+                    m.meta = dict(m.meta or {}) | {"error_trace": trace[-4000:]}
 
     def mark_completed(self, match_id: str, demo_deleted: bool, analysis_s: float | None = None):
         with self.session() as s:
