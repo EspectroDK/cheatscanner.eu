@@ -160,9 +160,11 @@ class Viewer:
     those matches, the large part) only when a player check needs them.
     """
 
-    def __init__(self, db: Database, user: dict | None, restricted: bool):
+    def __init__(self, db: Database, user: dict | None, restricted: bool, admin: bool = False):
         self.user = user
         self.unrestricted = not restricted
+        # Admins (browser session only) may open any match; pages say so when that is what lets them in.
+        self.admin = admin and not self.unrestricted
         self._db = db
         self._matches: tuple[set[str], set[str]] | None = None
         self._co_players: set[int] | None = None
@@ -193,6 +195,10 @@ class Viewer:
 
     def can_see_player(self, steam_id: int) -> bool:
         return self.unrestricted or steam_id in self.co_players
+
+    def admin_only(self, match_id: str) -> bool:
+        """True when only admin access opens this match for this viewer."""
+        return self.admin and not self.can_see_match(match_id)
 
     def match_scope(self, db: Database, steam_id: int) -> set[str] | None:
         """Matches whose details about ``steam_id`` this viewer may see (None = all)."""
@@ -279,7 +285,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         # Onboarding is mandatory: the Steam authentication code comes first.
         if auth.enabled and ingest.required and user is not None and not ingest.has_access(user["id"]):
             raise HTTPException(403, "onboarding: add your Steam authentication code first")
-        return Viewer(db, user, restricted=auth.enabled)
+        admin = user is not None and user.get("tokenKind") == "session" and auth.is_admin(user)
+        return Viewer(db, user, restricted=auth.enabled, admin=admin)
 
     def fetch_and_analyze(job: dict, url: str):
         """The demo fetcher found a replay URL: queue the download and analysis (demo deleted afterwards)."""
@@ -435,11 +442,16 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.get("/matches/{match_id}")
     def get_match(match_id: str, v: Viewer = Depends(viewer)):
         match_id = db.canonical_match_id(match_id)
-        m = db.get_match(match_id) if v.can_see_match(match_id) else None
+        as_admin = v.admin_only(match_id)
+        m = db.get_match(match_id) if as_admin or v.can_see_match(match_id) else None
         if m is None:
             raise HTTPException(404, "match not found")
+        m["adminAccess"] = as_admin
         for p in m["players"]:
-            p["visible"] = v.can_see_player(int(p["steamId"]))
+            known = v.can_see_player(int(p["steamId"]))
+            p["visible"] = known or as_admin
+            if as_admin:
+                p["linkable"] = known
             if not p["visible"]:
                 p["assessment"] = None
         if not v.unrestricted:
@@ -453,6 +465,8 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.get("/matches/{match_id}/evidence")
     def get_match_evidence(match_id: str, v: Viewer = Depends(viewer)):
         match_id = db.canonical_match_id(match_id)
+        if v.admin_only(match_id):
+            return _for_viewer(db.match_evidence(match_id), v, admin_match=match_id)
         if not v.can_see_match(match_id):
             raise HTTPException(404, "match not found")
         return _for_viewer([e for e in db.match_evidence(match_id) if _may_see_event(e, v)], v)
@@ -461,12 +475,13 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         """Same rule as the player evidence lists: any event of a player the viewer has played with or against."""
         return v.can_see_player(int(e["steamId"]))
 
-    def _for_viewer(events: list[dict], v: Viewer) -> list[dict]:
-        """Events from matches the viewer can't open: the other player is only linkable if the viewer knows them."""
+    def _for_viewer(events: list[dict], v: Viewer, admin_match: str | None = None) -> list[dict]:
+        """Events from matches the viewer can't open: the other player is only linkable if the viewer knows them.
+        ``admin_match``: a match an admin opened with admin access, shown as if the admin could open it."""
         rosters = db.match_rosters({e["matchId"] for e in events if e.get("targetSteamId")})
         out = []
         for e in events:
-            visible = v.can_see_match(e["matchId"])
+            visible = e["matchId"] == admin_match or v.can_see_match(e["matchId"])
             target = e.get("targetSteamId")
             name = rosters.get(e["matchId"], {}).get(int(target), (None, None))[0] if target else None
             e = e | {"targetName": name, "matchVisible": visible}
@@ -482,7 +497,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
 
     def _evidence_file(event_id: str, v: Viewer, key: str, media_type: str, match_id: str | None = None):
         e = db.get_evidence_event(event_id)
-        if e is None or not _may_see_event(e, v) or (match_id is not None and e["matchId"] != match_id):
+        if e is None or not (_may_see_event(e, v) or v.admin_only(e["matchId"])) or (match_id is not None and e["matchId"] != match_id):
             raise HTTPException(404, "evidence not found")
         path = Path(e[key]).resolve() if e[key] else None
         if path is None or output_root not in path.parents or not path.is_file():

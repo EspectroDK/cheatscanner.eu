@@ -30,12 +30,13 @@ def _seed(db: Database):
                                       confidence=0.5, evidence_axis="AIM_MECHANICS", evidence_group="aim"))
 
 
-def _signed_in(config, tmp_path, steam_id=ME):
+def _signed_in(config, tmp_path, steam_id=ME, admins=()):
     url = f"sqlite:///{tmp_path}/access.sqlite"
     db = Database(url)
     db.init_schema()
     _seed(db)
-    cfg = config.with_overrides({"auth": {"enabled": True, "public_url": PUBLIC}})
+    cfg = config.with_overrides({"auth": {"enabled": True, "public_url": PUBLIC,
+                                          "admin_steam_ids": [str(a) for a in admins]}})
     c = TestClient(create_app(cfg, db_url=url, steam_http_post=FakeSteam(), profile_fetcher=lambda sid: {}))
     loc = c.get("/auth/steam/login", follow_redirects=False).headers["location"]
     return_to = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(loc).query))["openid.return_to"]
@@ -390,3 +391,27 @@ def test_token_last_used_is_written_at_most_every_few_minutes(tmp_path):
         s.query(M.AuthToken).update({"last_used_at": datetime.now(timezone.utc) - timedelta(minutes=10)})
     db.resolve_token(raw)
     assert datetime.now(timezone.utc) - last_used().replace(tzinfo=timezone.utc) < timedelta(minutes=1)
+
+
+def test_admin_opens_any_match_and_the_page_says_so(config, tmp_path):
+    c, _ = _signed_in(config, tmp_path, admins=(ME,))
+    assert c.get("/matches/m1").json()["adminAccess"] is False      # own match: normal access
+    m2 = c.get("/matches/m2").json()
+    assert m2["adminAccess"] is True
+    assert all(p["visible"] and p["assessment"] and p["linkable"] is False for p in m2["players"])
+    ev = c.get("/matches/m2/evidence").json()
+    assert {e["steamId"] for e in ev} == {str(STRANGER), str(STRANGER2)}
+    assert all(e["matchVisible"] and e["matchId"] == "m2" for e in ev)
+    assert c.post("/matches/m2/shares").status_code == 404           # admin access doesn't extend to sharing
+    assert c.get(f"/players/{STRANGER}").status_code == 404          # nor to player pages
+    assert c.get("/evidence/m2-%d/clip" % STRANGER).status_code == 404  # no file, but past the access check
+    assert c.get("/evidence/m2-%d/clip" % STRANGER).json()["detail"] == "no file for this event"
+
+
+def test_non_admin_and_app_token_get_no_admin_access(config, tmp_path):
+    c, db = _signed_in(config, tmp_path)
+    assert c.get("/matches/m2").status_code == 404
+    c, db = _signed_in(config, tmp_path / "admin", admins=(ME,))
+    raw, _ = db.create_token(c.get("/me").json()["id"], "api")
+    app_client = TestClient(c.app)
+    assert app_client.get("/matches/m2", headers={"Authorization": f"Bearer {raw}"}).status_code == 404
