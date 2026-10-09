@@ -19,7 +19,8 @@ False-positive controls
 * **Holding / pre-aiming common angles**: pre-aim on the static appearance
   point is legitimate. ``static_spot_specificity`` compares error to the
   appearance point with error to the real-time position; converging on a
-  fixed spot scores ~0.
+  fixed spot (specificity <= ``static_spot_lo_deg``) scores 0, and severity
+  only reaches full strength at ``static_spot_hi_deg``.
 * **Enemy walks into a held crosshair**: ``aim_driven_fraction`` ~0.
 * **Prior knowledge**: requires the pre-window to be UNKNOWN (no sight,
   radar, teammate, sound or damage information) - otherwise skipped.
@@ -120,7 +121,9 @@ class PrevisibilityDetector(Detector):
                 * ramp(-(at[-250] if at[-250] is not None else 99), -cfg.get("end_error_hi_deg", 4.0), -cfg.get("end_error_lo_deg", 1.0))
                 * ramp(-mono, 0.6, 0.95)
                 * ramp(aim_frac, 0.3, 0.8)
-                * (0.4 + 0.6 * ramp(spec, 0.0, 4.0))
+                # converging on the fixed spot where the enemy appeared (spec <= 0) is a pre-aim, not
+                # hidden information, so it contributes nothing (it used to keep 40% of the severity)
+                * ramp(spec, cfg.get("static_spot_lo_deg", 0.0), cfg.get("static_spot_hi_deg", 4.0))
                 * (0.5 + 0.5 * ramp(m["target_angular_path_deg"], 2.0, 10.0))
             )
             if not m["calibrated"]:
