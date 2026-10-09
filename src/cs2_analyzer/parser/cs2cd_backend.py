@@ -36,6 +36,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 from cs2_analyzer.parser.base import MatchMeta, ParsedDemo
 from cs2_analyzer.parser.demoparser2_backend import DemoParser2Backend, _sha256
@@ -52,6 +53,8 @@ TICK_COLUMNS = [
     "is_scoped", "duck_amount", "ducking", "is_walking", "is_airborne", "shots_fired", "buttons", "FIRE",
     "spotted", "approximate_spotted_by", "round_win_status", "round_win_reason",
 ]
+# Read when the file has them (detectors/mouse_view.py).
+OPTIONAL_TICK_COLUMNS = ["usercmd_mouse_dx", "usercmd_mouse_dy"]
 
 _PLAYER_RE = re.compile(r"Player_(\d+)$")
 _ID_BASE = 900_000_000_000
@@ -137,7 +140,8 @@ class CS2CDBackend:
         events_src = _JsonEvents(data, to_sid)
         available = set(events_src.list_game_events())
 
-        raw = pd.read_parquet(path, columns=TICK_COLUMNS)
+        present = set(pq.read_schema(path).names)
+        raw = pd.read_parquet(path, columns=TICK_COLUMNS + [c for c in OPTIONAL_TICK_COLUMNS if c in present])
         raw["steamid"] = pd.Series([to_sid(v) for v in raw["steamid"]], index=raw.index, dtype="int64")
         raw = raw[raw["steamid"] != 0]
         raw["m_iClip1"] = raw["active_weapon_ammo"]
