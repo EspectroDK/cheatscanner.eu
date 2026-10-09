@@ -434,6 +434,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
 
     @app.get("/matches/{match_id}")
     def get_match(match_id: str, v: Viewer = Depends(viewer)):
+        match_id = db.canonical_match_id(match_id)
         m = db.get_match(match_id) if v.can_see_match(match_id) else None
         if m is None:
             raise HTTPException(404, "match not found")
@@ -451,6 +452,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
 
     @app.get("/matches/{match_id}/evidence")
     def get_match_evidence(match_id: str, v: Viewer = Depends(viewer)):
+        match_id = db.canonical_match_id(match_id)
         if not v.can_see_match(match_id):
             raise HTTPException(404, "match not found")
         return _for_viewer([e for e in db.match_evidence(match_id) if _may_see_event(e, v)], v)
@@ -514,6 +516,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.post("/matches/{match_id}/shares", status_code=201)
     def create_share(match_id: str, v: Viewer = Depends(viewer)):
         user = _sharer(v)
+        match_id = db.canonical_match_id(match_id)
         if not v.can_see_match(match_id) or db.get_match(match_id) is None:
             raise HTTPException(404, "match not found")
         created = db.create_share(match_id, user["id"], share_hours, max_shares)
@@ -526,6 +529,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     def list_shares(match_id: str, v: Viewer = Depends(viewer)):
         """The signed-in user's links for this match that still work (the links themselves are shown only once)."""
         user = _sharer(v)
+        match_id = db.canonical_match_id(match_id)
         if not v.can_see_match(match_id):
             raise HTTPException(404, "match not found")
         return db.list_shares(user["id"], match_id)

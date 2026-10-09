@@ -372,3 +372,31 @@ def test_match_page_links_valve_demo_for_a_month(config, tmp_path, monkeypatch):
     with db.session() as s:
         s.get(M.Match, "gc-match").played_at = None
     assert c.get("/matches/gc-match").json()["valveDemo"]["url"] == URL
+
+
+def test_fetched_match_opens_by_valve_match_id(config, tmp_path, monkeypatch):
+    """A fetched match is stored under its demo's hash; Valve's match id (as in the demo's file name) finds it."""
+    from cs2_analyzer.ingest.sharecode import decode
+    from test_storage_api import _fake_result
+
+    def fake_analyze(path, config, db=None, **kw):
+        r = _fake_result("sha256-abc")
+        db.begin_match(r.meta, force=False, detector_version="d", scoring_version="s")
+        db.save_results(r)
+        db.mark_completed("sha256-abc", True)
+        return r
+
+    monkeypatch.setattr("cs2_analyzer.pipeline.analyze_demo", fake_analyze)
+    c, db, _ = _app(config, tmp_path, FakeHistory(), downloader=lambda url, dest, *a: dest.write_bytes(b"x") and dest)
+    c.put("/me/steam-match-access", json={"authCode": AUTH, "knownCode": CODES[0]})
+    h = {"Authorization": "Bearer svc"}
+    c.post("/internal/sharecodes/claim", headers=h)
+    c.post(f"/internal/sharecodes/{CODES[0]}/result", headers=h, json={"demoUrl": URL})
+    assert _wait(c) == "DONE"
+
+    gc_id = decode(CODES[0]).match_id
+    for alias in (f"{gc_id:021d}", str(gc_id)):
+        r = c.get(f"/matches/{alias}")
+        assert r.status_code == 200 and r.json()["matchId"] == "sha256-abc"
+        assert c.get(f"/matches/{alias}/evidence").status_code == 200
+    assert c.get("/matches/000000000000000000001").status_code == 404

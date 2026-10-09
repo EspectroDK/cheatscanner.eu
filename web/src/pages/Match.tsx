@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, type ClipStatus, type EvidenceEvent, type MatchDetail, type ShareLink } from "../api";
 import { MapBanner, mapName, SIDE_NAME, SideEmblem } from "../art";
 import { EvidenceList } from "../Evidence";
@@ -187,7 +187,13 @@ function useMatchData(load: () => Promise<MatchDetail>, loadEvidence: () => Prom
 
 export function MatchPage() {
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const { match, evidence } = useMatchData(() => api.match(id), () => api.matchEvidence(id), id);
+  // Opened by Valve's match id: move to the id the match is stored under, so the address is the one we link to.
+  const canonical = match.data?.matchId;
+  useEffect(() => {
+    if (canonical && canonical !== id) navigate(`/matches/${encodeURIComponent(canonical)}`, { replace: true });
+  }, [canonical, id, navigate]);
   if (!match.data) return <Loading error={match.error} />;
   return (
     <MatchView data={match.data} evidence={evidence.data} evidenceError={evidence.error}>
