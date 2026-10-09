@@ -107,6 +107,8 @@ export interface MatchDetail {
   error: string | null;
   /** Valve's download link for a fetched match, only while Valve still keeps the demo (about a month). */
   valveDemo?: { url: string; shareCode: string; availableUntil: string } | null;
+  /** Opened only through admin access: the admin neither played in nor supplied this match. */
+  adminAccess?: boolean;
   rounds: Round[];
   score: Score | null;
   /** Evidence clips rendered after the analysis: how many are ready and roughly when the rest arrive. */

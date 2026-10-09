@@ -65,6 +65,7 @@ code { background: var(--panel-2); border: 1px solid var(--line); padding: 1px 6
 .small { font-size: 0.85rem; }
 .error { color: var(--high); }
 .notice { background: var(--panel); border: 1px solid var(--accent); padding: 12px 14px; border-radius: var(--radius); }
+.notice.admin-access { border-color: var(--elevated); }
 
 /* ---------------------------------------------------------------- shell */
 .topbar {

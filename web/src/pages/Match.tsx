@@ -197,7 +197,14 @@ export function MatchPage() {
   if (!match.data) return <Loading error={match.error} />;
   return (
     <MatchView data={match.data} evidence={evidence.data} evidenceError={evidence.error}>
-      <ShareMatch matchId={id} />
+      {match.data.adminAccess ? (
+        <p className="notice admin-access">
+          <strong>Admin access.</strong> You weren't in this match and didn't supply its demo, so only your admin rights
+          let you see it. Players and their evidence are shown in full here; sharing is off.
+        </p>
+      ) : (
+        <ShareMatch matchId={id} />
+      )}
     </MatchView>
   );
 }
