@@ -124,6 +124,8 @@ start_error_lo_deg = 6.0         # UNCALIBRATED
 start_error_hi_deg = 15.0
 end_error_lo_deg = 1.0
 end_error_hi_deg = 4.0
+static_spot_lo_deg = 0.0         # aim closer to the moving hidden enemy than to his appearance spot, by
+static_spot_hi_deg = 4.0         # at most lo: no event (a pre-aim); full severity from hi
 uncalibrated_severity_factor = 0.8
 min_event_severity = 0.25
 

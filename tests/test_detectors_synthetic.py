@@ -156,6 +156,32 @@ def test_holding_common_angle_not_flagged_as_previsibility(config):
     assert events_of(events, "previsibility") == []
 
 
+def test_preaim_swept_onto_appearance_spot_not_flagged(config):
+    """Crosshair moved onto the corner where the enemy appears (habit, a spot hot earlier in the match),
+    not onto the enemy's moving hidden position: legitimate pre-aim, no event."""
+    sc = wall_scenario(30)
+    T = sc.T
+    t = np.arange(T) / sc.tickrate
+    sc.walls = [((400, -2000, -100), (420, 300, 400))]
+    y = np.clip(-600 + (t - HIDDEN_START_S) * 120, -600, 900)
+    enemy = np.stack([np.full(T, 800.0), y, np.zeros(T)], axis=1)
+    observer = static(T, (0, 0, 0))
+    corner = static(T, (800, 600, 64))
+    pitch, yaw = aim_at(head(observer), corner)
+    # 60 deg off the corner until 23.5 s, then swept onto it over ~2 s, as in the convergence test, but
+    # from the side away from the enemy's approach so the sweep does not pass over him by chance
+    blend = np.clip((t - 23.5) / 2.2, 0, 1)
+    yaw = yaw + 60.0 * (1 - blend)
+    sc.add(SynthPlayer(OBS, 3, "observer", observer, pitch, yaw))
+    sc.add(SynthPlayer(ENEMY, 2, "enemy", enemy, np.zeros(T), np.full(T, 180.0)))
+    events, ctx = run(sc, config, detectors=("previsibility",))
+    obs = ctx.observations.frame("previsibility")
+    o = obs[obs.steam_id == OBS]
+    assert len(o) >= 1 and o.iloc[0]["aim_driven_fraction"] > 0.5
+    assert o.iloc[0]["static_spot_specificity_deg"] <= 0.5
+    assert events_of(events, "previsibility") == []
+
+
 def test_remembered_position_real_time_vs_memory(config):
     sc0 = wall_scenario(60)
     T = sc0.T
