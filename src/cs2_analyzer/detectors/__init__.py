@@ -19,6 +19,7 @@ from cs2_analyzer.detectors.hidden_tracking import HiddenTrackingDetector, Smoke
 from cs2_analyzer.detectors.hidden_fire import HiddenFireDetector
 from cs2_analyzer.detectors.information_gap import InformationGapDetector
 from cs2_analyzer.detectors.input_lattice import InputLatticeDetector
+from cs2_analyzer.detectors.mouse_view import MouseViewDetector
 from cs2_analyzer.detectors.previsibility import PrevisibilityDetector
 from cs2_analyzer.detectors.remembered_position import RememberedPositionDetector
 from cs2_analyzer.detectors.shot_mechanics import (
@@ -52,6 +53,7 @@ ALL_DETECTORS: dict[str, type[Detector]] = {
         MechanicalImpossibilityDetector,
         ViewIntegrityDetector,
         InputLatticeDetector,
+        MouseViewDetector,
         SmokeKillsDetector,
         BunnyhopDetector,
     )

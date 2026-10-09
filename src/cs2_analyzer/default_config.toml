@@ -363,6 +363,17 @@ max_idle_off_rate = 0.01         # idle movement must itself be clean (noisy inp
 min_round_idle_moves = 200       # rounds with fewer idle moves are left out of that median
 max_p_value = 1e-6
 
+[detectors.mouse_view]
+# User commands whose mouse fields hold the absolute view angle instead of mouse
+# movement. Thresholds from all 795 CS2CD matches (docs/validation/cs2cd/mouse_view.md).
+enabled = true
+reliability = 0.6
+max_step_deg = 40.0
+min_absolute_share = 0.8         # share of the player's ticks in that state (clean max 0.45)
+full_absolute_share = 0.95
+min_mouse_ticks = 2000           # live, alive, unscoped ticks with mouse data
+min_mouse_share = 0.9            # share of those ticks that carry mouse fields at all
+
 [detectors.information_gap]
 # Following hidden enemies (walls, stable smoke cores) more closely than the best
 # legitimate estimate of their position allows: knowledge/estimates.py.

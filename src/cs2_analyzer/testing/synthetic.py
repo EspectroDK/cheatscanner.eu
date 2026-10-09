@@ -39,6 +39,7 @@ class SynthPlayer:
     punch: np.ndarray | None = None  # [T, 2]
     airborne: np.ndarray | None = None  # [T] bool
     weapon_class: np.ndarray | None = None  # [T] str, "rifle" when not given
+    mouse: np.ndarray | None = None  # [T, 2] user-command mouse counts (dx, dy); NaN when not given
 
 
 @dataclass
@@ -83,6 +84,7 @@ class Scenario:
         for p in self.players:
             alive = p.alive if p.alive is not None else np.ones(T, dtype=bool)
             punch = p.punch if p.punch is not None else np.zeros((T, 2))
+            mouse = p.mouse if p.mouse is not None else np.full((T, 2), np.nan)
             df = pd.DataFrame(
                 {
                     "tick": np.arange(T) + tick0,
@@ -112,6 +114,8 @@ class Scenario:
                     "buttons": 0,
                     "spotted": False,
                     "spotted_by": [[] for _ in range(T)],
+                    "mouse_dx": mouse[:, 0].astype(np.float32),
+                    "mouse_dy": mouse[:, 1].astype(np.float32),
                 }
             )
             rows.append(df)

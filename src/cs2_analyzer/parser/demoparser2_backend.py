@@ -46,6 +46,8 @@ TICK_PROPS = [
     "flash_max_alpha", "is_scoped", "duck_amount", "ducking", "is_walking",
     "is_airborne", "shots_fired", "buttons", "FIRE", "spotted",
     "approximate_spotted_by", "game_time", "team_rounds_total",
+    # mouse counts of the user command (detectors/mouse_view.py)
+    "usercmd_mouse_dx", "usercmd_mouse_dy",
     # newer demos: aim punch moved here (unknown fields are skipped on older demos)
     AIM_PUNCH_SERVICES_PROP,
 ]

@@ -49,6 +49,8 @@ class World:
     shot_mask: np.ndarray  # [P, T] bool: weapon_fire with a gun at this tick
     shot_ticks: dict[int, np.ndarray] = field(default_factory=dict)  # player idx -> tick indices
     index_of: dict[int, int] = field(default_factory=dict)
+    mouse_dx: np.ndarray | None = None  # [P, T] float32 mouse counts of the tick's user command, NaN when missing
+    mouse_dy: np.ndarray | None = None  # [P, T]
 
     @property
     def T(self) -> int:
@@ -223,4 +225,6 @@ def build_world(demo: ParsedDemo) -> World:
         shot_mask=shot_mask,
         shot_ticks=shot_ticks,
         index_of=index_of,
+        mouse_dx=f("mouse_dx", np.nan, np.float32) if "mouse_dx" in ticks else None,
+        mouse_dy=f("mouse_dy", np.nan, np.float32) if "mouse_dy" in ticks else None,
     )

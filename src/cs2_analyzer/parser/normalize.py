@@ -29,7 +29,7 @@ NORMALIZED_COLUMNS = [
     "alive", "health", "weapon", "weapon_class", "ammo",
     "is_scoped", "is_crouching", "duck_amount", "is_walking", "is_airborne",
     "flash_duration_prop", "flash_alpha", "shots_fired", "aim_punch_pitch", "aim_punch_yaw",
-    "attack", "buttons", "spotted", "spotted_by",
+    "attack", "buttons", "spotted", "spotted_by", "mouse_dx", "mouse_dy",
 ]
 
 
@@ -216,6 +216,9 @@ def normalize_ticks(raw: pd.DataFrame, rounds: pd.DataFrame, tickrate: float) ->
     put("buttons", _opt(raw, "buttons", 0, missing).astype("int64"))
     put("spotted", _opt(raw, "spotted", False, missing).astype(bool))
     put("spotted_by", _spotted_lists(_opt(raw, "approximate_spotted_by", None, missing)))
+    # mouse counts of the user command recorded for the tick (NaN when the demo has none)
+    put("mouse_dx", _opt(raw, "usercmd_mouse_dx", np.nan, missing).astype("float32"))
+    put("mouse_dy", _opt(raw, "usercmd_mouse_dy", np.nan, missing).astype("float32"))
     assert list(out.columns) == NORMALIZED_COLUMNS
     out.attrs["missing_props"] = sorted(set(missing))
     return out
