@@ -307,6 +307,20 @@ class Database:
             return None
         return {"url": job.demo_url, "shareCode": job.share_code, "availableUntil": _iso(until)}
 
+    def canonical_match_id(self, match_id: str) -> str:
+        """The id a match is stored under. A fetched match is stored under its demo's content hash, so a link
+        made from Valve's match id (as in Valve's demo file name, ``match730_<id>_...``) is resolved through
+        the share code it was fetched with. Ids that aren't such an alias come back unchanged."""
+        if not match_id.isdigit() or len(match_id) > 21 or int(match_id) >= 1 << 63:
+            return match_id
+        with self.session() as s:
+            if s.get(M.Match, match_id) is not None:
+                return match_id
+            found = s.scalars(select(M.ShareCodeJob.match_id).where(M.ShareCodeJob.gc_match_id == int(match_id),
+                                                                    M.ShareCodeJob.match_id.is_not(None))
+                              .order_by(M.ShareCodeJob.created_at).limit(1)).first()
+            return found or match_id
+
     def match_status(self, match_id: str) -> str | None:
         with self.session() as s:
             m = s.get(M.Match, match_id)
