@@ -413,7 +413,17 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 .evidence-group { margin: 18px 0; }
 .evidence-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 1.1rem; margin: 0 0 8px; }
 .evidence-folded { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; }
-.evidence-folded > summary { cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.evidence-folded { transition: border-color 0.15s; }
+.evidence-folded:hover, .evidence-folded:has(> summary:focus-visible) { border-color: var(--accent); }
+.evidence-folded > summary { cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; list-style: none; border-radius: 8px; }
+.evidence-folded > summary::-webkit-details-marker { display: none; }
+.evidence-folded > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .evidence-folded[open] > summary { margin-bottom: 8px; }
+.evidence-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); color: var(--accent); font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.evidence-folded:hover .evidence-toggle { border-color: var(--accent); }
+.evidence-toggle svg { transition: transform 0.15s; }
+.evidence-folded[open] .evidence-toggle svg { transform: rotate(180deg); }
+.evidence-toggle-hide, .evidence-folded[open] .evidence-toggle-show { display: none; }
+.evidence-folded[open] .evidence-toggle-hide { display: inline; }
 .evidence-details summary { cursor: pointer; color: var(--muted); }
 .evidence-details p { margin: 6px 0 0; }
