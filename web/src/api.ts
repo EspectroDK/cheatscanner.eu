@@ -292,7 +292,11 @@ type Summary = { count: number; median: number | null; p90: number | null; mean:
 /** GET /admin/overview: queue, speed and usage for the admin page. */
 export interface AdminOverview {
   generatedAt: string;
-  users: { total: number; new7d: number; new30d: number; active24h: number; active7d: number; active30d: number; matchHistoryConnected: number };
+  users: {
+    total: number; new7d: number; new30d: number; active24h: number; active7d: number; active30d: number; matchHistoryConnected: number;
+    /** New accounts (first Steam sign-in) per UTC hour, last 24 hours, the current hour last. */
+    signupsPerHour: { hour: string; count: number }[];
+  };
   matches: {
     analyzed: number;
     failed: number;

@@ -98,6 +98,19 @@ def _queued_per_hour(s, now: datetime, hours: int = 24) -> list[dict]:
     return [{"hour": _iso(h), **c} for h, c in buckets.items()]
 
 
+def _signups_per_hour(s, now: datetime, hours: int = 24) -> list[dict]:
+    """New user accounts (first Steam sign-in, ``users.created_at``) in each of the last ``hours`` whole
+    hours (UTC, the current hour last and still running)."""
+    end = now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    start = end - timedelta(hours=hours - 1)
+    buckets = {start + timedelta(hours=i): 0 for i in range(hours)}
+    for (t,) in s.execute(select(M.User.created_at).where(M.User.created_at >= start)):
+        h = _utc(t).astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        if h in buckets:
+            buckets[h] += 1
+    return [{"hour": _iso(h), "count": c} for h, c in buckets.items()]
+
+
 def admin_overview(db: Database, now: datetime | None = None, days: int = 14) -> dict:
     now = now or datetime.now(timezone.utc)
     day, week, month = now - timedelta(days=1), now - timedelta(days=7), now - timedelta(days=30)
@@ -119,6 +132,7 @@ def admin_overview(db: Database, now: datetime | None = None, days: int = 14) ->
             "active30d": active_users(month),
             "matchHistoryConnected": count(select(func.count()).select_from(M.SteamMatchAccess)
                                            .where(M.SteamMatchAccess.status == "ACTIVE")),
+            "signupsPerHour": _signups_per_hour(s, now),
         }
 
         # -------------------------------------------------------- matches

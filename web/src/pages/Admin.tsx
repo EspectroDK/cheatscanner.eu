@@ -88,6 +88,37 @@ function QueuedPerHour({ hours }: { hours: AdminOverview["matches"]["queuedPerHo
   );
 }
 
+/** New accounts (first Steam sign-in) per hour, last 24 hours, in the viewer's local time. */
+function SignupsPerHour({ hours }: { hours: AdminOverview["users"]["signupsPerHour"] }) {
+  const max = Math.max(1, ...hours.map((h) => h.count));
+  const total = hours.reduce((a, h) => a + h.count, 0);
+  const clock = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return (
+    <figure className="per-day" aria-label="New sign-ups per hour, last 24 hours">
+      <div className="per-day-head">
+        <span>Sign-ups per hour, last 24 h: <strong>{n(total)}</strong></span>
+        <span className="muted small">new accounts (first Steam sign-in)</span>
+      </div>
+      <div className="per-day-bars">
+        {hours.map((h, i) => {
+          const end = i === hours.length - 1 ? "now" : clock(new Date(new Date(h.hour).getTime() + 3600_000).toISOString());
+          return (
+            <div key={h.hour} className="per-day-col" data-tip={`${clock(h.hour)}–${end}: ${h.count} sign-up${h.count === 1 ? "" : "s"}`}>
+              <span style={{ height: `${(h.count / max) * 100}%` }} className={h.count ? "" : "zero"} />
+            </div>
+          );
+        })}
+      </div>
+      <figcaption className="per-day-axis muted small">
+        <span>{clock(hours[0].hour)}</span>
+        <span>max {n(max)} per hour; times in {zone}</span>
+        <span>now</span>
+      </figcaption>
+    </figure>
+  );
+}
+
 export function Admin() {
   const [tick, setTick] = useState(0);
   const data = useLoad(api.adminOverview, [tick], true);
@@ -165,6 +196,7 @@ export function Admin() {
               sub={`${n(o.companion.lookupUsers24h)} user(s); ${n(o.companion.lookups7d)} in 7 d`} />
         <Stat label="Uploads started, 24 h" value={o.uploads.attempts24h} sub={`${n(o.uploads.attempts7d)} in 7 days`} />
       </div>
+      <SignupsPerHour hours={o.users.signupsPerHour} />
 
       <h2>All time</h2>
       <div className="stat-grid">

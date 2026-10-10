@@ -158,3 +158,23 @@ def test_queued_per_hour(config, tmp_path):
     assert hours[-1] == {"hour": "2026-10-04T19:00:00+00:00", "fetched": 1, "uploaded": 1}
     assert hours[-4] == {"hour": "2026-10-04T16:00:00+00:00", "fetched": 1, "uploaded": 0}
     assert sum(h["fetched"] + h["uploaded"] for h in hours) == 4
+
+
+def test_signups_per_hour(config, tmp_path):
+    _, db = _client(config, tmp_path)
+    now = datetime(2026, 10, 10, 6, 20, tzinfo=timezone.utc)
+    with db.session() as s:
+        s.execute(M.User.__table__.update().values(created_at=now - timedelta(days=3)))   # seeded users: long ago
+        for i, at in enumerate((
+                now - timedelta(minutes=5),                # this hour
+                now - timedelta(minutes=15),               # this hour
+                now - timedelta(hours=2, minutes=10),      # 04:00-05:00
+                now - timedelta(hours=23, minutes=10),     # 07:00 yesterday, the first bar
+                now - timedelta(hours=24))):               # 06:20 yesterday: too old
+            s.add(M.User(steam_id=76561190000000000 + i, created_at=at))
+    hours = stats.admin_overview(db, now=now)["users"]["signupsPerHour"]
+    assert len(hours) == 24
+    assert hours[0] == {"hour": "2026-10-09T07:00:00+00:00", "count": 1}
+    assert hours[-1] == {"hour": "2026-10-10T06:00:00+00:00", "count": 2}
+    assert hours[-3] == {"hour": "2026-10-10T04:00:00+00:00", "count": 1}
+    assert sum(h["count"] for h in hours) == 4
