@@ -210,6 +210,7 @@ export function EvidenceList({ events, names, showMatch, classes }: {
         const list = groups.get(sid)!;
         const cards = list.map((e) => <EvidenceCard key={e.id} e={e} names={names} showMatch={showMatch} />);
         const count = `${list.length} moment${list.length === 1 ? "" : "s"}`;
+        const clips = list.some((e) => e.clipUrl || e.clipPending);
         return raised(classes[sid]) ? (
           <section key={sid} className="evidence-group">
             <h3 className="evidence-group-head">{name(sid)} <ClassBadge value={classes[sid]} /> <span className="muted small">{count}</span></h3>
@@ -221,6 +222,12 @@ export function EvidenceList({ events, names, showMatch, classes }: {
               <strong>{name(sid)}</strong> <ClassBadge value={classes[sid]} />{" "}
               <span className="muted small">
                 {count}, not enough on {list.length === 1 ? "its" : "their"} own for a raised class
+              </span>
+              {/* A folded card must look openable: a labelled chevron, not just a hand cursor on hover. */}
+              <span className="evidence-toggle" aria-hidden="true">
+                <span className="evidence-toggle-show">{clips ? "Show clips and details" : "Show details"}</span>
+                <span className="evidence-toggle-hide">Hide</span>
+                <svg viewBox="0 0 16 16" width="14" height="14"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </span>
             </summary>
             {cards}
