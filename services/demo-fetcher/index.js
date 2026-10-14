@@ -50,6 +50,10 @@ const IDLE_MS = Number(env("FETCHER_IDLE_SECONDS", "30")) * 1000;
 const GAP_MS = Number(env("FETCHER_GAP_SECONDS", "5")) * 1000; // be gentle with the GC
 const CHAT_MS = Number(env("FETCHER_CHAT_SECONDS", "15")) * 1000;
 const GC_TIMEOUT_MS = 20000;
+// Watchdog: a fetcher that has not reached the API with a Game Coordinator session for this long exits, and
+// Docker (restart: unless-stopped) starts a fresh one that logs in again.
+const STUCK_MS = Number(env("FETCHER_STUCK_MINUTES", "10")) * 60000;
+const MAX_GC_TIMEOUTS = 3; // this many unanswered requests in a row: the GC session is dead, start over
 const Rel = SteamUser.EFriendRelationship;
 
 const tokenFile = path.join(STATE_DIR, "refresh-token");
@@ -58,6 +62,8 @@ fs.mkdirSync(STATE_DIR, { recursive: true });
 const user = new SteamUser({ renewRefreshTokens: true });
 const csgo = new GlobalOffensive(user);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let waitingForCode = false; // Steam wants a Steam Guard code nobody can type in (no shared secret, no console)
 
 function logOn() {
   if (fs.existsSync(tokenFile)) {
@@ -79,6 +85,26 @@ user.on("loggedOn", () => {
   console.log("logged in to Steam; connecting to the CS2 Game Coordinator");
   user.gamesPlayed([730]);
 });
+user.on("steamGuard", (domain, callback, lastCodeWrong) => {
+  if (SHARED_SECRET && !lastCodeWrong) {
+    callback(SteamTotp.generateAuthCode(SHARED_SECRET));
+  } else if (process.stdin.isTTY) {
+    // `docker compose run --rm demo-fetcher` (docs/deploy/hetzner.md): the code is typed by hand.
+    import("node:readline").then(({ createInterface }) => {
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      rl.question(`Steam Guard code${domain ? ` (e-mail to ${domain})` : ""}: `, (code) => { rl.close(); callback(code.trim()); });
+    });
+  } else {
+    // Running detached nobody can answer, so say what to do instead of hanging silently.
+    waitingForCode = true;
+    console.error("Steam wants a Steam Guard code for the bot account; nothing is fetched until it gets one. " +
+      "Log in by hand once (docs/deploy/hetzner.md, section 6) or set STEAM_BOT_SHARED_SECRET.");
+  }
+});
+user.on("disconnected", (eresult, msg) => console.log(`disconnected from Steam (${msg || eresult}); reconnecting`));
+user.on("playingState", (blocked) => {
+  if (blocked) console.error("the bot account is playing a game on another computer, so the Game Coordinator is unavailable until that stops");
+});
 user.on("error", (err) => {
   console.error(`Steam login error: ${err.message}`);
   if (err.eresult === SteamUser.EResult.InvalidPassword || err.eresult === SteamUser.EResult.AccessDenied) {
@@ -92,6 +118,7 @@ async function api(method, route, body) {
     method,
     headers: { Authorization: `Bearer ${SERVICE_TOKEN}`, "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(60000), // a hung request must not stall the loop
   });
   if (res.status === 204) return null;
   if (!res.ok) throw new Error(`API ${method} ${route}: HTTP ${res.status}`);
@@ -127,6 +154,28 @@ function requestGame(job) {
   });
 }
 
+let lastHealthy = Date.now(); // last time the API answered a claim while the GC session was up
+let gcTimeouts = 0;
+
+function stop(reason) {
+  console.error(`${reason}; exiting so Docker starts a fresh fetcher`);
+  process.exit(1);
+}
+
+function watchdog() {
+  if (waitingForCode) {
+    if (Date.now() - lastHealthy > STUCK_MS) {
+      console.error("still waiting for a Steam Guard code (see above)");
+      lastHealthy = Date.now(); // repeat the hint every few minutes, but don't log in again by itself
+    }
+    return;
+  }
+  const mins = Math.round((Date.now() - lastHealthy) / 60000);
+  if (Date.now() - lastHealthy > STUCK_MS) {
+    stop(`no Game Coordinator session or no answer from the API for ${mins} minutes`);
+  }
+}
+
 async function work() {
   let waitingSince = Date.now();
   let saidIdle = false;
@@ -143,6 +192,7 @@ async function work() {
     let job;
     try {
       job = await api("POST", "/internal/sharecodes/claim");
+      lastHealthy = Date.now();
     } catch (err) {
       console.error(err.message);
       await sleep(IDLE_MS);
@@ -164,8 +214,10 @@ async function work() {
       result = url ? { demoUrl: url } : { expired: true, error: "Valve no longer has this demo" };
       const played = Number(match?.matchtime);
       if (url && played > 0) result.matchTime = played; // lets the site date the match and Valve's download link
+      gcTimeouts = 0;
     } catch (err) {
       result = { error: err.message };
+      gcTimeouts += 1;
     }
     try {
       await api("POST", `/internal/sharecodes/${encodeURIComponent(job.shareCode)}/result`, result);
@@ -173,6 +225,7 @@ async function work() {
     } catch (err) {
       console.error(err.message);
     }
+    if (gcTimeouts >= MAX_GC_TIMEOUTS) stop(`the Game Coordinator did not answer ${gcTimeouts} requests in a row`);
     await sleep(GAP_MS);
   }
 }
@@ -259,4 +312,5 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
   logOn();
   work();
   chatLoop();
+  setInterval(watchdog, 30000);
 }
