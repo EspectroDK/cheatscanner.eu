@@ -43,6 +43,13 @@ account's mobile authenticator). After that, a refresh token is kept in `FETCHER
 | `FETCHER_IDLE_SECONDS` | `30` | Wait when the queue is empty |
 | `FETCHER_GAP_SECONDS` | `5` | Pause between Game Coordinator requests |
 | `FETCHER_CHAT_SECONDS` | `15` | How often to check for Steam chat messages to send |
+| `FETCHER_STUCK_MINUTES` | `10` | Exit (Docker restarts it) after this long without a Game Coordinator session or API answer |
+
+If the bot loses its Game Coordinator session and doesn't get it back (Steam maintenance, the account
+logged in elsewhere), or the Game Coordinator stops answering three requests in a row, the fetcher exits
+and Docker starts a fresh one, which logs in again with the saved token. It doesn't do that while Steam
+wants a Steam Guard code it can't answer: it logs what to do instead (log in by hand once, or set
+`STEAM_BOT_SHARED_SECRET`).
 
 A match whose demo Valve has already deleted (after a few weeks) is reported as expired; a timeout
 goes back to the queue and is retried up to three times.
