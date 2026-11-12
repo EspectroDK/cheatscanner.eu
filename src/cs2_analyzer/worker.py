@@ -197,6 +197,8 @@ class AnalysisWorker:
                     self._clips_failed(job, msg)
                 else:
                     self._fail(job, msg, "analysis failed: worker stopped repeatedly")
+                    if not job["keepDemo"]:
+                        self._drop_failed_demo(Path(job["path"]))
                 return
             if job.get("takenOver"):
                 log.warning("job %s (%s): its worker stopped sending heartbeats; analyzing it again", jid, job["file"])
@@ -293,6 +295,8 @@ class AnalysisWorker:
             log.error("analysis of %s failed", path.name, exc_info=exc)
             self._fail(job, f"{type(exc).__name__}: {exc}", f"analysis failed: {type(exc).__name__}",
                        trace=traceback.format_exc()[-2000:])
+            if not job["keepDemo"]:
+                self._drop_failed_demo(path)
             return
 
         mid = res.meta.match_id
@@ -406,6 +410,32 @@ class AnalysisWorker:
     def _fail(self, job: dict, error: str, share_error: str, trace: str | None = None) -> None:
         self.db.finish_analysis_job(job["jobId"], "FAILED", error=error[:4000], trace=trace)
         self._share_code_done(job, "FAILED", None, share_error)
+
+    def _drop_failed_demo(self, path: Path) -> None:
+        """A failed analysis must not leave its demo in the upload folder for good.
+
+        The pipeline already handles failures after parsing; this covers the rest (unreadable or corrupt
+        demo, database errors before the analysis starts, a full disk). Kept under
+        ``retention.retained_demo_dir`` when ``retention.keep_failed_demos`` is on (only the newest
+        ``retention.max_retained_demos``), otherwise deleted.
+        """
+        if not path.exists():
+            return
+        try:
+            if self.config.get("retention.keep_failed_demos", True):
+                dst = Path(self.config.get("retention.retained_demo_dir", "./data/retained_demos"))
+                dst.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(path), str(dst / path.name))
+                # Only the newest few are kept for debugging, so failures can never fill the disk.
+                keep = int(self.config.get("retention.max_retained_demos", 10))
+                kept = sorted(dst.glob("*.dem"), key=lambda p: p.stat().st_mtime, reverse=True)
+                for old in kept[max(keep, 0):]:
+                    old.unlink(missing_ok=True)
+            else:
+                path.unlink(missing_ok=True)
+        except OSError:
+            log.warning("could not move the failed demo %s away; deleting it", path.name, exc_info=True)
+            path.unlink(missing_ok=True)
 
     def _share_code_done(self, job: dict, status: str, match_id: str | None, error: str | None) -> None:
         if job.get("shareCode"):

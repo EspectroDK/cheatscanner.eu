@@ -21,6 +21,7 @@ parquet_dir = "./data/work"
 keep_demos = false
 keep_failed_demos = true
 retained_demo_dir = "./data/retained_demos"
+max_retained_demos = 10         # only the newest failed demos are kept, so failures never fill the disk
 
 [geometry]
 maps_dir = "./data/maps"

@@ -280,3 +280,33 @@ def test_a_paused_worker_finishes_its_demo_but_takes_no_new_one(config, db, tmp_
     old = time.time() - 3600
     os.utime(pause, (old, old))
     assert not w.paused()
+
+
+def test_a_failed_analysis_does_not_leave_its_demo_in_the_upload_folder(config, db, tmp_path, monkeypatch):
+    """Failures before the pipeline's own cleanup (corrupt demo, database error, full disk) used to keep the
+    demo in data/work/uploads for good; on the server that grew to 14 GB and helped fill the disk."""
+    import cs2_analyzer.pipeline as pipeline
+
+    def broken(path, *a, **kw):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(pipeline, "analyze_demo", broken)
+    retained = tmp_path / "retained"
+    config = config.with_overrides({"retention": {"keep_failed_demos": True, "retained_demo_dir": str(retained),
+                                                  "max_retained_demos": 2}})
+    uploads = tmp_path / "uploads"
+    uploads.mkdir()
+    for n in range(4):
+        demo = _demo(uploads, f"{n}.dem")
+        jid = db.enqueue_analysis("upload", demo)["jobId"]
+        _worker(config, db, "w1").process(db.claim_analysis_job("w1", STALE))
+        assert db.get_analysis_job(jid)["status"] == "FAILED"
+        assert not demo.exists()
+        os.utime(retained / f"{n}.dem", (1000 + n, 1000 + n))
+    assert sorted(p.name for p in retained.iterdir()) == ["2.dem", "3.dem"]   # only the newest are kept
+
+    off = config.with_overrides({"retention": {"keep_failed_demos": False}})
+    demo = _demo(uploads, "gone.dem")
+    db.enqueue_analysis("upload", demo)
+    _worker(off, db, "w1").process(db.claim_analysis_job("w1", STALE))
+    assert not demo.exists() and not (retained / "gone.dem").exists()
