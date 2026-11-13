@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from cs2_analyzer.api.app import create_app
 from cs2_analyzer.storage import models as M, stats
 from cs2_analyzer.storage.repository import Database
-from test_access import ENEMY, ME, MATE, _seed
+from test_access import ENEMY, ME, MATE, STRANGER, _seed
 from test_auth import PUBLIC, FakeSteam
 from test_companion import _link, _sign_in
 
@@ -178,3 +178,34 @@ def test_signups_per_hour(config, tmp_path):
     assert hours[-1] == {"hour": "2026-10-10T06:00:00+00:00", "count": 2}
     assert hours[-3] == {"hour": "2026-10-10T04:00:00+00:00", "count": 1}
     assert sum(h["count"] for h in hours) == 4
+
+
+def test_admin_player_lists_behind_the_class_counts(config, tmp_path):
+    c, db = _client(config, tmp_path)
+    with db.session() as s:
+        s.get(M.PlayerAssessment, ENEMY).classification = "VERY_HIGH"
+        s.get(M.PlayerAssessment, STRANGER).classification = "ELEVATED"
+        s.get(M.PlayerMatchAssessment, (MATE, "m1")).classification = "HIGH"      # HIGH in one match, NORMAL overall
+        s.get(M.PlayerMatchAssessment, (STRANGER, "m2")).classification = "ELEVATED"
+        s.get(M.PlayerMatchAssessment, (STRANGER, "m2")).evidence_event_count = 2
+    assert c.get("/admin/players", params={"class": "HIGH"}).status_code == 404     # not signed in
+    _sign_in(c, MATE)
+    assert c.get("/admin/players", params={"class": "HIGH"}).status_code == 404     # not an admin
+    c.cookies.clear()
+    _sign_in(c, ME)
+
+    def sids(cls, by):
+        r = c.get("/admin/players", params={"class": cls, "by": by})
+        assert r.status_code == 200
+        return [p["steamId"] for p in r.json()["players"]]
+
+    o = c.get("/admin/overview").json()["players"]
+    assert sids("HIGH", "overall") == [str(ENEMY)] and o["byClass"]["HIGH"] == 1
+    assert sids("ELEVATED", "overall") == [str(STRANGER)] and o["byClass"]["ELEVATED"] == 1
+    assert sids("HIGH", "match") == [str(MATE)] and o["byHighestMatchClass"]["HIGH"] == 1
+    assert sids("ELEVATED", "match") == [str(STRANGER)] and o["byHighestMatchClass"]["ELEVATED"] == 1
+    p = c.get("/admin/players", params={"class": "elevated", "by": "match"}).json()["players"][0]
+    assert p["matches"] == 2 and p["raisedMatches"] == 1 and p["evidenceEvents"] == 2
+    assert p["overallClass"] == "ELEVATED" and p["highestMatchClass"] == "ELEVATED" and p["isUser"] is False
+    assert c.get("/admin/players", params={"class": "NORMAL"}).status_code == 400
+    assert c.get("/admin/players", params={"class": "HIGH", "by": "x"}).status_code == 400

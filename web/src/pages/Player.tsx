@@ -66,6 +66,13 @@ export function PlayerPage() {
         <ClassBadge value={a?.classification} size="lg" />
       </div>
 
+      {p.adminAccess && (
+        <p className="notice admin-access">
+          <strong>Admin access.</strong> You haven't played with or against this player, so only your admin rights let
+          you see this page. Every analyzed match of theirs is listed and can be opened.
+        </p>
+      )}
+
       <div className="stat-grid">
         <div className="stat"><div className="label">Matches analyzed</div><div className="value">{a?.matchesAnalyzed ?? p.matchesAnalyzed}</div></div>
         <div className="stat"><div className="label">Matches with strong evidence</div><div className="value">{a?.highSeverityMatches ?? 0}</div></div>
@@ -104,7 +111,7 @@ export function PlayerPage() {
       </p>
       {!timeline.data ? <Loading error={timeline.error} /> : <Timeline points={timeline.data} />}
 
-      <h2>{self ? "Your matches" : "Matches you played together"}</h2>
+      <h2>{self ? "Your matches" : p.allMatches ? "All analyzed matches" : "Matches you played together"}</h2>
       {!matches.data ? (
         <Loading error={matches.error} />
       ) : (

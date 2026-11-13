@@ -398,19 +398,36 @@ def test_admin_opens_any_match_and_the_page_says_so(config, tmp_path):
     assert c.get("/matches/m1").json()["adminAccess"] is False      # own match: normal access
     m2 = c.get("/matches/m2").json()
     assert m2["adminAccess"] is True
-    assert all(p["visible"] and p["assessment"] and p["linkable"] is False for p in m2["players"])
+    assert all(p["visible"] and p["assessment"] and p["linkable"] is True for p in m2["players"])
     ev = c.get("/matches/m2/evidence").json()
     assert {e["steamId"] for e in ev} == {str(STRANGER), str(STRANGER2)}
     assert all(e["matchVisible"] and e["matchId"] == "m2" for e in ev)
     assert c.post("/matches/m2/shares").status_code == 404           # admin access doesn't extend to sharing
-    assert c.get(f"/players/{STRANGER}").status_code == 404          # nor to player pages
     assert c.get("/evidence/m2-%d/clip" % STRANGER).status_code == 404  # no file, but past the access check
     assert c.get("/evidence/m2-%d/clip" % STRANGER).json()["detail"] == "no file for this event"
+
+
+def test_admin_opens_any_player_page_with_every_match(config, tmp_path):
+    c, _ = _signed_in(config, tmp_path, admins=(ME,))
+    mate = c.get(f"/players/{MATE}").json()
+    assert mate["adminAccess"] is False and mate["allMatches"] is True      # met normally
+    p = c.get(f"/players/{STRANGER}").json()
+    assert p["adminAccess"] is True and p["allMatches"] is True
+    assert {m["matchId"] for m in c.get(f"/players/{STRANGER}/matches").json()} == {"m2", "m3"}
+    assert all(r["matchVisible"] and r["matchId"] for r in c.get(f"/players/{STRANGER}/timeline").json())
+    ev = c.get(f"/players/{STRANGER}/evidence").json()
+    assert ev and all(e["matchVisible"] and e["matchId"] for e in ev)
+    # The overlay keeps the normal rule: admin access is for the website's pages only.
+    assert c.get(f"/risk/{STRANGER}").status_code == 404
 
 
 def test_non_admin_and_app_token_get_no_admin_access(config, tmp_path):
     c, db = _signed_in(config, tmp_path)
     assert c.get("/matches/m2").status_code == 404
+    assert c.get(f"/players/{STRANGER}").status_code == 404
+    assert c.get(f"/players/{STRANGER}/matches").status_code == 404
+    mate = c.get(f"/players/{MATE}").json()
+    assert mate["adminAccess"] is False and mate["allMatches"] is False
     c, db = _signed_in(config, tmp_path / "admin", admins=(ME,))
     raw, _ = db.create_token(c.get("/me").json()["id"], "api")
     app_client = TestClient(c.app)

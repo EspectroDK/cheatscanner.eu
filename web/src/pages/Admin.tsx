@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link, NavLink, useParams } from "react-router-dom";
 import { api, type AdminOverview } from "../api";
-import { ago, ClassBadge, Loading, useLoad } from "../ui";
+import { ago, ClassBadge, Loading, pct, useLoad } from "../ui";
 
 const REFRESH_MS = 15_000;
 
@@ -22,6 +23,12 @@ function Stat({ label, value, sub, tone }: { label: string; value: string | numb
       {sub && <div className="muted small">{sub}</div>}
     </div>
   );
+}
+
+/** An Elevated or High count opens the list of those players; the other classes are too many to list. */
+function Count({ cls, by, value }: { cls: string; by: "overall" | "match"; value: number }) {
+  if (!value || (cls !== "ELEVATED" && cls !== "HIGH")) return <>{n(value)}</>;
+  return <Link to={`/admin/players/${by}/${cls.toLowerCase()}`} title="Show these players">{n(value)}</Link>;
 }
 
 /** Matches analyzed per day, last 14 days. One series, so no legend; hover shows the day and count. */
@@ -222,8 +229,8 @@ export function Admin() {
               {(["NORMAL", "ELEVATED", "HIGH", "INSUFFICIENT_DATA"] as const).map((c) => (
                 <tr key={c}>
                   <td><ClassBadge value={c} /></td>
-                  <td className="num-col">{n(o.players.byClass[c])}</td>
-                  <td className="num-col">{n(o.players.byHighestMatchClass[c])}</td>
+                  <td className="num-col"><Count cls={c} by="overall" value={o.players.byClass[c]} /></td>
+                  <td className="num-col"><Count cls={c} by="match" value={o.players.byHighestMatchClass[c]} /></td>
                 </tr>
               ))}
             </tbody>
@@ -315,6 +322,76 @@ export function Admin() {
         and matches without a match time from Valve ({n(o.speed.gameEndToAnalyzedSeconds.skipped.noMatchTime)}).
         "Non-users" are players in analyzed matches who never signed in to this site.
       </p>
+    </>
+  );
+}
+
+const PLAYER_LISTS = [
+  { by: "overall", cls: "high", label: "High overall" },
+  { by: "overall", cls: "elevated", label: "Elevated overall" },
+  { by: "match", cls: "high", label: "High in a match" },
+  { by: "match", cls: "elevated", label: "Elevated in a match" },
+] as const;
+
+/** Admin: the players behind an Elevated or High count of "Players by class", each linking to their player page. */
+export function AdminPlayers() {
+  const { by = "overall", cls = "high" } = useParams();
+  const list = useLoad(() => api.adminPlayers(cls, by), [cls, by]);
+  const d = list.data;
+  return (
+    <>
+      <p className="muted small"><Link to="/admin">← Administration</Link></p>
+      <h1>Players by class</h1>
+      <nav className="admin-tabs" aria-label="Player lists">
+        {PLAYER_LISTS.map((t) => (
+          <NavLink key={`${t.by}/${t.cls}`} to={`/admin/players/${t.by}/${t.cls}`}>{t.label}</NavLink>
+        ))}
+      </nav>
+      <p className="muted small">
+        {by === "match"
+          ? "Each player once, at their highest class in any single analyzed match. One unusual match doesn't change the overall class."
+          : "The class from each player's whole history. The play pattern only counts from 2 matches on."}{" "}
+        Strongest first. A name opens the player page with every analyzed match.
+      </p>
+      {!d ? (
+        <Loading error={list.error} />
+      ) : (
+        <>
+          {d.total > d.players.length && (
+            <p className="muted small">Showing the strongest {n(d.players.length)} of {n(d.total)} players.</p>
+          )}
+          <div className="card-table table-wrap"><table>
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Overall</th>
+                <th>Highest in a match</th>
+                <th className="num-col" title="Analyzed matches, and how many of them were rated Elevated or High">Matches</th>
+                <th className="num-col">Events</th>
+                <th className="num-col" title="History evidence score">Score</th>
+                <th>Last match</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.players.length === 0 && <tr><td className="muted" colSpan={7}>No players in this class</td></tr>}
+              {d.players.map((p) => (
+                <tr key={p.steamId}>
+                  <td>
+                    <Link to={`/players/${p.steamId}`}>{p.name ?? p.steamId}</Link>
+                    {p.isUser && <span className="muted small" title="Has signed in to the site"> user</span>}
+                  </td>
+                  <td><ClassBadge value={p.overallClass} /></td>
+                  <td><ClassBadge value={p.highestMatchClass} /></td>
+                  <td className="num-col">{n(p.matches)}{p.raisedMatches > 0 && <span className="muted small"> ({n(p.raisedMatches)} raised)</span>}</td>
+                  <td className="num-col">{n(p.evidenceEvents)}</td>
+                  <td className="num-col">{pct(p.evidenceScore)}</td>
+                  <td>{ago(p.lastMatchAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </>
+      )}
     </>
   );
 }

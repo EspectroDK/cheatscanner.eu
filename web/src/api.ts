@@ -157,6 +157,10 @@ export interface Player {
   steamId: string;
   lastKnownName: string | null;
   matchesAnalyzed: number;
+  /** Opened only through admin access: the admin hasn't played with or against this player. */
+  adminAccess?: boolean;
+  /** The match list holds every analyzed match of the player (admins), not only the ones played together. */
+  allMatches?: boolean;
   bans?: SteamBans | null;
   assessment: {
     classification: Classification;
@@ -288,6 +292,28 @@ export interface SiteStats {
 }
 
 type Summary = { count: number; median: number | null; p90: number | null; mean: number | null };
+
+/** GET /admin/players: the players behind an Elevated or High count of "Players by class". */
+export interface AdminPlayers {
+  class: "ELEVATED" | "HIGH";
+  by: "overall" | "match";
+  /** All matching players; at most 500 are listed. */
+  total: number;
+  players: {
+    steamId: string;
+    name: string | null;
+    overallClass: Classification | null;
+    highestMatchClass: Classification;
+    evidenceScore: number | null;
+    matches: number;
+    /** Matches rated Elevated or High. */
+    raisedMatches: number;
+    evidenceEvents: number;
+    lastMatchAt: string | null;
+    /** Has signed in to the site. */
+    isUser: boolean;
+  }[];
+}
 
 /** GET /admin/overview: queue, speed and usage for the admin page. */
 export interface AdminOverview {
@@ -445,6 +471,8 @@ export const api = {
   steamChat: () => call<SteamChat>("/me/steam-chat"),
   setSteamChat: (enabled: boolean) => call<SteamChat>("/me/steam-chat", json("PUT", { enabled })),
   adminOverview: () => call<AdminOverview>("/admin/overview"),
+  adminPlayers: (cls: string, by: string) =>
+    call<AdminPlayers>(`/admin/players?class=${encodeURIComponent(cls)}&by=${encodeURIComponent(by)}`),
   job: (id: string) => call<Job>(`/jobs/${id}`),
   logout: () => fetch("/auth/logout", { method: "POST", credentials: "same-origin" }),
 };

@@ -200,6 +200,15 @@ class Viewer:
         """True when only admin access opens this match for this viewer."""
         return self.admin and not self.can_see_match(match_id)
 
+    def can_open_match(self, match_id: str) -> bool:
+        """The viewer may open this match's page: normal access, or admin access."""
+        return self.admin or self.can_see_match(match_id)
+
+    def admin_only_player(self, steam_id: int) -> bool:
+        """True when only admin access opens this player's page for this viewer. Admin access covers the website's
+        player pages and match lists only: lobby lookups (``can_see_player``) keep the normal rule."""
+        return self.admin and not self.can_see_player(steam_id)
+
     def match_scope(self, db: Database, steam_id: int) -> set[str] | None:
         """Matches whose details about ``steam_id`` this viewer may see (None = all)."""
         if self.unrestricted:
@@ -451,7 +460,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             known = v.can_see_player(int(p["steamId"]))
             p["visible"] = known or as_admin
             if as_admin:
-                p["linkable"] = known
+                p["linkable"] = True   # admin access opens every player page too
             if not p["visible"]:
                 p["assessment"] = None
         if not v.unrestricted:
@@ -481,7 +490,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         rosters = db.match_rosters({e["matchId"] for e in events if e.get("targetSteamId")})
         out = []
         for e in events:
-            visible = e["matchId"] == admin_match or v.can_see_match(e["matchId"])
+            visible = e["matchId"] == admin_match or v.can_open_match(e["matchId"])
             target = e.get("targetSteamId")
             name = rosters.get(e["matchId"], {}).get(int(target), (None, None))[0] if target else None
             e = e | {"targetName": name, "matchVisible": visible}
@@ -617,7 +626,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
 
     def _player_or_404(steam_id: str, v: Viewer) -> int:
         sid = _sid(steam_id)
-        if not v.can_see_player(sid):
+        if not (v.can_see_player(sid) or v.admin):
             raise HTTPException(404, "player not found")
         return sid
 
@@ -627,6 +636,10 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         if p is None:
             raise HTTPException(404, "player not found")
         add_bans([p])
+        sid = int(p["steamId"])
+        p["adminAccess"] = v.admin_only_player(sid)
+        # The match list holds every analyzed match of the player, not only the ones played together.
+        p["allMatches"] = v.unrestricted or v.admin
         if p.get("assessment"):
             # the history cut-off for Elevated, so the "Why this class" panel never hard-codes it
             p["assessment"]["elevatedThreshold"] = float(config.get("history.classification.thresholds", [0.25])[0])
@@ -635,7 +648,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     @app.get("/players/{steam_id}/matches")
     def get_player_matches(steam_id: str, v: Viewer = Depends(viewer), limit: int | None = Query(None, ge=1, le=500)):
         sid = _player_or_404(steam_id, v)
-        return db.player_matches(sid, only_match_ids=v.match_scope(db, sid), limit=limit)
+        return db.player_matches(sid, only_match_ids=None if v.admin else v.match_scope(db, sid), limit=limit)
 
     @app.get("/players/{steam_id}/evidence")
     def get_player_evidence(steam_id: str, limit: int = 100, v: Viewer = Depends(viewer)):
@@ -648,7 +661,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
         sid = _player_or_404(steam_id, v)
         rows = db.player_timeline(sid)
         for r in rows:
-            r["matchVisible"] = v.can_see_match(r["matchId"])
+            r["matchVisible"] = v.can_open_match(r["matchId"])
             if not r["matchVisible"]:
                 r["matchId"] = None
         return rows
@@ -689,7 +702,7 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
                     while len(pattern_cache) > 256:
                         pattern_cache.popitem(last=False)
         for r in rows:
-            r["matchVisible"] = v.can_see_match(r["matchId"])
+            r["matchVisible"] = v.can_open_match(r["matchId"])
             if not r["matchVisible"]:
                 r["matchId"] = None
         return {"matches": rows, "features": features,

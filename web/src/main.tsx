@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type MatchAccess, type User } from "./api";
-import { Admin } from "./pages/Admin";
+import { Admin, AdminPlayers } from "./pages/Admin";
 import { LinkApp, pendingLink, rememberPendingLink } from "./pages/Link";
 import { MatchPage, SharedMatchPage } from "./pages/Match";
 import { MyMatches } from "./pages/MyMatches";
@@ -96,6 +96,7 @@ function App() {
           <Route path="/upload" element={<Upload />} />
           <Route path="/settings" element={<Settings />} />
           {user.isAdmin && <Route path="/admin" element={<Admin />} />}
+          {user.isAdmin && <Route path="/admin/players/:by/:cls" element={<AdminPlayers />} />}
           <Route path="/privacy" element={<Privacy signedIn />} />
           <Route path="/how-it-works" element={<DocPage doc="howItWorks" signedIn />} />
           <Route path="/credits" element={<DocPage doc="credits" signedIn />} />
