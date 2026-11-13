@@ -311,3 +311,54 @@ def recent_demo_patches(db: Database, since: datetime) -> dict[str, int]:
             if m and p.isdigit():
                 out[m] = max(out.get(m, 0), int(p))
     return out
+
+
+ADMIN_PLAYER_CLASSES = {"ELEVATED": ("ELEVATED",), "HIGH": ("HIGH", "VERY_HIGH")}
+ADMIN_PLAYERS_LIMIT = 500
+
+
+def admin_players(db: Database, cls: str, by: str = "overall", limit: int = ADMIN_PLAYERS_LIMIT) -> dict:
+    """Players behind one count of the admin "Players by class" table (``GET /admin/players``).
+
+    ``by="overall"``: the class from the player's whole history (``player_assessments``).
+    ``by="match"``: each player once, at their highest class in any single analyzed match.
+    Strongest first: highest class in a match, then the history score, then the newest match.
+    """
+    wanted = ADMIN_PLAYER_CLASSES[cls]
+    rank = case((M.PlayerMatchAssessment.classification.in_(("HIGH", "VERY_HIGH")), 3),
+                (M.PlayerMatchAssessment.classification == "ELEVATED", 2),
+                (M.PlayerMatchAssessment.classification == "NORMAL", 1), else_=0)
+    raised = case((M.PlayerMatchAssessment.classification.in_(("ELEVATED", "HIGH", "VERY_HIGH")), 1), else_=0)
+    per_player = (select(M.PlayerMatchAssessment.steam_id.label("sid"),
+                         func.max(rank).label("r"),
+                         func.count().label("matches"),
+                         func.sum(raised).label("raised"),
+                         func.sum(M.PlayerMatchAssessment.evidence_event_count).label("events"),
+                         func.max(func.coalesce(M.Match.played_at, M.Match.processed_at)).label("last"))
+                  .join(M.Match, M.Match.match_id == M.PlayerMatchAssessment.match_id)
+                  .where(M.Match.processing_status == "COMPLETED")
+                  .group_by(M.PlayerMatchAssessment.steam_id).subquery())
+    # From players, so the overall list matches the overview's count even for a player without completed matches.
+    q = (select(M.Player.steam_id.label("player"), per_player, M.Player.last_known_name,
+                M.PlayerAssessment.classification, M.PlayerAssessment.historical_evidence_score, M.User.id)
+         .select_from(M.Player)
+         .outerjoin(per_player, per_player.c.sid == M.Player.steam_id)
+         .outerjoin(M.PlayerAssessment, M.PlayerAssessment.steam_id == M.Player.steam_id)
+         .outerjoin(M.User, M.User.steam_id == M.Player.steam_id))
+    if by == "overall":
+        q = q.where(M.PlayerAssessment.classification.in_(wanted))
+    else:
+        q = q.where(per_player.c.r == (3 if cls == "HIGH" else 2))
+    names = {3: "HIGH", 2: "ELEVATED", 1: "NORMAL"}
+    with db.session() as s:
+        rows = s.execute(q).all()
+    rows.sort(key=lambda r: (-(r.r or 0), -(r.historical_evidence_score or 0.0),
+                             -(_utc(r.last).timestamp() if r.last else 0.0)))
+    players = [{
+        "steamId": str(r.player), "name": r.last_known_name,
+        "overallClass": r.classification, "highestMatchClass": names.get(r.r, "INSUFFICIENT_DATA"),
+        "evidenceScore": r.historical_evidence_score, "matches": int(r.matches or 0),
+        "raisedMatches": int(r.raised or 0), "evidenceEvents": int(r.events or 0),
+        "lastMatchAt": _iso(r.last), "isUser": r.id is not None,
+    } for r in rows[:limit]]
+    return {"class": cls, "by": by, "total": len(rows), "players": players}

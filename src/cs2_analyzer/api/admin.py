@@ -12,11 +12,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from cs2_analyzer.geometry.status import map_status
 from cs2_analyzer.storage.repository import Database
-from cs2_analyzer.storage.stats import admin_overview, recent_demo_patches
+from cs2_analyzer.storage.stats import ADMIN_PLAYER_CLASSES, admin_overview, admin_players, recent_demo_patches
 
 MAP_PATCH_DAYS = 30   # demos this recent decide whether a map's mesh is out of date
 
@@ -46,5 +46,14 @@ def router(db: Database, auth, live_jobs: Callable[[], dict], work_dir: Path,
             out["maps"] = map_status(maps["dir"], maps.get("render_dir"), recent_demo_patches(db, since),
                                      int(maps.get("patch_tolerance", 10)))
         return out
+
+    @r.get("/admin/players")
+    def players(cls: str = Query(..., alias="class"), by: str = Query("overall"), _=Depends(admin)):
+        """Players behind an Elevated or High count of "Players by class": ``by`` is ``overall`` (history class)
+        or ``match`` (highest class in any single match). Each opens the player page with every match."""
+        cls = cls.upper()
+        if cls not in ADMIN_PLAYER_CLASSES or by not in ("overall", "match"):
+            raise HTTPException(400, "class must be ELEVATED or HIGH, by must be overall or match")
+        return admin_players(db, cls, by)
 
     return r

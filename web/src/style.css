@@ -390,6 +390,9 @@ div.signin { margin: 0 auto; padding-top: 4vh; } /* the front page inside the si
 .per-day .fetched { background: var(--accent); }
 .per-day .uploaded { background: var(--ct); }
 .per-day-col.stacked span.uploaded:not(:last-child) { margin-bottom: 1px; }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+.admin-tabs a { padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 0.9rem; text-decoration: none; }
+.admin-tabs a.active { color: var(--text); border-color: var(--accent); background: var(--panel-2); }
 .admin-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 
 /* Play pattern measurements: four columns on wide screens, stacked on phones. */
