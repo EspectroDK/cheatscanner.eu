@@ -141,7 +141,7 @@ def render_clip(result, ev: EvidenceEvent, path: str | Path, cfg: dict) -> Path 
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     writer = imageio_ffmpeg.write_frames(str(path), (W, H), fps=fps, codec="libx264", pix_fmt_out="yuv420p",
-                                         macro_block_size=1, output_params=["-crf", "23"])
+                                         macro_block_size=1, output_params=["-crf", str(int(cfg.get("clip_crf", 28)))])
     writer.send(None)
     poster_saved = False
     try:

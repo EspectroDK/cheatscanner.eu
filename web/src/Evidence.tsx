@@ -148,6 +148,11 @@ export function EvidenceCard({ e, names, showMatch }: { e: EvidenceEvent; names?
         <ClipPlayer src={e.clipUrl} poster={e.posterUrl ?? undefined} />
       ) : e.clipPending ? (
         <div className="clip-missing small muted">The clip for this event is being made and appears here when it is ready.</div>
+      ) : e.clipRemoved ? (
+        <div className="clip-missing small muted">
+          The clip for this event was deleted because it was older than the site keeps clips. The event and its chart
+          stay.
+        </div>
       ) : (
         <div className="clip-missing small muted">
           No video for this event. Clips are made for a match's strongest events, on maps whose geometry we have; at

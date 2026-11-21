@@ -193,6 +193,21 @@ def cmd_queue(args) -> int:
     return 0
 
 
+def cmd_prune_clips(args) -> int:
+    """Delete evidence clips older than retention.clip_max_age_days (or --days); events and charts stay."""
+    from cs2_analyzer.evidence.prune import prune_clips
+
+    cfg = _load_cfg(args)
+    days = args.days if args.days is not None else float(cfg.get("retention.clip_max_age_days", 0))
+    if days <= 0:
+        print("Clip pruning is off (retention.clip_max_age_days / CS2A_CLIP_MAX_AGE_DAYS is 0).")
+        return 0
+    res = prune_clips(cfg.get("output.dir", "./output"), days, dry_run=args.dry_run)
+    verb = "Would delete" if args.dry_run else "Deleted"
+    print(f"{verb} {res.files} clip files older than {days:g} days ({res.bytes / (1 << 30):.1f} GB).")
+    return 0
+
+
 def cmd_maps_fetch(args) -> int:
     import urllib.request
 
@@ -450,6 +465,11 @@ def build_parser() -> argparse.ArgumentParser:
                                        "clipsProcessing", "busy", "workers", "clipWorkers"],
                    help="print only this number")
     q.set_defaults(func=cmd_queue)
+
+    pc = sub.add_parser("prune-clips", help="delete evidence clips older than retention.clip_max_age_days")
+    pc.add_argument("--days", type=float, help="age limit in days (default: from the config)")
+    pc.add_argument("--dry-run", action="store_true", help="only show how much would be deleted")
+    pc.set_defaults(func=cmd_prune_clips)
 
     m = sub.add_parser("maps-fetch", help="download a map collision mesh (.tri)")
     m.add_argument("map")

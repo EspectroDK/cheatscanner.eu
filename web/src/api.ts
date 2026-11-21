@@ -194,6 +194,8 @@ export interface EvidenceEvent {
   clipUrl: string | null;
   /** The clip is still being rendered (the match's results come first, its clips later). */
   clipPending?: boolean;
+  /** The event had a clip, deleted later because it was old (server disk space). */
+  clipRemoved?: boolean;
   /** Still frame of the flagged moment, shown before the clip plays. */
   posterUrl?: string | null;
   plotUrl: string | null;

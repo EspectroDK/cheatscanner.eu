@@ -109,6 +109,9 @@ download_retry_delays_s = [10, 60, 300]   # waits before re-trying a download cu
 keep_demos = false
 keep_failed_demos = true
 retained_demo_dir = "./data/retained_demos"
+# Evidence clips (videos) older than this are deleted by `cs2-analyzer prune-clips` (nightly on the server);
+# events and charts stay. 0 keeps them for good. env CS2A_CLIP_MAX_AGE_DAYS
+clip_max_age_days = 30
 
 [geometry]
 maps_dir = "./data/maps"
@@ -553,6 +556,7 @@ max_clips_per_match = 30         # rendering takes a few seconds per clip; stron
 clip_seconds_before = 6.0
 clip_seconds_after = 4.0
 clip_fps = 24
+clip_crf = 28                    # H.264 quality (lower = better, bigger); 28 is about 45% smaller than 23, same look
 clip_width = 960
 clip_height = 544
 clip_pov_width = 640             # resolution of the 3D view: the size it fills in the 960 px clip (1 rendered pixel per shown pixel)

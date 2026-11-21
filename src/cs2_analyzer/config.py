@@ -105,6 +105,8 @@ class Config:
             data["api"]["workers"] = int(os.environ["CS2A_API_WORKERS"])
         if os.environ.get("CS2A_MIN_FREE_DISK_GB"):
             data["api"]["min_free_disk_gb"] = float(os.environ["CS2A_MIN_FREE_DISK_GB"])
+        if os.environ.get("CS2A_CLIP_MAX_AGE_DAYS"):
+            data.setdefault("retention", {})["clip_max_age_days"] = float(os.environ["CS2A_CLIP_MAX_AGE_DAYS"])
         if os.environ.get("CS2A_ADMIN_STEAM_IDS"):
             data["auth"]["admin_steam_ids"] = [x for x in os.environ["CS2A_ADMIN_STEAM_IDS"].replace(";", ",").replace(" ", ",").split(",") if x]
         if os.environ.get("CS2A_STEAM_API_KEY"):
