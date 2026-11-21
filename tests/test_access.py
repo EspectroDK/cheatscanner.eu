@@ -244,6 +244,16 @@ def test_low_disk_refuses_uploads(config, tmp_path):
     u, _ = _uploader(config, tmp_path, min_free_disk_gb=10 ** 9)
     r = u.post("/matches", files={"file": ("a.dem", b"x")})
     assert r.status_code == 507 and "disk space" in r.json()["detail"]
+    c = u.get("/me/upload-check").json()
+    assert c["ok"] is False and c["status"] == 507 and "disk space" in c["message"]
+
+
+def test_upload_check(config, tmp_path):
+    u, _ = _uploader(config, tmp_path, max_uploads_per_day=1)
+    assert u.get("/me/upload-check").json() == {"ok": True, "status": None, "message": None}
+    assert u.post("/matches", files={"file": ("a.dem", b"not a demo")}).status_code == 202
+    c = u.get("/me/upload-check").json()
+    assert c["ok"] is False and c["status"] == 429 and "1 uploads per 24 hours" in c["message"]
 
 
 def test_one_upload_at_a_time(config, tmp_path):

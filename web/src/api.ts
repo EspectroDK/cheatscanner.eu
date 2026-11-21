@@ -444,6 +444,8 @@ export const api = {
   tokens: () => call<ApiToken[]>("/me/tokens"),
   createToken: (name: string) => call<ApiToken & { token: string }>("/me/tokens", json("POST", { name })),
   revokeToken: (id: number) => call<void>(`/me/tokens/${id}`, { method: "DELETE" }),
+  /** Whether the server would take an upload now (disk space, per-user limits), asked before sending the file. */
+  uploadCheck: () => call<{ ok: boolean; status: number | null; message: string | null }>("/me/upload-check"),
   /** XMLHttpRequest rather than fetch, because only it reports upload progress (``onProgress`` gets 0 to 1). */
   upload: (file: File, onProgress?: (share: number) => void) =>
     new Promise<Job>((resolve, reject) => {
