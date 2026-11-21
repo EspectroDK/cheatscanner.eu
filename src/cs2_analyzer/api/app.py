@@ -249,22 +249,29 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
     min_free = float(config.get("api.min_free_disk_gb", 20)) * (1 << 30)
     receiving: dict[int, int] = {}      # user id -> uploads being received right now
 
-    def admit_upload(request: Request):
-        """Per-user upload limits and the free-disk floor; checked before the body is read."""
+    def upload_refusal(uid: int | None) -> tuple[int, str] | None:
+        """Why an upload would be refused right now (status, message), or None. Call with ``lock`` held."""
         if min_free > 0 and shutil.disk_usage(work_dir).free < min_free:
             return 507, "The server is low on disk space and can't take uploads right now. Try again later."
-        user = auth.current_user(request)
-        if user is None:  # local use without accounts, or a request the endpoint will refuse anyway
+        if uid is None:  # local use without accounts, or a request the endpoint will refuse anyway
             return None
-        uid = user["id"]
+        if receiving.get(uid, 0) >= max_parallel:
+            return 429, "You already have an upload in progress. Wait for it to finish, then upload the next demo."
+        waiting = db.queued_uploads(uid)
+        if waiting >= max_queued:
+            return 429, f"You have {waiting} uploaded demos waiting for analysis. Upload more once they are done."
+        if db.upload_attempts_since(uid, datetime.now(timezone.utc) - timedelta(days=1)) >= max_per_day:
+            return 429, f"You have reached the limit of {max_per_day} uploads per 24 hours. Try again later."
+        return None
+
+    def admit_upload(request: Request):
+        """Per-user upload limits and the free-disk floor; checked before the body is read."""
+        user = auth.current_user(request)
+        uid = user["id"] if user else None
         with lock:
-            if receiving.get(uid, 0) >= max_parallel:
-                return 429, "You already have an upload in progress. Wait for it to finish, then upload the next demo."
-            waiting = db.queued_uploads(uid)
-            if waiting >= max_queued:
-                return 429, f"You have {waiting} uploaded demos waiting for analysis. Upload more once they are done."
-            if db.upload_attempts_since(uid, datetime.now(timezone.utc) - timedelta(days=1)) >= max_per_day:
-                return 429, f"You have reached the limit of {max_per_day} uploads per 24 hours. Try again later."
+            refusal = upload_refusal(uid)
+            if refusal or uid is None:
+                return refusal
             receiving[uid] = receiving.get(uid, 0) + 1
         db.record_upload_attempt(uid)
 
@@ -389,6 +396,15 @@ def create_app(config: Config | None = None, db_url: str | None = None, steam_ht
             raise HTTPException(404, "The app is not available for download yet.")
         return FileResponse(inst[0], media_type="application/vnd.microsoft.portable-executable", filename=inst[0].name,
                             headers={"Cache-Control": "no-cache"})
+
+    @app.get("/me/upload-check")
+    def upload_check(v: Viewer = Depends(viewer)):
+        """Whether an upload would be accepted right now. The website asks this before sending a demo: a refusal
+        sent while the browser is still sending the file often never reaches the page, which then sits at 0%."""
+        with lock:
+            refusal = upload_refusal(v.user["id"] if v.user else None)
+        return {"ok": refusal is None, "status": refusal[0] if refusal else None,
+                "message": refusal[1] if refusal else None}
 
     @app.post("/matches", status_code=202)
     async def post_match(file: UploadFile = File(...), force: bool = False, matchId: str | None = None,

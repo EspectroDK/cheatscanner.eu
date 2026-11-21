@@ -57,6 +57,8 @@ services:
       CS2A_MAX_UPLOADS_PER_DAY: ${CS2A_MAX_UPLOADS_PER_DAY:-}
       CS2A_MAX_QUEUED_UPLOADS: ${CS2A_MAX_QUEUED_UPLOADS:-}
       CS2A_MIN_FREE_DISK_GB: ${CS2A_MIN_FREE_DISK_GB:-}
+      # Evidence clips older than this many days are deleted nightly (default 30; 0 keeps them).
+      CS2A_CLIP_MAX_AGE_DAYS: ${CS2A_CLIP_MAX_AGE_DAYS:-}
       # Analysis threads inside the API (default 1). 0 when the worker service below does the analysis.
       CS2A_API_WORKERS: ${CS2A_API_WORKERS:-}
     volumes:

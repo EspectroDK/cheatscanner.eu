@@ -78,4 +78,8 @@ docker compose exec -T api cs2-analyzer map-images || echo "Note: some map scree
 job="17 3 * * * $PWD/deploy/backup.sh >> $PWD/backups/backup.log 2>&1"
 (crontab -l 2>/dev/null | grep -v 'deploy/backup.sh' || true; echo "$job") | crontab -
 
+# Nightly: delete evidence clips older than CS2A_CLIP_MAX_AGE_DAYS (default 30) so the disk doesn't fill up.
+job="47 3 * * * cd $PWD && docker compose exec -T api cs2-analyzer prune-clips >> $PWD/backups/prune-clips.log 2>&1"
+(crontab -l 2>/dev/null | grep -v 'prune-clips' || true; echo "$job") | crontab -
+
 echo "Deployed $(cat .deployed-commit 2>/dev/null || echo 'unknown commit')."

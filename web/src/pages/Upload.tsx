@@ -35,6 +35,13 @@ export function Upload() {
     setJob(null);
     setSent(0);
     try {
+      // Ask first: a refusal sent while the browser is still sending the file often never reaches the page,
+      // which would then sit at 0% for good.
+      const check = await api.uploadCheck();
+      if (!check.ok) {
+        setError(check.message ?? "The server can't take uploads right now. Try again later.");
+        return;
+      }
       setJob(await api.upload(file, setSent));
     } catch (e) {
       setError((e as Error).message);

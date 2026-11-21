@@ -1403,6 +1403,8 @@ def _event(e, clips_pending: set[str] = frozenset()) -> dict:
             "posterUrl": f"/evidence/{e.id}/poster" if _is_file(e.video_path) and _is_file(_poster(e.video_path)) else None,
             "plotUrl": f"/evidence/{e.id}/plot" if _is_file(e.debug_plot_path) else None,
             "clipPending": e.id in clips_pending and not _is_file(e.video_path),
+            # had a clip, deleted later as too old (retention.clip_max_age_days)
+            "clipRemoved": bool(e.video_path) and not _is_file(e.video_path) and e.id not in clips_pending,
             "createdAt": _iso(e.created_at)}
 
 
